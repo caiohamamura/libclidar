@@ -78,7 +78,27 @@ typedef struct{
 
   /*waveform*/
   unsigned char *wave;
+
+  /*GBIC for instruments with variable gain*/
+  int gbLen;            /*array length*/
+  float *gbic;          /*array of gain factors*/
+  float flightBal;      /*balance factor between flights*/
 }lasFile;
+
+
+/*###########################################*/
+/*list of las files, set up for Leica specific ALS information*/
+
+typedef struct{
+  int nFiles;       /*number of files*/
+  char **nameList;  /*file names*/
+  char **gbicNamen; /*GBIC input*/
+  float *flightBal; /*intensity balance between flights*/
+
+  /*only for use with TLS files*/
+  double **scanCent;    /*scan centres*/
+  double **align;   /*translation to align non-geolocated files*/
+}listLas;
 
 
 /*the end*/

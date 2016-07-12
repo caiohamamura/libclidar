@@ -23,7 +23,7 @@ typedef struct{
   int maxIter;       /*maximum number of iterations*/
   double deChang;    /*change between decon iterations to stop*/
   char deconMeth;    /*deconvolution method*/
-  char pNamen[200];  /*pulse filename*/
+  char pNamen[400];  /*pulse filename*/
   float **pulse;     /*pulse to deconvolve by*/
   int pBins;         /*number of pulse bins*/
   float res;         /*waveform resolution*/
@@ -37,6 +37,10 @@ typedef struct{
   float minGsig;     /*minimum Gaussian width to fit*/
 
   /*Gaussians to identify hard targets*/
+  char matchHard;    /*match check hard targets*/
+  float hardThresh;  /*minimum match*/
+  float *matchPulse; /*match filtered pulse to compare*/
+  /*OLD*/
   char gaussFilt;    /*switch*/
   float hardWidth;   /*maxWidth of hard feature*/
   float hardTol;     /*tolerance to scale width by*/

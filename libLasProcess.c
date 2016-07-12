@@ -23,114 +23,14 @@
 float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
 {
   int i=0;
-  float *temp=NULL;
-  float *mediated=NULL;
-  float *preSmoothed=NULL;
-  float *denoised=NULL;
-  float *smoothed=NULL;
-  float *processed=NULL;
-  float *denoise(float,float,int,int,float *,float,char);
-  float *medianFloat(float *,int,int);
-  float *deconvolve(float *,int,float **,int,float,int,double,char);
-  float thisTail=0;        /*tail threshold to use here*/
-  float *gaussWave=NULL;
-  float *fitGaussians(float *,int,denPar *);
-  float *hardHitWave(denPar *,int);
-  void medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
-  void meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
-  char checkHardEnergy(int *,float *,float);
-  char hardTarget=0;
-
+  float *temp=NULL,*processed=NULL;
+  float *processFloWave(float *,int,denPar *,float);
 
   /*convert to a float array for ease*/
   temp=falloc(waveLen,"presmoothed",0);
   for(i=0;i<waveLen;i++)temp[i]=(float)wave[i];
-
-
-  /*determine noise statistics*/
-  if(decon->varNoise){
-    if(decon->medStats)medNoiseStats(temp,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,decon->bitRate);    
-    else               meanNoiseStats(temp,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res));
-  }else               thisTail=decon->tailThresh;
-  if(thisTail<0)thisTail=decon->thresh;
-
-
-  /*median filter if needed*/
-  if(decon->medLen>0){
-    mediated=medianFloat(temp,decon->medLen,waveLen);
-    TIDY(temp);
-  }else{
-    mediated=temp;
-    temp=NULL;
-  }
-
-  /*smooth before denoising*/
-  if(decon->psWidth>0.0){
-    preSmoothed=smooth(decon->psWidth,waveLen,mediated,decon->res);
-    TIDY(mediated);
-  }else{
-    preSmoothed=mediated;
-    mediated=NULL;
-  }
-
-  /*remove background noise*/
-  if((decon->meanN>0.0)||(decon->thresh>0.0)){
-    denoised=denoise(decon->meanN,decon->thresh,decon->minWidth,waveLen,preSmoothed,thisTail,decon->noiseTrack);
-    TIDY(preSmoothed);
-  }else{
-    denoised=preSmoothed;
-    preSmoothed=NULL;
-  }
-
-  /*smooth if required. Note that pulse is smoothed in readPulse()*/
-  if(decon->sWidth>0.0){
-    smoothed=smooth(decon->sWidth,waveLen,denoised,decon->res);
-    TIDY(denoised);
-  }else{
-    smoothed=denoised;
-    denoised=NULL;
-  }
-
-  /*scale by GBIC*/
-  if((gbic>0.0)&&(gbic!=1.0))for(i=0;i<waveLen;i++)smoothed[i]/=gbic;
-
-
-  /*Gaussian fitting*/
-  if(decon->fitGauss||decon->gaussFilt){
-    gaussWave=fitGaussians(smoothed,waveLen,decon);
-    /*test for hard target*/
-    if(decon->gaussFilt){
-      if((decon->nGauss==1)&&(decon->gPar[2]<=decon->hardWidth))hardTarget=1;
-      else hardTarget=checkHardEnergy(&decon->nGauss,decon->gPar,decon->hardWidth);
-    }else hardTarget=0;
-
-    /*copy Gaussian if to be used*/
-    if(hardTarget){ /*single hit*/
-      TIDY(gaussWave);
-      TIDY(smoothed);
-      gaussWave=hardHitWave(decon,waveLen);
-    }else if(decon->fitGauss){ /*pass on Gaussian waveform*/
-      TIDY(smoothed);
-    }else{                /*delete fitting and pass original*/
-      TIDY(gaussWave);
-      gaussWave=smoothed;
-      smoothed=NULL;
-    }
-  }else{   /*don't fit Gaussians*/
-    gaussWave=smoothed;
-    smoothed=NULL;
-    hardTarget=0;
-  }
-
-  /*deconvolve if required*/
-  if((decon->deconMeth>=0)&&(hardTarget==0)){
-    processed=deconvolve(gaussWave,waveLen,decon->pulse,decon->pBins,\
-                  decon->res,decon->maxIter,decon->deChang,decon->deconMeth);
-    TIDY(gaussWave);
-  }else{
-    processed=gaussWave;    /*otherwise just use the denoised array*/
-    gaussWave=NULL;
-  }
+  processed=processFloWave(temp,waveLen,decon,gbic);
+  TIDY(temp);
 
   return(processed);
 }/*processWave*/
@@ -154,12 +54,14 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   float thisTail=0;        /*tail threshold to use here*/
   float *gaussWave=NULL;
   float *fitGaussians(float *,int,denPar *);
+  float *CofGhard(float *,uint32_t);
   float *hardHitWave(denPar *,int);
   float *sampled=NULL;
   float *digitise(float *,int,char);
   void medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
   void meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
   char checkHardEnergy(int *,float *,float);
+  char testHard(denPar *,float *,int,float);
   char hardTarget=0;
 
 
@@ -203,6 +105,15 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else{
     denoised=preSmoothed;
     preSmoothed=NULL;
+  }
+
+  /*see if it a single return*/
+  if(decon->matchHard)hardTarget=testHard(decon,denoised,waveLen,decon->res);
+  else                hardTarget=0;
+  if(hardTarget){  /*bunch up the energy*/
+    processed=CofGhard(denoised,waveLen);
+    TIDY(denoised);
+    return(processed);
   }
 
   /*smooth if required. Note that pulse is smoothed in readPulse()*/
@@ -257,6 +168,176 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
 
   return(processed);
 }/*processFloWave*/
+
+
+/*################################################*/
+/*if hard target, replace with CofG*/
+
+float *CofGhard(float *denoised,uint32_t waveLen)
+{
+  uint32_t i=0,bin=0;
+  float *wave=NULL;
+  float CofG=0,contN=0;
+
+  wave=falloc(waveLen,"CofG wave",0);
+  for(i=0;i<waveLen;i++)wave[i]=0.0;
+
+  CofG=contN=0.0;
+  for(i=0;i<waveLen;i++){
+    CofG+=denoised[i]*(float)i;
+    contN+=denoised[i];
+  }
+
+  if(contN>0.0){
+    CofG/=contN;
+    bin=(int)CofG;
+    wave[bin]=contN;
+  }
+
+  return(wave);
+}/*CofGhard*/
+
+
+/*################################################*/
+/*test correlation*/
+
+char testHard(denPar *denoise,float *floWave,int nBins,float res)
+{
+  int maxPulse=0,maxWave=0;
+  int nFeat=0;
+  int countSigFeats(int,float *,float,float);
+  char isHard=0;
+  char checkWidth();
+  float *matchWave=NULL;
+  float *smoothMatchedPulse(int,float *,float,int,float *,float);
+  float pulseE=0,waveE=0;
+  float RMSE=0,pRes=0;
+  float matchRMSE(int,float *,float,int,float,int,float *,float,int,float);
+  void waveStats(int *,float *,int,float *,float);
+
+
+  pRes=denoise->pulse[0][1]-denoise->pulse[0][0];
+
+  /*find peak and energy*/
+  waveStats(&maxWave,&waveE,nBins,floWave,res);
+
+  /*see if there is a single feature*/
+  nFeat=countSigFeats(nBins,floWave,waveE,res);
+
+  if(nFeat==1){
+    /*smooth waveform by pulse*/
+    //matchWave=smoothMatchedPulse(denoise->pBins,denoise->pulse[1],pRes,nBins,floWave,res);
+    matchWave=smooth(0.3,nBins,floWave,0.15);
+
+    /*align both by peak*/
+    waveStats(&maxPulse,&pulseE,denoise->pBins,denoise->pulse[1],pRes);
+
+    /*calculate RMSE*/
+    RMSE=matchRMSE(denoise->pBins,denoise->matchPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
+    TIDY(matchWave);
+
+    /*fprintf(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
+    if(RMSE<=denoise->hardThresh)isHard=1;
+    else                         isHard=0;
+  }else isHard=0;
+
+  return(isHard);
+}/*testHard*/
+
+
+/*#############################*/
+/*RMSE between wave and pulse*/
+
+float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int nBins,float *floWave,float res,int maxWave,float waveE)
+{
+  int i=0,j=0;
+  int sBin=0,eBin=0;
+  float RMSE=0,meanP=0;
+  float eWithout=0,withoutThresh=0;
+
+  withoutThresh=0.1;
+
+  if(pRes>res){
+    fprintf(stderr,"Pulse not sampled well enough\n");
+    exit(1);
+  }
+
+  eWithout=0.0;
+  for(i=0;i<nBins;i++){
+    sBin=(int)(((i-maxWave)*res+maxPulse*pRes)/pRes);
+    eBin=(int)(((i+1-maxWave)*res+maxPulse*pRes)/pRes);
+    if(sBin<0)sBin=0;
+    else if(sBin>pBins)sBin=pBins;
+    if(eBin<0)eBin=0;
+    else if(eBin>pBins)eBin=pBins;
+
+    meanP=0.0;
+    for(j=sBin;j<eBin;j++)meanP+=pulse[j];
+    if((eBin-sBin)>0)meanP*=pRes/((float)(eBin-sBin)*pulseE*res);
+
+    /*fprintf(stdout,"%d %f %f\n",i,meanP,floWave[i]*res/waveE);*/
+    if((meanP>0.0)||(floWave[i]>0.0)){
+      RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
+    }
+    if((meanP<0.001)&&(floWave[i]>0.001))eWithout+=floWave[i]*res/waveE-meanP;
+  }
+
+  if(eWithout>withoutThresh)RMSE=1000.0;    /*significant energy outside*/
+  else if(eWithout<0.01)    RMSE=0.0;       /*small hit*/
+  else                      RMSE=sqrt(RMSE);/*use RMSE*/
+  return(RMSE);
+}/*matchRMSE*/
+
+
+/*#############################*/
+/*count significant features*/
+
+int countSigFeats(int nBins,float *floWave,float waveE,float res)
+{
+  int i=0;
+  int nFeat=0;
+  float thresh=0;
+  float cumul=0;
+  char inFeat=0;
+
+  thresh=waveE*0.002;
+
+  cumul=0.0;
+  nFeat=0;
+  for(i=0;i<nBins;i++){
+    if(floWave[i]>TOL){
+      inFeat=1;
+      cumul+=floWave[i]*res;
+    }else if(floWave[i]<=TOL){
+      if(inFeat&&(cumul>=thresh))nFeat++;
+      cumul=0.0;
+      inFeat=0;
+    }
+  }
+  return(nFeat);
+}/*countSigFeats*/
+
+
+/*#############################*/
+/*find energy and max location*/
+
+void waveStats(int *maxBin,float *E,int nBins,float *wave,float res)
+{
+  int i=0;
+  float max=0;
+
+  (*E)=0.0;
+  max=-1000.0;
+  for(i=0;i<nBins;i++){
+    if(wave[i]>max){
+      max=wave[i];
+      (*maxBin)=i;
+    }
+    (*E)+=wave[i]*res;
+  }
+
+  return;
+}/*waveStats*/
 
 
 /*####################################################*/
@@ -1021,6 +1102,11 @@ void readPulse(denPar *denoise)
     ipoo=NULL;
   }
 
+  /*if we want a matched filter pulse*/
+  if(denoise->matchHard){
+    denoise->matchPulse=smooth(0.3,denoise->pBins,denoise->pulse[1],denoise->pulse[0][1]-denoise->pulse[0][0]);
+  }
+
   /*smooth if required*/
   if(denoise->sWidth>0.0){
     smoothed=smooth(denoise->sWidth,denoise->pBins,&(denoise->pulse[1][0]),denoise->pulse[0][1]-denoise->pulse[0][0]);
@@ -1161,6 +1247,7 @@ char boundsCheck(double x,double y,double z,double *bounds)
      (x<=(bounds[3]))&&(y<=(bounds[4]))&&(z<=(bounds[5])))return(1);
   else                                                    return(0);
 }/*boundsCheck*/
+
 
 /*the end*/
 /*################################################*/

@@ -343,7 +343,7 @@ unsigned char *readLasWave(uint64_t waveMap,int32_t waveLen,FILE *ipoo,uint64_t 
     exit(1);
   }
   return(wave);
-}/*readWaveform*/
+}/*readLasWaveform*/
 
 
 /*##############################################*/
@@ -457,6 +457,201 @@ char checkFileBounds(lasFile *lasIn,double minX,double maxX,double minY,double m
      (lasIn->maxB[0]>=minX)&&(lasIn->maxB[1]>=minY))return(1);
   else                                              return(0);
 }/*checkFileBounds*/
+
+
+/*############################################*/
+/*read GBIC table for Leica instruments*/
+
+void readGBIC(char appGBIC,char balFlights,lasFile *lasIn,listLas *lasList)
+{
+  int i=0,j=0;
+  char line[200];
+  char temp1[100];
+  char temp2[100];
+  FILE *ipoo=NULL;
+
+  for(i=0;i<lasList->nFiles;i++){
+    lasIn[i].gbLen=257;
+    lasIn[i].gbic=falloc(lasIn[i].gbLen,"GBIC",i+1);
+    if(balFlights==0)lasIn[i].flightBal=1.0;
+    else             lasIn[i].flightBal=lasList->flightBal[i];
+    if(appGBIC){  /*open file if needed*/
+      if((ipoo=fopen(lasList->gbicNamen[i],"r"))==NULL){
+        fprintf(stderr,"Error opening GBIC file %s\n",lasList->gbicNamen[i]);
+        exit(1);
+      }
+      while(fgets(line,200,ipoo)!=NULL){
+        if(strncasecmp(line,"#",1)){
+          sscanf(line,"%s %s",temp1,temp2);
+          j=atoi(temp1);
+          if((j>=0)&&(j<lasIn[i].gbLen))lasIn[i].gbic[j]=atof(temp2)/lasIn[i].flightBal;
+        }
+      }/*read names*/
+      if(ipoo){
+        fclose(ipoo);
+        ipoo=NULL;
+      }
+    }else{  /*fill with ones*/
+      for(j=0;j<lasIn[i].gbLen;j++)lasIn[i].gbic[j]=1.0;
+    }
+  }/*file loop*/
+  return;
+}/*readGBIC*/
+
+
+/*#########################################################################*/
+/*allocate an array of lasfiles*/
+
+lasFile **lfalloc(int numb)
+{
+  lasFile **lasIn=NULL;
+
+  if(!(lasIn=(lasFile **)calloc(numb,sizeof(lasFile *)))){
+    fprintf(stderr,"error in las file structure\n");
+    fprintf(stderr,"Allocating %d\n",numb);
+    exit(1);
+  }
+
+  return(lasIn);
+}/*lfalloc*/
+
+
+/*read list of input files names*/
+
+listLas *readLasList(char *namen)
+{
+  int i=0;
+  listLas *lasList=NULL;
+  char line[400],temp3[200];
+  char temp1[200],temp2[200];
+  FILE *ipoo=NULL;
+
+  if(!(lasList=(listLas *)calloc(1,sizeof(listLas)))){
+    fprintf(stderr,"error in input filename structure.\n");
+    exit(1);
+  }
+
+  if((ipoo=fopen(namen,"r"))==NULL){
+    fprintf(stderr,"Error opening list file %s\n",namen);
+    exit(1);
+  }
+
+
+  /*count number of files*/
+  lasList->nFiles=0;
+  while(fgets(line,400,ipoo)!=NULL)if(strncasecmp(line,"#",1))lasList->nFiles++;
+  if(lasList->nFiles==0){
+    fprintf(stderr,"No files in %s\n",namen);
+    exit(1);
+  }
+  lasList->nameList=chChalloc(lasList->nFiles,"name list",0);
+  lasList->gbicNamen=chChalloc(lasList->nFiles,"GBIC file list",0);
+  /*TLS only parameters, left blank for ALS*/
+  lasList->scanCent=dDalloc(lasList->nFiles,"scan centre",0);
+  lasList->align=dDalloc(lasList->nFiles,"scan alignment",0);
+  lasList->flightBal=falloc(lasList->nFiles,"flight balance",0);
+  for(i=0;i<lasList->nFiles;i++){
+    lasList->scanCent[i]=dalloc(3,"scan centre",i+1);
+    lasList->align[i]=dalloc(3,"alignment",i+1);
+    lasList->flightBal[i]=1.0;
+  }/*TLS only parameters*/
+
+
+  if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
+    fprintf(stderr,"fseek error\n");
+    exit(1);
+  }
+
+  /*read*/
+  i=0;
+  while(fgets(line,400,ipoo)!=NULL){
+    if(strncasecmp(line,"#",1)){
+      /*really I should read the number of spaces here*/
+
+      if(sscanf(line,"%s %s %s",temp1,temp2,temp3)==3){ /*read las, GBIC file and flight intensity balance*/
+        lasList->nameList[i]=challoc(strlen(temp1)+1,"name list",i+1);
+        strcpy(&(lasList->nameList[i][0]),temp1);
+        lasList->gbicNamen[i]=challoc(strlen(temp2)+1,"GBIC file list",i+1);
+        strcpy(&(lasList->gbicNamen[i][0]),temp2);
+        lasList->flightBal[i]=atof(temp3);
+      }else if(sscanf(line,"%s %s",temp1,temp2)==2){ /*read las and GBIC file*/
+        lasList->nameList[i]=challoc(strlen(temp1)+1,"name list",i+1);
+        strcpy(&(lasList->nameList[i][0]),temp1);
+        lasList->gbicNamen[i]=challoc(strlen(temp2)+1,"GBIC file list",i+1);
+        strcpy(&(lasList->gbicNamen[i][0]),temp2);
+      }else{
+        lasList->nameList[i]=challoc(strlen(line)+1,"name list",i+1);
+        sscanf(line,"%s",lasList->nameList[i]);
+      }
+      i++;
+    }
+  }/*read names*/
+
+  if(ipoo){
+    fclose(ipoo);
+    ipoo=NULL;
+  }
+
+  return(lasList);
+}/*readLasList*/
+
+
+/*#########################################################################*/
+/*tidy lasList*/
+
+void tidyListLas(listLas *lasList)
+{
+  if(lasList){/*input list*/
+    TTIDY((void **)lasList->nameList,lasList->nFiles);
+    TTIDY((void **)lasList->scanCent,lasList->nFiles);
+    TTIDY((void **)lasList->align,lasList->nFiles);
+    TTIDY((void **)lasList->gbicNamen,lasList->nFiles);
+    TIDY(lasList->flightBal);
+    TIDY(lasList);
+  }/*input list*/
+  return;
+}/*tidyListLas*/
+
+
+/*#########################################################################*/
+/*read a file of coordinates*/
+
+double **readCoordList(int nFiles,char **nameList,char *coordNamen)
+{
+  int i=0;
+  double **coords=NULL;
+  char line[1000],temp1[300],temp2[100];
+  char temp3[100],temp4[100];
+  FILE *ipoo=NULL;
+
+  if((ipoo=fopen(coordNamen,"r"))==NULL){
+    fprintf(stderr,"Error opening coords input file %s\n",coordNamen);
+    exit(1);
+  }
+  coords=dDalloc(nFiles,"coords",0);
+  for(i=0;i<nFiles;i++)coords[i]=dalloc(3,"coords",i+1);
+
+  while(fgets(line,200,ipoo)!=NULL){
+    if(strncasecmp(line,"#",1)){
+      if(sscanf(line,"%s %s %s %s",temp1,temp2,temp3,temp4)==4){
+        for(i=0;i<nFiles;i++){
+          if(!strncasecmp(temp1,nameList[i],strlen(nameList[i]))){
+            coords[i][0]=atof(temp2);
+            coords[i][1]=atof(temp3);
+            coords[i][2]=atof(temp4);
+            break;
+          }/*if file names match*/
+        }/*file list loop*/
+      }/*read data*/
+    }/*comment check*/
+  }/*line loop*/
+
+  if(ipoo){
+    fclose(ipoo);
+    ipoo=NULL;
+  }
+  return(coords);
+}/*readCentres*/
 
 /*the end*/
 /*######################################*/
