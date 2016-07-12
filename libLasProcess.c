@@ -1160,7 +1160,7 @@ void setDenoiseDefault(denPar *denoise)
   denoise->statsLen=30.0;
   denoise->noiseTrack=1;
   denoise->threshScale=1.0;
-  denoise->bitRate=10;
+  denoise->bitRate=8;
 
   /*deconvolution*/
   denoise->deconMeth=-1;     /*do not deconvolve*/
