@@ -462,7 +462,7 @@ char checkFileBounds(lasFile *lasIn,double minX,double maxX,double minY,double m
 /*############################################*/
 /*read GBIC table for Leica instruments*/
 
-void readGBIC(char appGBIC,char balFlights,lasFile *lasIn,listLas *lasList)
+void readGBIC(char appGBIC,char balFlights,lasFile **lasIn,listLas *lasList)
 {
   int i=0,j=0;
   char line[200];
@@ -471,10 +471,10 @@ void readGBIC(char appGBIC,char balFlights,lasFile *lasIn,listLas *lasList)
   FILE *ipoo=NULL;
 
   for(i=0;i<lasList->nFiles;i++){
-    lasIn[i].gbLen=257;
-    lasIn[i].gbic=falloc(lasIn[i].gbLen,"GBIC",i+1);
-    if(balFlights==0)lasIn[i].flightBal=1.0;
-    else             lasIn[i].flightBal=lasList->flightBal[i];
+    lasIn[i]->gbLen=257;
+    lasIn[i]->gbic=falloc(lasIn[i]->gbLen,"GBIC",i+1);
+    if(balFlights==0)lasIn[i]->flightBal=1.0;
+    else             lasIn[i]->flightBal=lasList->flightBal[i];
     if(appGBIC){  /*open file if needed*/
       if((ipoo=fopen(lasList->gbicNamen[i],"r"))==NULL){
         fprintf(stderr,"Error opening GBIC file %s\n",lasList->gbicNamen[i]);
@@ -484,7 +484,7 @@ void readGBIC(char appGBIC,char balFlights,lasFile *lasIn,listLas *lasList)
         if(strncasecmp(line,"#",1)){
           sscanf(line,"%s %s",temp1,temp2);
           j=atoi(temp1);
-          if((j>=0)&&(j<lasIn[i].gbLen))lasIn[i].gbic[j]=atof(temp2)/lasIn[i].flightBal;
+          if((j>=0)&&(j<lasIn[i]->gbLen))lasIn[i]->gbic[j]=atof(temp2)/lasIn[i]->flightBal;
         }
       }/*read names*/
       if(ipoo){
@@ -492,7 +492,7 @@ void readGBIC(char appGBIC,char balFlights,lasFile *lasIn,listLas *lasList)
         ipoo=NULL;
       }
     }else{  /*fill with ones*/
-      for(j=0;j<lasIn[i].gbLen;j++)lasIn[i].gbic[j]=1.0;
+      for(j=0;j<lasIn[i]->gbLen;j++)lasIn[i]->gbic[j]=1.0;
     }
   }/*file loop*/
   return;
