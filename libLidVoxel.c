@@ -22,10 +22,38 @@ double tanZen=0,cosZen=0,sinZen=0;  /*to save calculations*/
 double tanAz=0,cosAz=0,sinAz=0;
 
 
+/*#############################################*/
+/*vount hits and misses for a single beam*/
+
+void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNumb,int nRet,float beamRad,int numb)
+{
+  int i=0;
+  int *voxList=NULL,nTot=0;
+  int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
+  double *rangeList=NULL;
+
+  /*only do this for last returns per beam*/
+  if(retNumb<nRet)return;
+
+  /*determine which voxels are intersected*/
+  voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList);
+
+  /*loop along intersected voxels*/
+  for(i=0;i<nTot;i++){
+    if(rangeList[i]<=0.0)vox->hits[numb][voxList[i]]+=1.0;
+    else                 vox->miss[numb][voxList[i]]+=1.0;
+  }/*intersecting voxel loop*/
+
+  TIDY(rangeList);
+  TIDY(voxList);
+  return;
+}/*countVoxGap*/
+
+
 /*#######################################*/
 /*voxels intersecting beam with width*/
 
-int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,double *res,int nX,int nY,int nZ,int *nPix,double beamRad)
+int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,double *res,int nX,int nY,int nZ,int *nPix,double beamRad,double **rangeList)
 {
   int i=0,j=0,k=0;
   int nAng=0;
@@ -44,7 +72,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
   /*central beam*/
   for(i=0;i<3;i++)grad[i]=(double)gradIn[i];
-  pixList=findVoxels(&(grad[0]),x0,y0,z0,bounds,res,nPix,nX,nY,nZ,NULL);
+  pixList=findVoxels(&(grad[0]),x0,y0,z0,bounds,res,nPix,nX,nY,nZ,rangeList);
 
   /*loop around rim of the beam*/
   for(i=0;i<nAng;i++){
@@ -55,7 +83,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
     /*find voxels intersected by the beam along that edge*/
     for(j=0;j<3;j++)grad[j]=(double)gradIn[j];
-    tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,NULL);
+    tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,rangeList);
     /*now sort through*/
     for(j=0;j<tempPix;j++){
       foundNew=1;
@@ -366,6 +394,82 @@ void waveFromImage(char **rImage,float **wave,int numb,int rNx,int rNy)
   }/*range image bin loop*/
   return;
 }/*waveFromImage*/
+
+
+/*############################################*/
+/*allocate voxel structure*/
+
+voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
+{
+  int i=0,j=0;
+  voxStruct *vox=NULL;
+
+  if(!(vox=(voxStruct *)calloc(1,sizeof(voxStruct)))){
+    fprintf(stderr,"error voxel structure allocation.\n");
+    exit(1);
+  }
+
+  /*note that findVoxels() needs minX maxX etc, different to dimage's minX minY etc*/
+  for(i=0;i<3;i++)vox->res[i]=(double)vRes[i];
+  vox->bounds[0]=bounds[0];  /*minX*/
+  vox->bounds[1]=bounds[3];  /*maxX*/
+  vox->bounds[2]=bounds[1];  /*minY*/
+  vox->bounds[3]=bounds[4];  /*maxY*/
+  vox->bounds[4]=bounds[2];  /*minZ*/
+  vox->bounds[5]=bounds[5];  /*maxZ*/
+  vox->nX=(int)((vox->bounds[1]-vox->bounds[0])/vox->res[0]+0.99);  /*add 0.99 to avoid rounding*/
+  vox->nY=(int)((vox->bounds[3]-vox->bounds[2])/vox->res[1]+0.99);  /*add 0.99 to avoid rounding*/
+  vox->nZ=(int)((vox->bounds[5]-vox->bounds[4])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
+
+  /*check for memory wrapping*/
+  if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){
+    fprintf(stderr,"Voxel bounds are too big to handle. Reduce %d %d %d\n",vox->nX,vox->nY,vox->nZ);
+    exit(1);
+  }
+
+  vox->nVox=vox->nX*vox->nY*vox->nZ;
+  vox->nScans=nFiles;
+
+  vox->hits=fFalloc(vox->nScans,"voxel hits",0);
+  vox->miss=fFalloc(vox->nScans,"voxel miss",0);
+  vox->contN=ialloc(vox->nVox,"voxel contribution",0);
+  for(j=0;j<vox->nVox;j++)vox->contN[j]=0;
+
+  vox->useRMSE=useRMSE;
+  if(useRMSE){
+    vox->rmse=falloc(vox->nVox,"voxel error",0);
+    for(j=0;j<vox->nVox;j++)vox->rmse[j]=0.0;
+  }
+
+  for(i=0;i<vox->nScans;i++){
+    vox->hits[i]=falloc(vox->nVox,"voxel hits",i+1);
+    vox->miss[i]=falloc(vox->nVox,"voxel miss",i+1);
+    for(j=0;j<vox->nVox;j++){
+      vox->hits[i][j]=vox->miss[i][j]=0.0;
+    }
+  }/*file loop*/
+
+  return(vox);
+}/*voxAllocate*/
+
+
+/*#######################################*/
+/*tidy voxel structure*/
+
+voxStruct *tidyVox(voxStruct *vox)
+{
+
+  if(vox){
+    TTIDY((void **)vox->hits,vox->nScans);
+    TTIDY((void **)vox->miss,vox->nScans);
+    TIDY(vox->rmse);
+    TIDY(vox->contN);
+    TIDY(vox);
+  }
+
+  return(NULL);
+}/*tidyVox*/
+
 
 /*the end*/
 /*###########################################################################*/
