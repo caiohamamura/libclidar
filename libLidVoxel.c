@@ -4,6 +4,7 @@
 #include "math.h"
 #include "stdint.h"
 #include "tools.h"
+#include "libLasRead.h"
 #include "libLidVoxel.h"
 
 
@@ -23,7 +24,172 @@ double tanAz=0,cosAz=0,sinAz=0;
 
 
 /*#############################################*/
-/*vount hits and misses for a single beam*/
+/*make silhouette image from point cloud*/
+
+void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxPar *lidPar)
+{
+  int i=0,bin=0;
+  uint32_t j=0;
+  float zen=0,az=0;
+  double vect[3];
+  void markPointSilhouette(double *,rImageStruct *,int,lidVoxPar *,float,uint16_t,double);
+  void rotateX(double *,double);
+  void rotateZ(double *,double);
+
+
+  /*angles for rotation*/
+  zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
+  az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
+
+  for(i=0;i<nFiles;i++){
+    for(j=0;j<data[i]->nPoints;j++){
+      /*rotate to x-y plane*/
+      vect[0]=data[i]->x[j]-rImage->x0;
+      vect[1]=data[i]->y[j]-rImage->y0;
+      vect[2]=data[i]->z[j]-rImage->z0;
+      rotateZ(vect,(double)(-1.0*az));
+      rotateX(vect,(double)(-1.0*zen));
+      bin=(int)(vect[2]/rImage->rRes+0.5);
+
+
+      markPointSilhouette(&(vect[0]),rImage,bin,lidPar,data[i]->gap[j],data[i]->refl[j],0.0);
+    }/*point loop*/
+  }/*file loop*/
+
+  return;
+}/*silhouetteImage*/
+
+
+/*############################################*/
+/*mark lidar point in range image*/
+
+void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *lidPar,float gap,uint16_t refl,double r)
+{
+  int xInd=0,yInd=0,rPlace=0;
+  int xStart=0,xEnd=0;
+  int yStart=0,yEnd=0;
+  double xIcent=0,yIcent=0;
+  float pointSize(double,uint16_t,float,float,float,float);
+  float rad=0;
+  float maxRsepSq=0,rSepSq=0;
+
+  if(gap<lidPar->minGap)gap=lidPar->minGap;
+  rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl)*lidPar->appRefl/gap;
+
+  /*range image*/
+  xIcent=(int)((coord[0]+lidPar->beamRad)/rImage->rRes);
+  yIcent=(int)((coord[1]+lidPar->beamRad)/rImage->rRes);
+  xStart=xIcent-(int)(rad/rImage->rRes);
+  xEnd=xIcent+(int)(rad/rImage->rRes);
+  yStart=yIcent-(int)(rad/rImage->rRes);
+  yEnd=yIcent+(int)(rad/rImage->rRes);
+  maxRsepSq=rad*rad;
+
+  if(xStart<0)xStart=0;      /*enforce bounds*/
+  if(xEnd>=rImage->nX)xEnd=rImage->nX-1;
+  if(yStart<0)yStart=0;
+  if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
+
+  for(xInd=xStart;xInd<=xEnd;xInd++){
+    for(yInd=yStart;yInd<=yEnd;yInd++){
+      rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rImage->rRes*rImage->rRes;
+      if(rSepSq<=maxRsepSq){
+        rPlace=yInd*rImage->nX+xInd;
+        rImage->image[bin][rPlace]=1;
+      }/*check within point*/
+    }/*loop around point*/
+  }/*loop around point*/
+
+
+
+
+  return;
+}/*markPointSilhouette*/
+
+
+/*############################################*/
+/*determine hit size*/
+
+float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,float max)
+{
+  float d=0;
+  float appRefl=0;
+  float reflScale=0;
+
+  appRefl=(float)max-(float)min;   /*scale from DN to size, takes phase func and albedo into account*/
+
+  d=range*tanDiv+beamRad;                /*beam diameter*/
+  reflScale=((float)refl-(float)min)/appRefl;
+  if(reflScale<0.0)     reflScale=0.0;   /*keep to bounds*/
+  else if(reflScale>1.0)reflScale=1.0;   /*keep to bounds*/
+  d*=reflScale;   /*take optics into account*/
+  return(d);
+}/*pointSize*/
+
+
+/*#############################################*/
+/*allocate structure for range image*/
+
+rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float iRes,float *grad,double x0,double y0,double z0)
+{
+  int i=0,k=0;
+  uint32_t j=0;
+  float zen=0,az=0;
+  double vect[3];
+  rImageStruct *rImage=NULL;
+  void rotateX(double *,double);
+  void rotateZ(double *,double);
+
+  if(!(rImage=(rImageStruct *)calloc(1,sizeof(rImageStruct)))){
+    fprintf(stderr,"error range image structure allocation.\n");
+    exit(1);
+  }
+
+  rImage->x0=x0;
+  rImage->y0=y0;
+  rImage->z0=z0;
+  for(i=0;i<3;i++)rImage->grad[i]=grad[i];
+
+  /*angles for rotation*/
+  zen=(float)atan2(sqrt((double)grad[0]*(double)grad[0]+(double)grad[1]*(double)grad[1]),(double)grad[2]);
+  az=(float)atan2((double)grad[0],(double)grad[1]);
+
+  /*determine bounds*/
+  rImage->bounds[0]=rImage->bounds[1]=rImage->bounds[2]=10000000000.0;
+  rImage->bounds[3]=rImage->bounds[4]=rImage->bounds[5]=-10000000000.0;
+  for(i=0;i<nFiles;i++){
+    for(j=0;j<data[i]->nPoints;j++){
+      /*rotate to x-y plane*/
+      vect[0]=data[i]->x[j]-x0;
+      vect[1]=data[i]->y[j]-y0;
+      vect[2]=data[i]->z[j]-z0;
+      rotateZ(vect,(double)(-1.0*az));
+      rotateX(vect,(double)(-1.0*zen));
+      for(k=0;k<3;k++){
+        if(vect[k]<rImage->bounds[k])rImage->bounds[k]=vect[k];
+        if(vect[k]>rImage->bounds[k+3])rImage->bounds[k+3]=vect[k];
+      }
+    }
+  }
+
+  rImage->rRes=rRes;
+  rImage->iRes=iRes;
+  rImage->nBins=(int)((rImage->bounds[5]-rImage->bounds[2])/rImage->rRes+0.5);
+  rImage->nX=(int)((rImage->bounds[3]-rImage->bounds[0])/rImage->iRes+0.5);
+  rImage->nY=(int)((rImage->bounds[4]-rImage->bounds[1])/rImage->iRes+0.5);
+
+  /*allocate image and set blank*/
+  rImage->image=chChalloc(rImage->nBins,"range image",0);
+  for(i=0;i<rImage->nBins;i++){
+    rImage->image[i]=challoc(rImage->nX*rImage->nY,"range image",i+1);
+    for(k=rImage->nX*rImage->nY-1;k>=0;k--)rImage->image[i][k]=0;
+  }
+  return(rImage);
+}/*allocateRangeImage*/
+
+
+/*#############################################*/
+/*add up hits and misses for a single beam*/
 
 void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNumb,int nRet,float beamRad,int numb)
 {
@@ -144,10 +310,10 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   coords[2]=zCent;
 
   vCorn[0]=bounds[0];  /*minX*/
-  vCorn[1]=bounds[2];  /*minY*/
-  vCorn[2]=bounds[4];  /*minZ*/
-  vCorn[3]=bounds[1];  /*maxX*/
-  vCorn[4]=bounds[3];  /*maxY*/
+  vCorn[1]=bounds[1];  /*minY*/
+  vCorn[2]=bounds[2];  /*minZ*/
+  vCorn[3]=bounds[3];  /*maxX*/
+  vCorn[4]=bounds[4];  /*maxY*/
   vCorn[5]=bounds[5];  /*maxZ*/
   (*nPix)=0;
 
@@ -411,15 +577,10 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
 
   /*note that findVoxels() needs minX maxX etc, different to dimage's minX minY etc*/
   for(i=0;i<3;i++)vox->res[i]=(double)vRes[i];
-  vox->bounds[0]=bounds[0];  /*minX*/
-  vox->bounds[1]=bounds[3];  /*maxX*/
-  vox->bounds[2]=bounds[1];  /*minY*/
-  vox->bounds[3]=bounds[4];  /*maxY*/
-  vox->bounds[4]=bounds[2];  /*minZ*/
-  vox->bounds[5]=bounds[5];  /*maxZ*/
-  vox->nX=(int)((vox->bounds[1]-vox->bounds[0])/vox->res[0]+0.99);  /*add 0.99 to avoid rounding*/
-  vox->nY=(int)((vox->bounds[3]-vox->bounds[2])/vox->res[1]+0.99);  /*add 0.99 to avoid rounding*/
-  vox->nZ=(int)((vox->bounds[5]-vox->bounds[4])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
+  for(i=0;i<6;i++)vox->bounds[i]=bounds[i];
+  vox->nX=(int)((vox->bounds[3]-vox->bounds[0])/vox->res[0]+0.99);  /*add 0.99 to avoid rounding*/
+  vox->nY=(int)((vox->bounds[4]-vox->bounds[1])/vox->res[1]+0.99);  /*add 0.99 to avoid rounding*/
+  vox->nZ=(int)((vox->bounds[5]-vox->bounds[2])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
 
   /*check for memory wrapping*/
   if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){
