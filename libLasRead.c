@@ -315,6 +315,9 @@ void readLasPoint(lasFile *las,uint32_t j)
     memcpy(&las->grad[1],&las->pointBuff[offset],4);
     offset=53+offTo;
     memcpy(&las->grad[2],&las->pointBuff[offset],4);
+  }else{
+    las->packetDes=0;
+    las->grad[0]=las->grad[1]=las->grad[2]=0.0;  /*leave the grad bits blank*/
   }
 
   if(las->pointFormat==3){  /*there is RGB*/
