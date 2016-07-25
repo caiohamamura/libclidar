@@ -45,7 +45,7 @@ void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxP
       /*rotate to x-y plane*/
       vect[0]=data[i]->x[j]-rImage->x0;
       vect[1]=data[i]->y[j]-rImage->y0;
-      vect[2]=data[i]->z[j]-rImage->z0;
+      vect[2]=rImage->z0-data[i]->z[j];
       rotateZ(vect,(double)(-1.0*az));
       rotateX(vect,(double)(-1.0*zen));
       bin=(int)(vect[2]/rImage->rRes+0.5);
@@ -89,7 +89,8 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   if(yStart<0)yStart=0;
   if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
 
-fprintf(stderr,"Bounds %d %d %d %d %f %f\n",xStart,xEnd,yStart,yEnd,xIcent,yIcent);
+fprintf(stderr,"Bounds %d %d %d %d\n",xStart,xEnd,yStart,yEnd);
+
 
   for(xInd=xStart;xInd<=xEnd;xInd++){
     for(yInd=yStart;yInd<=yEnd;yInd++){
