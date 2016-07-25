@@ -36,7 +36,6 @@ void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxP
   void rotateX(double *,double);
   void rotateZ(double *,double);
 
-
   /*angles for rotation*/
   zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
   az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
@@ -51,7 +50,7 @@ void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxP
       rotateX(vect,(double)(-1.0*zen));
       bin=(int)(vect[2]/rImage->rRes+0.5);
 
-
+      /*black out the points*/
       markPointSilhouette(&(vect[0]),rImage,bin,lidPar,data[i]->gap[j],data[i]->refl[j],0.0);
     }/*point loop*/
   }/*file loop*/
@@ -90,17 +89,18 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   if(yStart<0)yStart=0;
   if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
 
+fprintf(stderr,"Bounds %d %d %d %d %f %f\n",xStart,xEnd,yStart,yEnd,xIcent,yIcent);
+
   for(xInd=xStart;xInd<=xEnd;xInd++){
     for(yInd=yStart;yInd<=yEnd;yInd++){
       rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rImage->rRes*rImage->rRes;
       if(rSepSq<=maxRsepSq){
         rPlace=yInd*rImage->nX+xInd;
         rImage->image[bin][rPlace]=1;
+fprintf(stderr,"Marking image\n");
       }/*check within point*/
     }/*loop around point*/
   }/*loop around point*/
-
-
 
 
   return;
@@ -148,11 +148,16 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float
   rImage->x0=x0;
   rImage->y0=y0;
   rImage->z0=z0;
-  for(i=0;i<3;i++)rImage->grad[i]=grad[i];
+  if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
+    for(i=0;i<3;i++)rImage->grad[i]=grad[i];
+  }else{
+    rImage->grad[0]=rImage->grad[1]=0.0;
+    rImage->grad[2]=-1.0;
+  }
 
   /*angles for rotation*/
-  zen=(float)atan2(sqrt((double)grad[0]*(double)grad[0]+(double)grad[1]*(double)grad[1]),(double)grad[2]);
-  az=(float)atan2((double)grad[0],(double)grad[1]);
+  zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
+  az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
 
   /*determine bounds*/
   rImage->bounds[0]=rImage->bounds[1]=rImage->bounds[2]=10000000000.0;
@@ -201,17 +206,22 @@ void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNu
   /*only do this for last returns per beam*/
   if(retNumb<nRet)return;
 
-  /*determine which voxels are intersected*/
-  voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList);
+  /*check that a vector is there*/
+  if(grad){
+    if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
+      /*determine which voxels are intersected*/
+      voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList);
 
-  /*loop along intersected voxels*/
-  for(i=0;i<nTot;i++){
-    if(rangeList[i]<=0.0)vox->hits[numb][voxList[i]]+=1.0;
-    else                 vox->miss[numb][voxList[i]]+=1.0;
-  }/*intersecting voxel loop*/
+      /*loop along intersected voxels*/
+      for(i=0;i<nTot;i++){
+        if(rangeList[i]<=0.0)vox->hits[numb][voxList[i]]+=1.0;
+        else                 vox->miss[numb][voxList[i]]+=1.0;
+      }/*intersecting voxel loop*/
+      TIDY(rangeList);
+      TIDY(voxList);
+    }
+  }
 
-  TIDY(rangeList);
-  TIDY(voxList);
   return;
 }/*countVoxGap*/
 
@@ -543,7 +553,6 @@ void waveFromImage(char **rImage,float **wave,int numb,int rNx,int rNy)
   char doneIt=0;
 
   for(i=0;i<numb;i++)wave[0][i]=wave[1][i]=0.0;
-
 
   /*turn range images into a waveforms*/
   for(i=rNx*rNy-1;i>=0;i--){ /*image x-y loop*/
