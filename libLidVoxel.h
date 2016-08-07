@@ -40,17 +40,17 @@ typedef struct{
 /*structure to hold a range image*/
 
 typedef struct{
-  int nBins;
-  int nX;
-  int nY;
-  float rRes;
-  float iRes;
-  double bounds[6];
-  double x0;
-  double y0;
-  double z0;
-  char **image;
-  float grad[3];
+  int nBins;        /*number of range bins*/
+  int nX;           /*number of x bins*/
+  int nY;           /*number of y bins*/
+  float rRes;       /*range resolution*/
+  float iRes;       /*image resolution*/
+  double bounds[6]; /*minX minY minZ, maxX maxY maxZ*/
+  double x0;        /*central coordinate*/
+  double y0;        /*central coordinate*/
+  double z0;        /*central coordinate*/
+  char **image;     /*gap image at each range*/
+  float grad[3];    /*vector along rage image*/
 }rImageStruct;
 
 /*the end*/
