@@ -127,6 +127,7 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
   reflScale=((float)refl-(float)min)/appRefl;
   if(reflScale<0.0)     reflScale=0.0;   /*keep to bounds*/
   else if(reflScale>1.0)reflScale=1.0;   /*keep to bounds*/
+  if(rhoApp<0.0)rhoApp=0.0;
   if(gap>TOLERANCE)d*=sqrt(reflScale*rhoApp/gap);   /*take optics into account*/
   else             d*=sqrt(reflScale*rhoApp/TOLERANCE);
   return(d);
