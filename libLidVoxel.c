@@ -45,13 +45,17 @@ void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxP
       /*rotate to x-y plane*/
       vect[0]=data[i]->x[j]-rImage->x0;
       vect[1]=data[i]->y[j]-rImage->y0;
-      vect[2]=rImage->z0-data[i]->z[j];
+      vect[2]=data[i]->z[j]-rImage->z0;
       rotateZ(vect,(double)(-1.0*az));
       rotateX(vect,(double)(-1.0*zen));
       bin=(int)(vect[2]/rImage->rRes+0.5);
 
-      /*black out the points*/
-      markPointSilhouette(&(vect[0]),rImage,bin,lidPar,data[i]->gap[j],data[i]->refl[j],0.0);
+fprintf(stderr,"bin %d %f %f %f\n",bin,rImage->z0,data[i]->z[j],vect[2]);
+
+      if((bin>=0)&&(bin<rImage->nBins)){
+        /*black out the points*/
+        markPointSilhouette(&(vect[0]),rImage,bin,lidPar,data[i]->gap[j],data[i]->refl[j],0.0);
+      }
     }/*point loop*/
   }/*file loop*/
 
@@ -67,38 +71,38 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   int xInd=0,yInd=0,rPlace=0;
   int xStart=0,xEnd=0;
   int yStart=0,yEnd=0;
-  double xIcent=0,yIcent=0;
-  float pointSize(double,uint16_t,float,float,float,float);
+  int xIcent=0,yIcent=0;
+  float pointSize(double,uint16_t,float,float,float,float,float,float);
   float rad=0;
   float maxRsepSq=0,rSepSq=0;
 
   if(gap<lidPar->minGap)gap=lidPar->minGap;
-  rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl)*lidPar->appRefl/gap;
+  rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap); //)*lidPar->appRefl/gap;
 
   /*range image*/
-  xIcent=(int)((coord[0]+lidPar->beamRad)/rImage->rRes);
-  yIcent=(int)((coord[1]+lidPar->beamRad)/rImage->rRes);
-  xStart=xIcent-(int)(rad/rImage->rRes);
-  xEnd=xIcent+(int)(rad/rImage->rRes);
-  yStart=yIcent-(int)(rad/rImage->rRes);
-  yEnd=yIcent+(int)(rad/rImage->rRes);
+  xIcent=(int)(coord[0]+(double)rImage->nY*(double)rImage->iRes/2.0);
+  yIcent=(int)(coord[1]+(double)rImage->nY*(double)rImage->iRes/2.0);
+  xStart=xIcent-(int)(rad/rImage->iRes+0.5);
+  xEnd=xIcent+(int)(rad/rImage->iRes+0.5);
+  yStart=yIcent-(int)(rad/rImage->iRes+0.5);
+  yEnd=yIcent+(int)(rad/rImage->iRes+0.5);
   maxRsepSq=rad*rad;
 
   if(xStart<0)xStart=0;      /*enforce bounds*/
-  if(xEnd>=rImage->nX)xEnd=rImage->nX-1;
+  else if(xStart>=rImage->nX)xStart=rImage->nX-1;
+  if(xEnd<0)xEnd=0;      /*enforce bounds*/
+  else if(xEnd>=rImage->nX)xEnd=rImage->nX-1;
   if(yStart<0)yStart=0;
-  if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
-
-fprintf(stderr,"Bounds %d %d %d %d\n",xStart,xEnd,yStart,yEnd);
-
+  else if(yStart>=rImage->nY)yStart=rImage->nY-1;
+  if(yEnd<0)yEnd=0;
+  else if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
 
   for(xInd=xStart;xInd<=xEnd;xInd++){
     for(yInd=yStart;yInd<=yEnd;yInd++){
-      rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rImage->rRes*rImage->rRes;
+      rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rImage->iRes*rImage->iRes;
       if(rSepSq<=maxRsepSq){
         rPlace=yInd*rImage->nX+xInd;
         rImage->image[bin][rPlace]=1;
-fprintf(stderr,"Marking image\n");
       }/*check within point*/
     }/*loop around point*/
   }/*loop around point*/
@@ -111,7 +115,7 @@ fprintf(stderr,"Marking image\n");
 /*############################################*/
 /*determine hit size*/
 
-float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,float max)
+float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,float max,float rhoApp,float gap)
 {
   float d=0;
   float appRefl=0;
@@ -123,7 +127,7 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
   reflScale=((float)refl-(float)min)/appRefl;
   if(reflScale<0.0)     reflScale=0.0;   /*keep to bounds*/
   else if(reflScale>1.0)reflScale=1.0;   /*keep to bounds*/
-  d*=reflScale;   /*take optics into account*/
+  d*=sqrt(reflScale*rhoApp/gap);   /*take optics into account*/
   return(d);
 }/*pointSize*/
 
@@ -157,7 +161,8 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float
   }
 
   /*angles for rotation*/
-  zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
+  zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+\
+       (double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
   az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
 
   /*determine bounds*/
