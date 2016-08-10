@@ -1183,6 +1183,9 @@ void setDenoiseDefault(denPar *denoise)
   denoise->hardWidth=0.0;  /*maxWidth of hard feature*/
   denoise->hardTol=1.0;    /*tolerance to scale width by*/
 
+  /*correlation hard target finding*/
+  denoise->matchHard=0;
+
   return;
 }/*setDenoiseDefault*/
 
