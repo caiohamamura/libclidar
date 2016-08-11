@@ -569,7 +569,7 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
 
   start=2;
   if((uint32_t)statBins>waveLen){
-    fprintf(stderr,"Not enough bins for this statistics length\n");
+    fprintf(stderr,"Not enough bins for this statistics length %d %d\n",statsBin,(int)waveLen);
     exit(1);
   }else if((statBins-start)<=0){
     fprintf(stderr,"What are you doing!?!\n");
