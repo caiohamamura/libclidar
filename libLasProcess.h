@@ -64,6 +64,16 @@ typedef struct{
 float *smooth(float,int,float *,float);
 smoothPulse smooPulse;   /*global structure to save reallocation*/
 
+
+
+/*#############################################*/
+/*functions*/
+
+float *processWave(unsigned char *,int,denPar *,float);
+float *processFloWave(float *,int,denPar *,float);
+
+
+
 /*the end*/
 /*#############################################*/
 
