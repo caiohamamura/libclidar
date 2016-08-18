@@ -124,6 +124,28 @@ typedef struct{
   float *gap;               /*gap fraction up to a point*/
 }pCloudStruct;
 
+
+
+/*###########################################*/
+/*function definitions*/
+
+lasFile *readLasHead(char *,uint64_t);
+void readLasGeo(lasFile *);
+void readLasPoint(lasFile *,uint32_t);
+unsigned char *readLasWave(uint64_t,int32_t,FILE *,uint64_t);
+char **readInList(int *,char *);
+lasFile *tidyLasFile(lasFile *);
+void setCoords(double *,double *,double *,lasFile *);
+void binPosition(double *,double *,double *,int,double,double,double,float,float *);
+char checkOneWave(lasFile *);
+char checkFileBounds(lasFile *,double,double,double,double);
+void readGBIC(char,char,lasFile **,listLas *);
+lasFile **lfalloc(int);
+listLas *readLasList(char *);
+void tidyListLas(listLas *);
+double **readCoordList(int,char **,char *);
+pCloudStruct *tidyPointCloud(pCloudStruct *);
+
 /*the end*/
 /*###########################################*/
 

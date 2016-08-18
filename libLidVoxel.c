@@ -123,7 +123,7 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
 
   appRefl=(float)max-(float)min;   /*scale from DN to size, takes phase func and albedo into account*/
 
-  d=range*tanDiv+beamRad;                /*beam diameter*/
+  d=range*tanDiv+beamRad;                /*beam radius*/
   reflScale=((float)refl-(float)min)/appRefl;
   if(reflScale<0.0)     reflScale=0.0;   /*keep to bounds*/
   else if(reflScale>1.0)reflScale=1.0;   /*keep to bounds*/
@@ -208,7 +208,6 @@ void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNu
 {
   int i=0;
   int *voxList=NULL,nTot=0;
-  int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
   double *rangeList=NULL;
 
   /*only do this for last returns per beam*/

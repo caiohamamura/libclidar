@@ -53,6 +53,13 @@ typedef struct{
   float grad[3];    /*vector along rage image*/
 }rImageStruct;
 
+
+/*###################################################*/
+/*function definitions*/
+
+int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
+
+
 /*the end*/
 /*###################################################*/
 
