@@ -29,6 +29,8 @@ float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
   /*convert to a float array for ease*/
   temp=falloc(waveLen,"presmoothed",0);
   for(i=0;i<waveLen;i++)temp[i]=(float)wave[i];
+  decon->maxDN=255.0;
+  decon->bitRate=8;
   processed=processFloWave(temp,waveLen,decon,gbic);
   TIDY(temp);
 
@@ -57,7 +59,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   float *CofGhard(float *,uint32_t);
   float *hardHitWave(denPar *,int);
   float *sampled=NULL;
-  float *digitise(float *,int,char);
+  float *digitise(float *,int,char,float);
   void medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
   void meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
   char checkHardEnergy(int *,float *,float);
@@ -69,7 +71,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   if(decon->varNoise){
     if(decon->medStats){
       /*convert to a set bit rate*/
-      sampled=digitise(wave,waveLen,decon->bitRate);
+      sampled=digitise(wave,waveLen,decon->bitRate,decon->maxDN);
       medNoiseStats(sampled,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,decon->bitRate);
       TIDY(sampled);
     }else meanNoiseStats(wave,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res));
@@ -343,7 +345,7 @@ void waveStats(int *maxBin,float *E,int nBins,float *wave,float res)
 /*####################################################*/
 /*digitse*/
 
-float *digitise(float *wave,int nBins,char bitRate)
+float *digitise(float *wave,int nBins,char bitRate,float maxDN)
 {
   int i=0;
   int nDN=0;
@@ -357,13 +359,18 @@ float *digitise(float *wave,int nBins,char bitRate)
   nDN=1;
   for(i=0;i<bitRate;i++)nDN*=2;
 
+  /*find maximum if maxDN not defined*/
+  if(maxDN<0.0){
+    max=-10000.0;
+    for(i=0;i<nBins;i++){
+      if(wave[i]>max)max=wave[i];
+    }
+    if(max<=0.0)max=1.0;
+  }else max=maxDN;
+
   /*find total*/
-  max=-10000.0;
-  for(i=0;i<nBins;i++){
-    if(wave[i]>max)max=wave[i];
-    tot+=wave[i];
-  }
-  if(max<=0.0)max=1.0;
+  tot=0.0;
+  for(i=0;i<nBins;i++)tot+=wave[i];
 
   resDN=max/(float)nDN;
   newTot=0.0;
@@ -539,10 +546,15 @@ void medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float
   maxHist=-1000;
   for(i=0;i<waveLen;i++){
     ind=(int)((wave[i]-min)/hRes);
-    hist[ind]++;
-    if(hist[ind]>maxHist){
-      maxHist=hist[ind];
-      (*meanN)=wave[i];  /*modal noise*/
+    if((ind>=0)&&(ind<(nDN+1))){
+      hist[ind]++;
+      if(hist[ind]>maxHist){
+        maxHist=hist[ind];
+        (*meanN)=wave[i];  /*modal noise*/
+      }
+    }else{
+      fprintf(stderr,"index issue %d %f\n",ind,wave[i]);
+      exit(1);
     }
   }
 
@@ -1161,6 +1173,7 @@ void setDenoiseDefault(denPar *denoise)
   denoise->noiseTrack=1;
   denoise->threshScale=1.0;
   denoise->bitRate=8;
+  denoise->maxDN=-1.0;
 
   /*deconvolution*/
   denoise->deconMeth=-1;     /*do not deconvolve*/
