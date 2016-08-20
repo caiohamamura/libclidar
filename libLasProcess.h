@@ -17,6 +17,7 @@ typedef struct{
   char noiseTrack;   /*noise tracking switch*/
   float threshScale; /*scale variable noise threshold*/
   char bitRate;      /*bit rate if using variable noise with floats*/
+  float maxDN;       /*maxDN for digitisation*/
 
   /*deconvolution*/
   float pScale;      /*scale pulse length by*/
