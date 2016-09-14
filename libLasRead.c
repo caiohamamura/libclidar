@@ -714,25 +714,6 @@ pCloudStruct *tidyPointCloud(pCloudStruct *data)
 }/*tidyPointCloud*/
 
 
-  uint32_t nPoints;
-  double *x;
-  double *y;
-  double *z;
-  unsigned char *class;     /*point classification*/
-  int *refl;
-  char *nRet;               /*number of discrete returns per beam*/
-  unsigned char *packetDes; /*waveform or not*/
-  float **grad;             /*Poynting vector*/
-  float *time;              /*time in picoseconds of this wave*/
-  uint64_t *waveMap;        /*pointer to waveform in file*/
-  uint32_t *waveLen;        /*length of waveform in bins*/
-  uint64_t waveStart;       /*offset to waveform data*/
-  FILE *ipoo;               /*file pointer*/
-  char hasWave;             /*waveform included*/
-  float *gap;               /*gap fraction up to a point*/
-
-
-
 /*the end*/
 /*######################################*/
 
