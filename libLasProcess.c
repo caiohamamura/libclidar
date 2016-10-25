@@ -4,8 +4,8 @@
 #include "math.h"
 #include "stdint.h"
 #include "tools.h"
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_fft_complex.h>
+#include <gsl_errno.h>
+#include <gsl_fft_complex.h>
 #include "libLasProcess.h"
 
 
