@@ -6,6 +6,8 @@
 #include "tools.h"
 #include "gsl/gsl_errno.h"
 #include "gsl/gsl_fft_complex.h"
+#include "mpfit.h"
+#include "libLasRead.h"
 #include "libLasProcess.h"
 
 
@@ -1290,6 +1292,299 @@ char boundsCheck(double x,double y,double z,double *bounds)
   else                                                    return(0);
 }/*boundsCheck*/
 
+
+/*########################################################################*/
+/*fit a polynomial to the ground*/
+
+double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY)
+{
+  int i=0;
+  double maxX=0,maxY=0;
+  double *gDEM=NULL;
+  double *polyDEM(groundDstruct *,double,double,float,int,int);
+  groundDstruct *groundD=NULL;   /*ground data structure*/
+  groundDstruct *arrangeGroundData(pCloudStruct **,int);
+  void fitManyPlanes(groundDstruct *,int,int);
+
+
+  /*allocate and load relevant data*/
+  groundD=arrangeGroundData(data,nFiles);
+
+  *minX=*minY=100000000000.0;
+  maxX=maxY=-100000000000.0;
+  for(i=0;i<nFiles;i++){
+    if(data[i]->bounds[0]<*minX)*minX=data[i]->bounds[0];
+    if(data[i]->bounds[1]<*minY)*minY=data[i]->bounds[1];
+    if(data[i]->bounds[3]>maxX)maxX=data[i]->bounds[3];
+    if(data[i]->bounds[4]>maxY)maxY=data[i]->bounds[4];
+  }
+  *nX=(int)((maxX-*minX)/(double)res);
+  *nY=(int)((maxY-*minY)/(double)res);
+
+  if(groundD->nPoints>0){  /*check that there are ground returns*/
+    /*fit the ground*/
+    fitManyPlanes(groundD,1,1);
+
+    /*make a ground DEM*/
+    gDEM=polyDEM(groundD,*minX,*minY,res,*nX,*nY);
+  }else gDEM=NULL;
+
+  /*tidy up*/
+  if(groundD){
+    TIDY(groundD->xUse);
+    TIDY(groundD->yUse);
+    TIDY(groundD->zUse);
+    TIDY(groundD->par);
+    TIDY(groundD);
+  }
+  return(gDEM);
+}/*findGroundPoly*/
+
+
+/*########################################*/
+/*make a ground DEM*/
+
+double *polyDEM(groundDstruct *groundD,double minX,double minY,float res,int nX,int nY)
+{
+  int i=0,j=0,place=0;
+  double *gDEM=NULL;
+  double x=0,y=0;
+  double polyGround(double,double,groundDstruct *);
+
+  gDEM=dalloc(nX*nY,"ground DEM",0);
+
+  for(i=0;i<nX;i++){
+    x=((double)i+0.5)*(double)res+minX;
+    for(j=0;j<nY;j++){
+      place=j*nX+i;
+      y=((double)j+0.5)*(double)res+minY;
+      gDEM[place]=polyGround(x,y,groundD);
+    }
+  }
+
+  return(gDEM);
+}/*polyDEM*/
+
+
+/*########################################*/
+/*calculate elevation from polynomial*/
+
+double polyGround(double x,double y,groundDstruct *groundData)
+{
+  int k=0;
+  double z=0;
+
+  z=0.0;
+  for(k=groundData->nPoly[0]-1;k>=0;k--)z+=groundData->par[k]*pow(x,(double)(groundData->nPoly[0]-k));
+  for(k=groundData->nPoly[1]-1;k>=0;k--)z+=groundData->par[k+groundData->nPoly[0]]*pow(y,(double)(groundData->nPoly[1]-k-1));
+
+  return(z);
+}/*polyGround*/
+
+
+/*########################################*/
+/*fit many polynomial planes and average*/
+
+void fitManyPlanes(groundDstruct *groundData,int cNx,int cNy)
+{
+  int i=0,j=0;
+  void fitPolyPlane(groundDstruct *);
+
+  for(i=cNx*cNy-1;i>=0;i--){
+    groundData[i].nPoly[0]=6;
+    groundData[i].nPoly[1]=7;
+    if(groundData[i].nPoints>(groundData[i].nPoly[0]+groundData[i].nPoly[1])){
+      fprintf(stdout,"Fitting %d of %d\n",i,cNx*cNy);
+      fitPolyPlane(&(groundData[i]));
+    }else{
+      groundData[i].par=dalloc(groundData[i].nPoly[0]+groundData[i].nPoly[1],"pars",0);
+      for(j=0;j<(groundData[i].nPoly[0]+groundData[i].nPoly[1]);j++)groundData[i].par[j]=0.0;
+    }
+  }
+
+
+  return;
+}/*fitManyPlanes*/
+
+
+/*########################################*/
+/*fit a polynomial plane to ground*/
+
+void fitPolyPlane(groundDstruct *groundData)
+{
+  int i=0,nPar=0;
+  int fitCheck=0;
+  int mpfit(mp_func,int,int,double *, mp_par *,mp_config *,void *,mp_result *);
+  int groundErr(int,int,double *,double *,double **,void *);
+  double meanZ=0;
+  mp_par *setGroundBounds(int *);
+  mp_par *parStruct=NULL;
+  mp_result *result=NULL;
+  mp_config *config=NULL;
+
+  /*ninth order for now. No real reason*/
+
+  /*allocate and initial guess*/
+  nPar=groundData->nPoly[0]+groundData->nPoly[1];
+  groundData->par=dalloc(nPar,"parameters",0);
+  for(i=0;i<nPar;i++)groundData->par[i]=0.0;
+  meanZ=0.0;
+  for(i=0;i<groundData->nPoints;i++)meanZ+=groundData->zUse[i];
+  meanZ/=(double)groundData->nPoints;
+  groundData->par[nPar-1]=meanZ;
+
+  /*allocate arrays*/
+  if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
+    fprintf(stderr,"error in control structure.\n");
+    exit(1);
+  }
+  config->nofinitecheck=1;
+  if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
+    fprintf(stderr,"error in mpfit structure.\n");
+    exit(1);
+  }
+  result->resid=dalloc(groundData->nPoints,"",0);
+  result->xerror=dalloc(nPar,"",0);
+  result->covar=dalloc(nPar*nPar,"",0);
+
+  /*set parameter bounds*/
+  parStruct=setGroundBounds(groundData->nPoly);
+
+  /*the fitting*/
+  fitCheck=mpfit(groundErr,groundData->nPoints,nPar,groundData->par,parStruct,config,(void *)groundData,result);
+  if(fitCheck<0){
+    fprintf(stderr,"fitCheck %d\n",fitCheck);
+    exit(1);
+  }
+
+  /*tidy up*/
+  if(result){
+    TIDY(result->resid);
+    TIDY(result->xerror);
+    TIDY(result->covar);
+    TIDY(result);
+  }
+  TIDY(config);
+  TIDY(parStruct);
+  return;
+}/*fitPolyPlane*/
+
+
+/*################################################*/
+/*allocate and load relevant data*/
+
+groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles)
+{
+  int numb=0;
+  uint32_t i=0,j=0;
+  groundDstruct *groundD=NULL;   /*ground data structure*/
+
+
+  /*initialise*/
+  if(!(groundD=(groundDstruct *)calloc(1,sizeof(groundDstruct)))){
+    fprintf(stderr,"error in groundDstruct structure.\n");
+    exit(1);
+  }
+  groundD->nPoints=0;
+  groundD->xUse=NULL;
+  groundD->yUse=NULL;
+  groundD->zUse=NULL;
+  groundD->par=NULL;
+
+  /*count the number of points*/
+  for(numb=0;numb<nFiles;numb++){
+    for(i=0;i<data[numb]->nPoints;i++){
+      if(data[numb]->class[i]==2)groundD->nPoints++;
+    }/*point loop*/
+  }/*file loop*/
+
+  /*allocate space*/
+  groundD->xUse=dalloc(groundD->nPoints,"ground x",0);
+  groundD->yUse=dalloc(groundD->nPoints,"ground x",0);
+  groundD->zUse=dalloc(groundD->nPoints,"ground x",0);
+
+  /*copy over data*/
+  j=0;
+  for(numb=0;numb<nFiles;numb++){
+    for(i=0;i<data[numb]->nPoints;i++){
+      if(data[numb]->class[i]==2){
+        groundD->xUse[j]=data[numb]->x[i];
+        groundD->yUse[j]=data[numb]->y[i];
+        groundD->zUse[j]=data[numb]->z[i];
+        j++;
+      }/*is point ground*/
+    }/*point loop*/
+  }/*file loop*/
+
+  return(groundD);
+}/*arrangeGroundData*/
+
+
+/*###############################################*/
+/*Ground error function*/
+
+int groundErr(int numb, int npar, double *p, double *deviates,double **derivs, void *private)
+{
+  int i=0,j=0;
+  double x=0,y=0,z=0;
+  double xBit=0,yBit=0;
+  groundDstruct *g=NULL;
+
+
+  g=(groundDstruct *)private;
+
+  /*point loop*/
+  for(i=0;i<numb;i++){
+    x=g->xUse[i];
+    y=g->yUse[i];
+
+    xBit=yBit=0.0;
+    for(j=g->nPoly[0]-1;j>=0;j--)xBit+=p[j]*pow(x,(double)(g->nPoly[0]-j));
+    for(j=g->nPoly[1]-1;j>=0;j--)yBit+=p[j+g->nPoly[0]]*pow(y,(double)(g->nPoly[1]-j-1));
+    z=xBit+yBit;
+    deviates[i]=z-g->zUse[i];
+
+    /*derivatives*/
+    /*if(derivs){
+      for(j=g->nPoly[0]-1;j>=0;j--)derivs[j][i]=(double)(j+1)*pow(x,(double)(g->nPoly[0]-j));
+      for(j=g->nPoly[0]-1;j>=0;j--)derivs[j+g->nPoly[0]][i]=(double)j*pow(y,(double)(g->nPoly[1]-j-1));
+    }*/
+  }/*point loop*/
+
+  g=NULL;
+  return(0);
+}/*groundErr*/
+
+
+/*########################################*/
+/*set ground fit parameter controls*/
+
+mp_par *setGroundBounds(int *nPar)
+{
+  int i=0,j=0,count=0;
+  mp_par *parStruct=NULL;
+
+  if(!(parStruct=(mp_par *)calloc(nPar[0]+nPar[1],sizeof(mp_par)))){
+    fprintf(stderr,"error in bound structure.\n");
+    exit(1);
+  }
+
+  count=0;
+  for(j=0;j<2;j++){
+    for(i=0;i<nPar[j];i++){
+      parStruct[count].fixed=0;
+      parStruct[count].side=2;
+      parStruct[count].limited[0]=0;
+      parStruct[count].limits[0]=-3000.0; //pow(-350.0,1.0/(float)(nPar[j]-i));
+      parStruct[count].limited[1]=0;
+      parStruct[count].limits[1]=3000.0; //pow(350.0,1.0/(float)(nPar[j]-i));
+      parStruct[count].step=pow(20.0,1.0/(float)(nPar[j]-i));
+      count++;
+    }
+  }
+
+  return(parStruct);
+}/*setGroundBounds*/
 
 /*the end*/
 /*################################################*/

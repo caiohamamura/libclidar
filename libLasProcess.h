@@ -85,6 +85,19 @@ typedef struct{
 }smoothPulse;
 
 
+/*###################################################*/
+/*ground data structure*/
+
+typedef struct{
+  uint32_t nPoints;
+  double *xUse;
+  double *yUse;
+  double *zUse;
+  double *par;
+  int nPoly[2];
+}groundDstruct;
+
+
 /*#############################################*/
 /*common function definitions*/
 
@@ -92,13 +105,11 @@ float *smooth(float,int,float *,float);
 smoothPulse smooPulse;   /*global structure to save reallocation*/
 
 
-
 /*#############################################*/
 /*functions*/
 
 float *processWave(unsigned char *,int,denPar *,float);
 float *processFloWave(float *,int,denPar *,float);
-
 
 
 /*the end*/
