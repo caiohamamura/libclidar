@@ -1294,6 +1294,20 @@ char boundsCheck(double x,double y,double z,double *bounds)
 
 
 /*########################################################################*/
+/*DEM by nearest neighbour*/
+
+double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY)
+{
+  double *gDEM=NULL;
+
+  fprintf(stderr,"The nearest neighbour DEM option is not ready yet\n");
+  exit(1);
+
+  return(gDEM);
+}/*findGroundNN*/
+
+
+/*########################################################################*/
 /*fit a polynomial to the ground*/
 
 double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY)
@@ -1313,10 +1327,12 @@ double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,
   *minX=*minY=100000000000.0;
   maxX=maxY=-100000000000.0;
   for(i=0;i<nFiles;i++){
-    if(data[i]->bounds[0]<*minX)*minX=data[i]->bounds[0];
-    if(data[i]->bounds[1]<*minY)*minY=data[i]->bounds[1];
-    if(data[i]->bounds[3]>maxX)maxX=data[i]->bounds[3];
-    if(data[i]->bounds[4]>maxY)maxY=data[i]->bounds[4];
+    if(data[i]->nPoints>0){
+      if(data[i]->bounds[0]<*minX)*minX=data[i]->bounds[0];
+      if(data[i]->bounds[1]<*minY)*minY=data[i]->bounds[1];
+      if(data[i]->bounds[3]>maxX)maxX=data[i]->bounds[3];
+      if(data[i]->bounds[4]>maxY)maxY=data[i]->bounds[4];
+    }
   }
   *nX=(int)((maxX-*minX)/(double)res);
   *nY=(int)((maxY-*minY)/(double)res);
@@ -1351,7 +1367,7 @@ double *polyDEM(groundDstruct *groundD,double minX,double minY,float res,int nX,
   double x=0,y=0;
   double polyGround(double,double,groundDstruct *);
 
-  gDEM=dalloc(nX*nY,"ground DEM",0);
+  if(nX*nY>0)gDEM=dalloc(nX*nY,"ground DEM",0);
 
   for(i=0;i<nX;i++){
     x=((double)i+0.5)*(double)res+minX;
