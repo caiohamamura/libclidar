@@ -1602,6 +1602,24 @@ mp_par *setGroundBounds(int *nPar)
   return(parStruct);
 }/*setGroundBounds*/
 
+
+/*########################################*/
+/*check waveform is usable*/
+
+char checkWaveform(float *wave,uint32_t nBins)
+{
+  char usable=1;
+  uint32_t i=0;
+
+  for(i=0;i<nBins;i++){
+    if(isnan(wave[i])){
+      usable=0;
+      break;
+    }
+  }
+  return(usable);
+}/*checkWaveform*/
+
 /*the end*/
 /*################################################*/
 

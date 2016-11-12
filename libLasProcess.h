@@ -110,6 +110,7 @@ smoothPulse smooPulse;   /*global structure to save reallocation*/
 
 float *processWave(unsigned char *,int,denPar *,float);
 float *processFloWave(float *,int,denPar *,float);
+char checkWaveform(float *,uint32_t);
 
 
 /*the end*/
