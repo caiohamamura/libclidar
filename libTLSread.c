@@ -135,6 +135,23 @@ tlsVoxStr *tlsVoxAllocate(int nFiles,float *vRes,double *bounds)
   return(vox);
 }/*tlsVoxAllocate*/
 
+
+/*##################################################################*/
+/*tidy up voxel structure*/
+
+tlsVoxStr *tlsVoxAllocate(int nFiles,tlsVoxStr *vox)
+{
+
+
+  if(vox){
+
+
+    TIDY(vox);
+  }
+  return(vox);
+}
+
+
 /*the end*/
 /*##################################################################*/
 
