@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "geotiffio.h"
 #include "xtiffio.h"
+#include "tiffWrite.h"
 
 
 /*########################*/
@@ -38,13 +39,14 @@
 /*########################################################################*/
 
 
+
 /*########################################*/
 /*write a geoTIFF file*/
 
 void drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image,int nX,int nY,double scale,uint16_t epsg)
 {
-  void SetUpTIFFDirectory(TIFF *,int,int,int,int,double,double,float,double);
   void SetUpGeoKeys(GTIF *,uint16_t);
+  void SetUpTIFFDirectory(TIFF *,int,int,int,int,double,double,float,double);
   void WriteImage(TIFF *,int,int,unsigned char *);
   TIFF *tif=(TIFF*)0;  /* TIFF-level descriptor */
   GTIF *gtif=(GTIF*)0; /* GeoKey-level descriptor */
@@ -162,9 +164,9 @@ void WriteImageFlo(TIFF *tif,int nX,int nY,float *image)
 
 void drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,int nX,int nY,double scale,uint16_t epsg)
 {
-  void SetUpTIFFDirectoryFlo(TIFF *,int,int,int,int,double,double,float,double);
   void SetUpGeoKeys(GTIF *,uint16_t);
   void WriteImageFlo(TIFF *,int,int,float *);
+  void SetUpTIFFDirectoryFlo(TIFF *,int,int,int,int,double,double,float,double);
   TIFF *tif=(TIFF*)0;  /* TIFF-level descriptor */
   GTIF *gtif=(GTIF*)0; /* GeoKey-level descriptor */
   char namen[200];
