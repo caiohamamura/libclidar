@@ -122,7 +122,7 @@ typedef struct{
 
   /*only for use with TLS files*/
   double **scanCent;    /*scan centres*/
-  double **align;   /*translation to align non-geolocated files*/
+  double **align;       /*translation to align non-geolocated files*/
 }listLas;
 
 

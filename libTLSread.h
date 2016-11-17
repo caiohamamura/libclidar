@@ -99,8 +99,6 @@ typedef struct{
 
 tlsScan *tidyTLScan(tlsScan *);
 tlsScan *readTLSscan(char *,char,char);
-tlsVoxStr *tlsVoxAllocate(int,float *,double *);
-tlsVoxStr *tidyTlsVox(int,tlsVoxStr *);
 
 /*the end*/
 /*##########################################*/
