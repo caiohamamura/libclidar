@@ -43,33 +43,6 @@
 
 
 /*##################################################################*/
-/*read TLS scans*/
-
-tlsScan *readTLSscan(char *namen,char readBeam,char readPoint)
-{
-  tlsScan *scan=NULL;
-  FILE *ipoo=NULL;
-
-  /*initialise*/
-  if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
-    fprintf(stderr,"error tls allocation.\n");
-    exit(1);
-  }
-  scan->beams=NULL;
-  scan->points=NULL;
-  scan->nBeams=0;
-  scan->nPoints=0;
-
-
-  if(ipoo){
-    fclose(ipoo);
-    ipoo=NULL;
-  }
-  return(scan);
-}/*readTLSscan*/
-
-
-/*##################################################################*/
 /*tidy up TLS sctructure*/
 
 tlsScan *tidyTLScan(tlsScan *scan)
@@ -89,68 +62,6 @@ tlsScan *tidyTLScan(tlsScan *scan)
   }
   return(scan);
 }/*tidyTLSscan*/
-
-
-/*####################################*/
-/*allocate tls voxel structure*/
-
-tlsVoxStr *tlsVoxAllocate(int nFiles,float *vRes,double *bounds)
-{
-  int i=0,j=0;
-  tlsVoxStr *vox=NULL;
-  voxStruct *voxAllocate(int,float *,double *);
-
-
-  if(!(vox=(tlsVoxStr *)calloc(1,sizeof(tlsVoxStr)))){
-    fprintf(stderr,"error voxel structure allocation.\n");
-    exit(1);
-  }
-
-  /*voxel structures*/
-  vox->vox=voxAllocate(nFiles,&(vRes[0]),bounds);
-  vox->toTLS=voxAllocate(nFiles,&(vRes[0]),bounds);
-
-  /*mean factors for projecting area upwards*/
-  vox->meanRefl=fFalloc(vox->vox->nScans,"meanRefl",0);
-  vox->meanGap=fFalloc(vox->vox->nScans,"meanGap",0);
-  vox->contN=iIalloc(vox->vox->nScans,"cal count",0);
-  for(i=0;i<vox->vox->nScans;i++){
-    vox->meanRefl[i]=falloc(vox->vox->nVox,"meanRefl",i+1);
-    vox->meanGap[i]=falloc(vox->vox->nVox,"meanGap",i+1);
-    vox->contN[i]=ialloc(vox->vox->nVox,"cal count",i+1);
-    for(j=vox->vox->nVox-1;j>=0;j--){
-      vox->meanRefl[i][j]=vox->meanGap[i][j]=0.0;
-      vox->contN[i][j]=0;
-    }
-  }
-
-  /*TLS specific things to map back to individual scans*/
-  vox->mapFile=iIalloc(vox->vox->nVox,"voxel file map",0);
-  vox->nIn=ialloc(vox->vox->nVox,"number in",0);
-  if(!(vox->mapPoint=(uint32_t **)calloc(vox->vox->nVox,sizeof(uint32_t *)))){
-    fprintf(stderr,"error voxel map allocation.\n");
-    exit(1);
-  }
-
-  return(vox);
-}/*tlsVoxAllocate*/
-
-
-/*##################################################################*/
-/*tidy up voxel structure*/
-
-tlsVoxStr *tidyTlsVox(int nFiles,tlsVoxStr *vox)
-{
-  int i=0;
-
-  if(vox){
-    for(i=0;i<nFiles;i++){
-      
-    }
-    TIDY(vox);
-  }
-  return(vox);
-}
 
 
 /*the end*/

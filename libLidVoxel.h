@@ -84,7 +84,8 @@ typedef struct{
 /*function definitions*/
 
 int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
-
+voxStruct *voxAllocate(int,float *,double *,char);
+voxStruct *tidyVox(voxStruct *);
 
 /*the end*/
 /*###################################################*/
