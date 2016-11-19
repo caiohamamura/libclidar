@@ -1620,6 +1620,83 @@ char checkWaveform(float *wave,uint32_t nBins)
   return(usable);
 }/*checkWaveform*/
 
+
+/*####################################################*/
+/*rh metrics*/
+
+float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nRH)
+{
+  int i=0,j=0;
+  float cumul=0;
+  float totE=0,r=0;
+  float *rh=NULL;
+  char *done=NULL;
+
+  /*total energy*/
+  for(i=0;i<nBins;i++)totE+=wave[i];
+
+  *nRH=(int)(100.0/rhRes)+1;
+  rh=falloc(*nRH,"rh metrics",0);
+  done=challoc(*nRH,"RH done flag",0);
+  for(i=0;i<*nRH;i++)done[i]=0;
+
+  cumul=0.0;
+  if(z[nBins-i]<z[0]){   /*wave is from from top to bottom*/
+    for(i=nBins-1;i>=0;i--){
+      for(j=0;j<(*nRH);j++){
+        r=((float)j*(float)(rhRes/100.0))*totE;
+        if((done[j]==0)&&(cumul>(r-TOL))){
+          rh[j]=(float)(z[i]-gHeight);
+          done[j]=1;
+        }
+      }
+      cumul+=wave[i];
+    }
+  }else{
+    for(i=0;i<nBins;i++){  /*wave is from bottom to top*/
+      for(j=0;j<(*nRH);j++){
+        r=((float)j*(float)(rhRes/100.0))*totE;
+        if((done[j]==0)&&(cumul>(r-TOL))){
+          rh[j]=(float)(z[i]-gHeight);
+          done[j]=1;
+        }
+      }
+      cumul+=wave[i];
+    }
+  }
+
+  TIDY(done);
+  return(rh);
+}/*findRH*/
+
+
+/*####################################################*/
+/*foliage height diversity*/
+
+float foliageHeightDiversity(float *wave,int nBins)
+{
+  int i=0;
+  float FHD=0,thresh=0;
+  float p=0,total=0;
+
+  /*determine a threshold*/
+  thresh=TOL;
+
+  /*total*/
+  total=0.0;
+  for(i=0;i<nBins;i++)total+=wave[i];
+
+  FHD=0.0;
+  for(i=0;i<nBins;i++){
+    if(wave[i]>thresh){
+      p=wave[i]/total;
+      FHD-=p*log(p);
+    }
+  }
+
+  return(FHD);
+}/*foliageHeightDiversity*/
+
 /*the end*/
 /*################################################*/
 

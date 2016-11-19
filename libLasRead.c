@@ -62,7 +62,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
 
   /*open file*/
   if((las->ipoo=fopen(namen,"rb"))==NULL){
-    fprintf(stderr,"Error opening input file %s\n",namen);
+    fprintf(stderr,"Error opening input file \"%s\"\n",namen);
     exit(1);
   }
   nFilesOpen++;
@@ -189,7 +189,7 @@ void readLasGeo(lasFile *las)
 
   /*open file*/
   if((las->ipoo=fopen(las->namen,"rb"))==NULL){
-    fprintf(stderr,"Error opening input file %s\n",las->namen);
+    fprintf(stderr,"Error opening input file \"%s\"\n",las->namen);
     exit(1);
   }
   nFilesOpen++;
@@ -267,7 +267,7 @@ void readLasPoint(lasFile *las,uint32_t j)
   /*if not already, open file*/
   if(las->ipoo==NULL){
     if((las->ipoo=fopen(las->namen,"rb"))==NULL){
-      fprintf(stderr,"Error opening input file %s\n",las->namen);
+      fprintf(stderr,"Error opening input file \"%s\"\n",las->namen);
       exit(1);
     }
     nFilesOpen++;
@@ -387,7 +387,7 @@ char **readInList(int *nFiles,char *inList)
   FILE *ipoo=NULL;
 
   if((ipoo=fopen(inList,"r"))==NULL){
-    fprintf(stderr,"Error opening input file list %s\n",inList);
+    fprintf(stderr,"Error opening input file list \"%s\"\n",inList);
     exit(1);
   }
   i=0;   /*count up files*/
@@ -507,7 +507,7 @@ void readGBIC(char appGBIC,char balFlights,lasFile **lasIn,listLas *lasList)
     else             lasIn[i]->flightBal=lasList->flightBal[i];
     if(appGBIC){  /*open file if needed*/
       if((ipoo=fopen(lasList->gbicNamen[i],"r"))==NULL){
-        fprintf(stderr,"Error opening GBIC file %s\n",lasList->gbicNamen[i]);
+        fprintf(stderr,"Error opening GBIC file \"%s\"\n",lasList->gbicNamen[i]);
         exit(1);
       }
       while(fgets(line,200,ipoo)!=NULL){
@@ -563,7 +563,7 @@ listLas *readLasList(char *namen)
   }
 
   if((ipoo=fopen(namen,"r"))==NULL){
-    fprintf(stderr,"Error opening list file %s\n",namen);
+    fprintf(stderr,"Error opening list file \"%s\"\n",namen);
     exit(1);
   }
 
@@ -656,7 +656,7 @@ double **readCoordList(int nFiles,char **nameList,char *coordNamen)
   FILE *ipoo=NULL;
 
   if((ipoo=fopen(coordNamen,"r"))==NULL){
-    fprintf(stderr,"Error opening coords input file %s\n",coordNamen);
+    fprintf(stderr,"Error opening coords input file \"%s\"\n",coordNamen);
     exit(1);
   }
   coords=dDalloc(nFiles,"coords",0);
