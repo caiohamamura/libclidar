@@ -49,7 +49,7 @@ typedef struct{
   float pScale;      /*scale pulse length by*/
   int maxIter;       /*maximum number of iterations*/
   double deChang;    /*change between decon iterations to stop*/
-  char deconMeth;    /*deconvolution method*/
+  char deconMeth;    /*deconvolution method, -1 none, 0 Gold, 1 Richardson-Lucy*/
   char pNamen[400];  /*pulse filename*/
   float **pulse;     /*pulse to deconvolve by*/
   int pBins;         /*number of pulse bins*/
@@ -111,7 +111,8 @@ smoothPulse smooPulse;   /*global structure to save reallocation*/
 float *processWave(unsigned char *,int,denPar *,float);
 float *processFloWave(float *,int,denPar *,float);
 char checkWaveform(float *,uint32_t);
-
+float *findRH(float *,double *,int,double,float,int *);
+float foliageHeightDiversity(float *,int);
 
 /*the end*/
 /*#############################################*/
