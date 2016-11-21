@@ -1697,6 +1697,37 @@ float foliageHeightDiversity(float *wave,int nBins)
   return(FHD);
 }/*foliageHeightDiversity*/
 
+
+/*####################################################*/
+/*L moments*/
+
+float *waveLmoments(float *rh,int nRH,float rhRes,int nLm)
+{
+  int i=0;
+  float res=0,r=0;
+  float *Lmoments=NULL;
+
+  if(nLm==0)return(Lmoments);
+  else if(nLm>4){
+    fprintf(stderr,"Not set up to deal with more than 4 L-moments yet\n");
+    exit(1);
+  }
+
+  res=rhRes/100.0;
+  Lmoments=falloc(nLm,"L-moments",0);
+  for(i=0;i<nLm;i++)Lmoments[i]=0.0;
+
+  for(i=0;i<nRH;i++){
+    r=(float)i*rhRes;
+    Lmoments[0]+=rh[i]*res;
+    if(nLm>1)Lmoments[1]+=rh[i]*(2.0*r-1)*res;
+    if(nLm>2)Lmoments[2]+=rh[i]*(6.0*r*r-6.0*r+1.0)*res;
+    if(nLm>3)Lmoments[3]+=rh[i]*(20.0*r*r*r-30.0*r*r+12.0*r-1.0)*res;
+  }/*RH metric loop*/
+
+  return(Lmoments);
+}/*waveLmoments*/
+
 /*the end*/
 /*################################################*/
 

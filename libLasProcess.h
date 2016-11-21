@@ -113,6 +113,7 @@ float *processFloWave(float *,int,denPar *,float);
 char checkWaveform(float *,uint32_t);
 float *findRH(float *,double *,int,double,float,int *);
 float foliageHeightDiversity(float *,int);
+float *waveLmoments(float *,int,float,int);
 
 /*the end*/
 /*#############################################*/
