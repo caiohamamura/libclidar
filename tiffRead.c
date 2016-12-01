@@ -26,6 +26,9 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
   }
   geotiff->tiepoints=dalloc(6,"",0);
   geotiff->scale=dalloc(3,"",0);
+  geotiff->fImage=NULL;
+  geotiff->dImage=NULL;
+  geotiff->image=NULL;
 
   /*for now we have assumed OSNG, 27700, projection*/
   //tiffStruct=GTIFNew(tiffIn);
