@@ -105,6 +105,7 @@ void SetUpTIFFDirectory(TIFF *tif,int nX,int nY,int xI,int yI,double xL,double y
   TIFFSetField(tif,TIFFTAG_BITSPERSAMPLE, 8);
   TIFFSetField(tif,TIFFTAG_ROWSPERSTRIP,  nX);
 
+
   TIFFSetField(tif,TIFFTAG_GEOTIEPOINTS, 6,tiepoints);
   TIFFSetField(tif,TIFFTAG_GEOPIXELSCALE, 3,pixscale);
   return;
