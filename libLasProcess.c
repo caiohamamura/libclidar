@@ -1740,14 +1740,12 @@ float niMetric(float *wave,double *z,int nBins,float res,double gElev,float c)
   niM=0.0;
   for(i=0;i<nBins;i++){
     height=(float)(z[i]-gElev);
-    if(height>0.0){
-      niM+=wave[i]*pow(height,c)*res;
-    }
+    if(height>0.0)niM+=wave[i]*pow(height,c)*res;
+    else          niM+=wave[i]*(-1.0)*pow(fabs(height),c)*res;
   }
 
   return(niM);
 }/*niMetric*/
-
 
 
 /*the end*/
