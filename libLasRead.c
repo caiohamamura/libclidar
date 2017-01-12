@@ -703,6 +703,7 @@ pCloudStruct *tidyPointCloud(pCloudStruct *data)
     TIDY(data->time);
     TIDY(data->waveMap);
     TIDY(data->waveLen);
+    TIDY(data->scanAng);
     if(data->ipoo){
       fclose(data->ipoo);
       data->ipoo=NULL;

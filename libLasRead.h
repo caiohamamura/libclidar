@@ -138,6 +138,7 @@ typedef struct{
   unsigned char *class;     /*point classification*/
   int *refl;
   char *nRet;               /*number of discrete returns per beam*/
+  char *scanAng;            /*scan angle*/
   unsigned char *packetDes; /*waveform or not*/
   float **grad;             /*Poynting vector*/
   float *time;              /*time in picoseconds of this wave*/
