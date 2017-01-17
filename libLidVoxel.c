@@ -274,12 +274,15 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
   int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
   int *markInt(int,int *,int);
   double grad[3];
-  float ang=0,angStep=0;
+  float ang=0,angStep=0;  /*angular steps around edge of beam*/
+  float radRes=0;         /*radius to step along radial lines*/
   double x=0,y=0,z=0;
   char foundNew=0;
 
   nAng=90;
   angStep=2.0*M_PI/(float)nAng;
+
+  //minRes=
 
   /*central beam*/
   for(i=0;i<3;i++)grad[i]=(double)gradIn[i];

@@ -98,6 +98,19 @@ typedef struct{
 }groundDstruct;
 
 
+/*#####################################*/
+/*canopy bounds*/
+
+typedef struct{
+  float *canMin;     /*minimum canopy height*/
+  float *canMax;     /*maximum canopy height*/
+  int cNx;           /*number of x elements*/
+  int cNy;           /*number of y elements*/
+  float cRes;        /*canopy bounds resolution*/
+  double cUbound[4]; /*x, y bounds*/
+}canBstruct;
+
+
 /*#############################################*/
 /*common function definitions*/
 
