@@ -176,7 +176,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
     exit(1);
   }
   map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
-  if(!(map->mapPoint=(uint32_t **)calloc(nScans,sizeof(uint32_t *)))){
+  if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
     fprintf(stderr,"error in voxel point map allocation.\n");
     exit(1);
   }
@@ -200,7 +200,6 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
 
     /*determine which are within bounds*/
     /*are we within 300 m of the bounds?*/
-fprintf(stdout,"Bounds %f %f %f\n",tempTLS->xOff,tempTLS->yOff,tempTLS->zOff);
     if(((vox->bounds[0]-tempTLS->xOff)<=maxR)&&((vox->bounds[1]-tempTLS->yOff)<=maxR)&&\
        ((vox->bounds[2]-tempTLS->zOff)<=maxR)&&((vox->bounds[3]-tempTLS->xOff)>=(-1.0*maxR))&&\
        ((vox->bounds[4]-tempTLS->yOff)>=(-1.0*maxR))&&((vox->bounds[5]-tempTLS->zOff)>=(-1.0*maxR))){
@@ -244,11 +243,16 @@ fprintf(stdout,"Bounds %f %f %f\n",tempTLS->xOff,tempTLS->yOff,tempTLS->zOff);
         /*check bounds and copy point if within*/
           if((x>=vox->bounds[0])&&(y>=vox->bounds[1])&&(z>=vox->bounds[2])&&\
              (x<=vox->bounds[3])&&(y<=vox->bounds[4])&&(z<=vox->bounds[5])){
-
+            /*voxel space coordinates*/
             xBin=(int)((x-vox->bounds[0])/vox->res[0]);
             yBin=(int)((y-vox->bounds[1])/vox->res[1]);
             zBin=(int)((z-vox->bounds[2])/vox->res[2]);
             vPlace=zBin*vox->nX*vox->nY+yBin*vox->nY+xBin;
+
+            /*are we within voxel space, to avoid rounding errors*/
+            if((xBin<0)||(xBin>=vox->nX)||(yBin<0)||(yBin>=vox->nY)||(zBin<0)||(zBin>=vox->nZ)){
+              continue;
+            }
 
             /*mark TLS points*/
             scans[i].point[scans[i].nPoints].x=x;
@@ -271,8 +275,6 @@ fprintf(stdout,"Bounds %f %f %f\n",tempTLS->xOff,tempTLS->yOff,tempTLS->zOff);
         TIDY(rangeList);
         TIDY(voxList);
       }/*beam loop*/
-
-fprintf(stdout,"nPoints %d\n",scans[i].nPoints);
 
       /*reallocate*/
       if((scans[i].nPoints>0)&&(scans[i].nPoints<tempTLS->nPoints)){
