@@ -676,6 +676,18 @@ voxStruct *tidyVox(voxStruct *vox)
 }/*tidyVox*/
 
 
+/*###########################################################################*/
+/*tidy up voxel map*/
+
+void tidyVoxelMap(tlsVoxMap *map,int nVox)
+{
+  TTIDY((void **)map->mapFile,nVox);
+  TTIDY((void **)map->mapPoint,nVox);
+  TIDY(map->nIn);
+
+  return;
+}/*tidyVoxelMap*/
+
 /*the end*/
 /*###########################################################################*/
 
