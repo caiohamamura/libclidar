@@ -80,12 +80,33 @@ typedef struct{
 }rImageStruct;
 
 
+/*####################################*/
+/*voxel gap structure*/
+
+typedef struct{
+  /*the voxel*/
+  voxStruct *vox;   /*TLS voxels. Gap within voxel*/
+  voxStruct *toTLS; /*gap to TLS voxels*/
+  float **meanGap;  /*mean minimum gap for voxels*/
+  float **meanRefl; /*mean reflectance for voxels*/
+  int **contN;      /*number of beams contributing to the above means*/
+
+  /*TLS map*/
+  int **mapFile;        /*file per voxel*/
+  uint32_t **mapPoint;  /*point per voxel*/
+  int *nIn;             /*number of points per voxel*/
+}tlsVoxMap;
+
+ 
 /*###################################################*/
 /*function definitions*/
 
+int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
 int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
+void tidyVoxelMap(tlsVoxMap *,int);
+
 
 /*the end*/
 /*###################################################*/
