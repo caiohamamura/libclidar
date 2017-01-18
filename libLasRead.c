@@ -710,6 +710,7 @@ pCloudStruct *tidyPointCloud(pCloudStruct *data)
     }
   }
   TIDY(data->gap);
+  TIDY(data->range);
   TIDY(data);
   return(data);
 }/*tidyPointCloud*/
