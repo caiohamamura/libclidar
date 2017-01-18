@@ -148,6 +148,7 @@ typedef struct{
   FILE *ipoo;               /*file pointer*/
   char hasWave;             /*waveform included*/
   float *gap;               /*gap fraction up to a point*/
+  float *range;             /*range fram scan centre to this point*/
 }pCloudStruct;
 
 

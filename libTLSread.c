@@ -197,6 +197,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
     scans[i].xOff=tempTLS->xOff;
     scans[i].yOff=tempTLS->yOff;
     scans[i].zOff=tempTLS->zOff;
+    fprintf(stdout,"Scan centre %f %f %f\n",scans[i].xOff,scans[i].yOff,scans[i].zOff);
 
     /*determine which are within bounds*/
     /*are we within 300 m of the bounds?*/
