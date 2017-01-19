@@ -6,7 +6,6 @@
 #include "tools.h"
 #include "libLasRead.h"
 #include "libLidVoxel.h"
-#include "libTLSread.h"
 
 
 /*######################*/
@@ -284,6 +283,17 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
           exit(1);
         }
       }else if(scans[i].nPoints==0)TIDY(scans[i].point);
+
+      /*determine gap fraction*/
+      for(vPlace=0;vPlace<vox->nVox;vPlace++){
+        for(k=0;k<map->nIn[vPlace];k++){
+          if((vox->hits[map->mapFile[vPlace][k]][vPlace]+vox->miss[map->mapFile[vPlace][k]][vPlace])>0.0){
+            scans[map->mapFile[vPlace][k]].point[map->mapPoint[vPlace][k]].gap=vox->hits[map->mapFile[vPlace][k]][vPlace]/\
+                                   (vox->hits[map->mapFile[vPlace][k]][vPlace]+vox->miss[map->mapFile[vPlace][k]][vPlace]);
+          }else scans[map->mapFile[vPlace][k]].point[map->mapPoint[vPlace][k]].gap=1.0;
+        }
+      }
+
     }/*voxel bound check*/
 
     tempTLS=tidyTLScan(tempTLS);
