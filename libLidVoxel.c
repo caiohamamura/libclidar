@@ -99,6 +99,7 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
         vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
 
 
+
         /*rotate to x-y plane*/
         rotateZ(vect,(double)(-1.0*az));
         rotateX(vect,(double)(-1.0*zen));
@@ -136,25 +137,34 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap); //)*lidPar->appRefl/gap;
 
   /*range image*/
-  xIcent=(int)(((coord[0]+(double)rImage->iRes/2.0)/(double)rImage->iRes)*(double)rImage->nX);
-  yIcent=(int)(((coord[1]+(double)rImage->iRes/2.0)/(double)rImage->iRes)*(double)rImage->nY);
+  xIcent=(int)((coord[0]/(double)rImage->iRes)+0.5*(double)rImage->nX);
+  yIcent=(int)((coord[1]/(double)rImage->iRes)+0.5*(double)rImage->nY);
   xStart=xIcent-(int)(rad/rImage->iRes+0.5);
   xEnd=xIcent+(int)(rad/rImage->iRes+0.5);
   yStart=yIcent-(int)(rad/rImage->iRes+0.5);
   yEnd=yIcent+(int)(rad/rImage->iRes+0.5);
   maxRsepSq=rad*rad;
 
-  if(xStart<0)xStart=0;      /*enforce bounds*/
-  else if(xStart>=rImage->nX)xStart=rImage->nX-1;
-  if(xEnd<0)xEnd=0;      /*enforce bounds*/
-  else if(xEnd>=rImage->nX)xEnd=rImage->nX-1;
-  if(yStart<0)yStart=0;
-  else if(yStart>=rImage->nY)yStart=rImage->nY-1;
-  if(yEnd<0)yEnd=0;
-  else if(yEnd>=rImage->nY)yEnd=rImage->nY-1;   /*enforce bounds*/
+  if(xStart<0)xStart=-1;      /*enforce bounds*/
+  else if(xStart>=rImage->nX)xStart=rImage->nX;
+  if(xEnd<0)xEnd=-1;      /*enforce bounds*/
+  else if(xEnd>=rImage->nX)xEnd=rImage->nX;
+  if(yStart<0)yStart=-1;
+  else if(yStart>=rImage->nY)yStart=rImage->nY;
+  if(yEnd<0)yEnd=-1;
+  else if(yEnd>=rImage->nY)yEnd=rImage->nY;   /*enforce bounds*/
 
+  /*mark centre point*/
+  if((xIcent>=0)&&(xIcent<rImage->nX)&&(yIcent>=0)&&(yIcent<rImage->nY)){
+    rPlace=yIcent*rImage->nX+xIcent;
+    rImage->image[bin][rPlace]=1;
+  }
+
+  /*mark other points*/
   for(xInd=xStart;xInd<=xEnd;xInd++){
+    if((xInd<0)||(xInd>=rImage->nX))continue;
     for(yInd=yStart;yInd<=yEnd;yInd++){
+      if((yInd<0)||(yInd>=rImage->nY))continue;
       rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rImage->iRes*rImage->iRes;
       if(rSepSq<=maxRsepSq){
         rPlace=yInd*rImage->nX+xInd;
@@ -645,11 +655,40 @@ void findClosestFacet(double *coords,double *vCorn,double zen,double az)
 
 
 /*###############################################*/
+/*make ground return slice solid*/
+
+void fillInRimageGround(rImageStruct *rImage)
+{
+  int i=0,j=0,bin=0;
+  char brEak=0;
+
+  /*find lowest bin*/
+  brEak=0;
+  for(i=rImage->nBins-1;i>=0;i--){
+    for(j=rImage->nX*rImage->nY-1;j>=0;j--){
+      if(rImage->image[i][j]>0){
+        brEak=1;
+        bin=i;
+        break;
+      }
+    }
+    if(brEak)break;
+  }
+  if(brEak){
+    for(j=rImage->nX*rImage->nY-1;j>=0;j--)rImage->image[bin][j]=1;
+  }
+
+  return;
+}/*fillInRimageGround*/
+
+
+/*###############################################*/
 /*make a waveform from a point cloud image*/
 
 void waveFromImage(char **rImage,float **wave,int numb,int rNx,int rNy)
 {
   int i=0,j=0;
+  float total;
   char doneIt=0;
 
   for(i=0;i<numb;i++)wave[0][i]=wave[1][i]=0.0;
@@ -667,6 +706,17 @@ void waveFromImage(char **rImage,float **wave,int numb,int rNx,int rNy)
       }
     }/*range image loop*/
   }/*range image bin loop*/
+
+  /*normalise waveforms*/
+  total=0.0;
+  for(j=0;j<numb;j++)total+=wave[0][j];
+  if(total>0.0){
+    for(j=0;j<numb;j++){
+      wave[0][j]/=total;
+      wave[1][j]/=rNx*rNy;
+    }
+  }
+
   return;
 }/*waveFromImage*/
 

@@ -154,6 +154,7 @@ tlsScan *readTLSpolarBinary(char *namen)
 tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGap,tlsVoxMap *map)
 {
   int i=0,k=0;
+  int fInd=0,pInd=0;
   int nBuff=0,vPlace=0;
   int xBin=0,yBin=0,zBin=0;
   int *voxList=NULL,nIntersect=0;
@@ -247,7 +248,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
             xBin=(int)((x-vox->bounds[0])/vox->res[0]);
             yBin=(int)((y-vox->bounds[1])/vox->res[1]);
             zBin=(int)((z-vox->bounds[2])/vox->res[2]);
-            vPlace=zBin*vox->nX*vox->nY+yBin*vox->nY+xBin;
+            vPlace=zBin*vox->nX*vox->nY+yBin*vox->nX+xBin;
 
             /*are we within voxel space, to avoid rounding errors*/
             if((xBin<0)||(xBin>=vox->nX)||(yBin<0)||(yBin>=vox->nY)||(zBin<0)||(zBin>=vox->nZ)){
@@ -255,9 +256,9 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
             }
 
             /*mark TLS points*/
-            scans[i].point[scans[i].nPoints].x=x;
-            scans[i].point[scans[i].nPoints].y=y;
-            scans[i].point[scans[i].nPoints].z=z;
+            scans[i].point[scans[i].nPoints].x=(float)(x-scans[i].xOff);  /*subtract offset to save disk space*/
+            scans[i].point[scans[i].nPoints].y=(float)(y-scans[i].yOff);  /*subtract offset to save disk space*/
+            scans[i].point[scans[i].nPoints].z=(float)(z-scans[i].zOff);  /*subtract offset to save disk space*/
             scans[i].point[scans[i].nPoints].r=tempTLS->beam[j].r[k];
             scans[i].point[scans[i].nPoints].refl=tempTLS->beam[j].refl[k];
             scans[i].point[scans[i].nPoints].hitN=k;
@@ -287,10 +288,11 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
       /*determine gap fraction*/
       for(vPlace=0;vPlace<vox->nVox;vPlace++){
         for(k=0;k<map->nIn[vPlace];k++){
-          if((vox->hits[map->mapFile[vPlace][k]][vPlace]+vox->miss[map->mapFile[vPlace][k]][vPlace])>0.0){
-            scans[map->mapFile[vPlace][k]].point[map->mapPoint[vPlace][k]].gap=vox->hits[map->mapFile[vPlace][k]][vPlace]/\
-                                   (vox->hits[map->mapFile[vPlace][k]][vPlace]+vox->miss[map->mapFile[vPlace][k]][vPlace]);
-          }else scans[map->mapFile[vPlace][k]].point[map->mapPoint[vPlace][k]].gap=1.0;
+          fInd=map->mapFile[vPlace][k];
+          pInd=map->mapPoint[vPlace][k];
+          if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
+            scans[fInd].point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
+          }else scans[fInd].point[pInd].gap=1.0;
         }
       }
 
