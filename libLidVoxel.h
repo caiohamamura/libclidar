@@ -158,6 +158,7 @@ voxStruct *tidyVox(voxStruct *);
 void tidyVoxelMap(tlsVoxMap *,int);
 void silhouetteImage(int,pCloudStruct **,tlsScan **,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
 void waveFromImage(char **,float **,int,int,int);
+void fillInRimageGround(rImageStruct *);
 
 
 /*the end*/
