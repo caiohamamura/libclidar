@@ -54,9 +54,10 @@ double tanAz=0,cosAz=0,sinAz=0;
 /*#############################################*/
 /*make silhouette image from point cloud*/
 
-void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxPar *lidPar)
+void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageStruct *rImage,lidVoxPar *lidPar,int *voxList,int nIn,tlsVoxMap *map)
 {
-  int i=0,bin=0;
+  int i=0,k=0,bin=0;
+  int vInd=0,pInd=0,fInd=0;
   uint32_t j=0;
   float zen=0,az=0;
   double vect[3];
@@ -68,24 +69,51 @@ void silhouetteImage(int nFiles,pCloudStruct **data,rImageStruct *rImage,lidVoxP
   zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
   az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
 
-  for(i=0;i<nFiles;i++){
-    for(j=0;j<data[i]->nPoints;j++){
-      /*rotate to x-y plane*/
-      vect[0]=data[i]->x[j]-rImage->x0;
-      vect[1]=data[i]->y[j]-rImage->y0;
-      vect[2]=data[i]->z[j]-rImage->z0;
-      rotateZ(vect,(double)(-1.0*az));
-      rotateX(vect,(double)(-1.0*zen));
-      bin=(int)(vect[2]/rImage->rRes+0.5);
 
-fprintf(stderr,"bin %d %f %f %f\n",bin,rImage->z0,data[i]->z[j],vect[2]);
+  if(alsData){   /*use ALS data*/
+    for(i=0;i<nFiles;i++){
+      for(j=0;j<alsData[i]->nPoints;j++){
+        vect[0]=alsData[i]->x[j]-rImage->x0;
+        vect[1]=alsData[i]->y[j]-rImage->y0;
+        vect[2]=alsData[i]->z[j]-rImage->z0;
+        /*rotate to x-y plane*/
+        rotateZ(vect,(double)(-1.0*az));
+        rotateX(vect,(double)(-1.0*zen));
+        bin=(int)(vect[2]/rImage->rRes+0.5);
 
-      if((bin>=0)&&(bin<rImage->nBins)){
-        /*black out the points*/
-        markPointSilhouette(&(vect[0]),rImage,bin,lidPar,data[i]->gap[j],data[i]->refl[j],0.0);
-      }
-    }/*point loop*/
-  }/*file loop*/
+        if((bin>=0)&&(bin<rImage->nBins)){
+          /*black out the points*/
+          markPointSilhouette(&(vect[0]),rImage,bin,lidPar,alsData[i]->gap[j],alsData[i]->refl[j],0.0);
+        }
+      }/*point loop*/
+    }/*file loop*/
+  }else if(tlsData){   /*use TLS data*/
+    for(k=0;k<nIn;k++){
+      vInd=voxList[k];
+      for(i=0;i<map->nIn[vInd];i++){
+        fInd=map->mapFile[vInd][i];
+        pInd=map->mapPoint[vInd][i];
+
+        vect[0]=(double)tlsData[fInd]->point[pInd].x+tlsData[fInd]->xOff-rImage->x0;
+        vect[1]=(double)tlsData[fInd]->point[pInd].y+tlsData[fInd]->yOff-rImage->y0;
+        vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
+
+
+        /*rotate to x-y plane*/
+        rotateZ(vect,(double)(-1.0*az));
+        rotateX(vect,(double)(-1.0*zen));
+        bin=(int)(vect[2]/rImage->rRes+0.5);
+
+        if((bin>=0)&&(bin<rImage->nBins)){
+          /*black out the points*/
+          markPointSilhouette(&(vect[0]),rImage,bin,lidPar,tlsData[fInd]->point[pInd].gap,tlsData[fInd]->point[pInd].refl,tlsData[fInd]->point[pInd].r);
+        } 
+      }/*point in voxel loop*/
+    }/*voxel loop*/
+  }else{  /*no data. Something is wrong*/
+    fprintf(stderr,"No data provided\n");
+    exit(1);
+  }
 
   return;
 }/*silhouetteImage*/
@@ -108,8 +136,8 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap); //)*lidPar->appRefl/gap;
 
   /*range image*/
-  xIcent=(int)(coord[0]+(double)rImage->nY*(double)rImage->iRes/2.0);
-  yIcent=(int)(coord[1]+(double)rImage->nY*(double)rImage->iRes/2.0);
+  xIcent=(int)(((coord[0]+(double)rImage->iRes/2.0)/(double)rImage->iRes)*(double)rImage->nX);
+  yIcent=(int)(((coord[1]+(double)rImage->iRes/2.0)/(double)rImage->iRes)*(double)rImage->nY);
   xStart=xIcent-(int)(rad/rImage->iRes+0.5);
   xEnd=xIcent+(int)(rad/rImage->iRes+0.5);
   yStart=yIcent-(int)(rad/rImage->iRes+0.5);
@@ -134,7 +162,6 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
       }/*check within point*/
     }/*loop around point*/
   }/*loop around point*/
-
 
   return;
 }/*markPointSilhouette*/
@@ -165,12 +192,13 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
 /*#############################################*/
 /*allocate structure for range image*/
 
-rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float iRes,float *grad,double x0,double y0,double z0)
+rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,float rRes,float iRes,float *grad,double x0,double y0,double z0,double *bounds)
 {
   int i=0,k=0;
-  uint32_t j=0;
+  uint32_t j=0,nPoints=0;
   float zen=0,az=0;
   double vect[3];
+  double *x=NULL,*y=NULL,*z=NULL;
   rImageStruct *rImage=NULL;
   void rotateX(double *,double);
   void rotateZ(double *,double);
@@ -183,12 +211,18 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float
   rImage->x0=x0;
   rImage->y0=y0;
   rImage->z0=z0;
-  if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
-    for(i=0;i<3;i++)rImage->grad[i]=grad[i];
+  if(grad){
+    if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
+      for(i=0;i<3;i++)rImage->grad[i]=grad[i];
+    }else{
+      rImage->grad[0]=rImage->grad[1]=0.0;
+      rImage->grad[2]=-1.0;
+    }
   }else{
     rImage->grad[0]=rImage->grad[1]=0.0;
     rImage->grad[2]=-1.0;
   }
+  
 
   /*angles for rotation*/
   zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+\
@@ -196,22 +230,51 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **data,float rRes,float
   az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
 
   /*determine bounds*/
-  rImage->bounds[0]=rImage->bounds[1]=rImage->bounds[2]=10000000000.0;
-  rImage->bounds[3]=rImage->bounds[4]=rImage->bounds[5]=-10000000000.0;
-  for(i=0;i<nFiles;i++){
-    for(j=0;j<data[i]->nPoints;j++){
-      /*rotate to x-y plane*/
-      vect[0]=data[i]->x[j]-x0;
-      vect[1]=data[i]->y[j]-y0;
-      vect[2]=data[i]->z[j]-z0;
-      rotateZ(vect,(double)(-1.0*az));
-      rotateX(vect,(double)(-1.0*zen));
-      for(k=0;k<3;k++){
-        if(vect[k]<rImage->bounds[k])rImage->bounds[k]=vect[k];
-        if(vect[k]>rImage->bounds[k+3])rImage->bounds[k+3]=vect[k];
+  if(bounds==NULL){  /*find bounds from data*/
+    rImage->bounds[0]=rImage->bounds[1]=rImage->bounds[2]=10000000000.0;
+    rImage->bounds[3]=rImage->bounds[4]=rImage->bounds[5]=-10000000000.0;
+    for(i=0;i<nFiles;i++){
+      if(alsData){   /*als data*/
+        x=alsData[i]->x;
+        y=alsData[i]->y;
+        z=alsData[i]->z;
+        nPoints=alsData[i]->nPoints;
+      }else{   /*tls data*/
+        nPoints=tlsData[i]->nPoints;
+        x=dalloc(nPoints,"temp x",0);
+        y=dalloc(nPoints,"temp y",0);
+        z=dalloc(nPoints,"temp z",0);
+        for(j=0;j<nPoints;j++){
+          x[j]=(double)tlsData[i]->point[j].x+tlsData[i]->xOff;
+          y[j]=(double)tlsData[i]->point[j].y+tlsData[i]->yOff;
+          z[j]=(double)tlsData[i]->point[j].z+tlsData[i]->zOff;
+        }
       }
-    }
-  }
+      for(j=0;j<nPoints;j++){
+        /*rotate to x-y plane*/
+        vect[0]=x[j]-x0;
+        vect[1]=y[j]-y0;
+        vect[2]=z[j]-z0;
+        rotateZ(vect,(double)(-1.0*az));
+        rotateX(vect,(double)(-1.0*zen));
+        for(k=0;k<3;k++){
+          if(vect[k]<rImage->bounds[k])rImage->bounds[k]=vect[k];
+          if(vect[k]>rImage->bounds[k+3])rImage->bounds[k+3]=vect[k];
+        }
+      }
+      if(alsData){   /*als data*/
+        x=NULL;
+        y=NULL;
+        z=NULL;
+      }else{   /*tls data*/
+        TIDY(x);
+        TIDY(y);
+        TIDY(z);
+      }
+    }/*bounds from data loop*/
+  }else{ /*defined bounds*/
+    for(k=0;k<6;k++)rImage->bounds[k]=bounds[k];
+  }/*determine bounds*/
 
   rImage->rRes=rRes;
   rImage->iRes=iRes;
@@ -424,7 +487,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
       (*nPix)++;
     }/*bounds check*/
 
-    /*fprintf(stdout,"Coords %g %g %g\n",coords[0],coords[1],coords[2]);*/
     TIDY(coords);    /*update coordinates*/
     coords=iCoords;
     iCoords=NULL;

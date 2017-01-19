@@ -97,15 +97,67 @@ typedef struct{
   int *nIn;             /*number of points per voxel*/
 }tlsVoxMap;
 
- 
-/*###################################################*/
+/*####################################*/
+/*TLS beams, polar coords*/
+
+typedef struct{
+  double zen;     /*zenith*/
+  double az;      /*azimuth*/
+  float x;        /*beam origin*/
+  float y;        /*beam origin*/
+  float z;        /*beam origin*/
+  uint32_t shotN; /*shot number within this scan*/
+  uint8_t nHits;  /*number of hits of this beam*/
+  float *r;       /*range*/
+  float *refl;    /*reflectance*/
+}tlsBeam;
+
+
+/*##########################################*/
+/*TLS point cloud*/
+
+typedef struct{
+  int bin;       /*bin number*/
+  float x;       /*coordinate*/
+  float y;       /*coordinate*/
+  float z;       /*coordinate*/
+  float gap;     /*voxel gap fraction*/
+  float r;       /*range*/
+  uint16_t refl; /*reflectance*/
+  uint32_t hitN;  /*hit number*/
+  uint8_t nHits;  /*number of hits of this beam*/
+}tlsPoint;
+
+
+/*##########################################*/
+/*TLS scan*/
+
+typedef struct{
+  tlsBeam *beam;     /*array of beams*/
+  tlsPoint *point;   /*array of points*/
+  double xOff;       /*offset to allow coords to be floats*/
+  double yOff;       /*offset to allow coords to be floats*/
+  double zOff;       /*offset to allow coords to be floats*/
+  uint32_t nBeams;   /*number of beams in this scan*/
+  uint32_t nPoints;  /*number of points in this scan*/
+}tlsScan;
+
+
+/*##########################################*/
 /*function definitions*/
 
+tlsScan *tidyTLScan(tlsScan *);
+tlsScan *tidyTLScans(tlsScan *,int);
+tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
+tlsScan *readTLSpolarBinary(char *);
+rImageStruct *allocateRangeImage(int,pCloudStruct **,tlsScan **,float,float,float *,double,double,double,double *);
 int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
 int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
 void tidyVoxelMap(tlsVoxMap *,int);
+void silhouetteImage(int,pCloudStruct **,tlsScan **,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
+void waveFromImage(char **,float **,int,int,int);
 
 
 /*the end*/
