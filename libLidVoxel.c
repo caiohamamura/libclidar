@@ -62,8 +62,6 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
   float zen=0,az=0;
   double vect[3];
   void markPointSilhouette(double *,rImageStruct *,int,lidVoxPar *,float,uint16_t,double);
-  void rotateX(double *,double);
-  void rotateZ(double *,double);
 
   /*angles for rotation*/
   zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+(double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
@@ -97,8 +95,6 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
         vect[0]=(double)tlsData[fInd]->point[pInd].x+tlsData[fInd]->xOff-rImage->x0;
         vect[1]=(double)tlsData[fInd]->point[pInd].y+tlsData[fInd]->yOff-rImage->y0;
         vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
-
-
 
         /*rotate to x-y plane*/
         rotateZ(vect,(double)(-1.0*az));
@@ -210,8 +206,6 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **alsData,tlsScan **tls
   double vect[3];
   double *x=NULL,*y=NULL,*z=NULL;
   rImageStruct *rImage=NULL;
-  void rotateX(double *,double);
-  void rotateZ(double *,double);
 
   if(!(rImage=(rImageStruct *)calloc(1,sizeof(rImageStruct)))){
     fprintf(stderr,"error range image structure allocation.\n");
@@ -685,35 +679,67 @@ void fillInRimageGround(rImageStruct *rImage)
 /*###############################################*/
 /*make a waveform from a point cloud image*/
 
-void waveFromImage(char **rImage,float **wave,int numb,int rNx,int rNy)
+void waveFromImage(rImageStruct *rImage,float **wave,char gaussFoot,float fSigma,float pSigma)
 {
-  int i=0,j=0;
-  float total;
+  int i=0,j=0,k=0;
+  int place=0;
+  float dx=0,dy=0;
+  float weight=0,sep=0;
+  float total=0,totWeight=0;
   char doneIt=0;
 
-  for(i=0;i<numb;i++)wave[0][i]=wave[1][i]=0.0;
+  for(i=0;i<rImage->nBins;i++){
+    wave[0][i]=wave[1][i]=0.0;
+  }
+  if(gaussFoot==1){
+    for(i=0;i<rImage->nX;i++){
+      dx=(float)(i-rImage->nX/2)*rImage->iRes;
+      for(j=0;j<rImage->nY;j++){
+        dy=(float)(j-rImage->nY/2)*rImage->iRes;
+        sep=sqrt(dx*dx+dy*dy);
+        totWeight+=gaussian((double)sep,(double)fSigma,0.0);
+      }
+    }
+  }else totWeight=(float)(rImage->nX*rImage->nY);
 
   /*turn range images into a waveforms*/
-  for(i=rNx*rNy-1;i>=0;i--){ /*image x-y loop*/
-    doneIt=0;
-    for(j=0;j<numb;j++){ /*image bin loop*/
-      if(rImage[j][i]>0){
-        if(doneIt==0){
-          wave[0][j]+=1.0; /*appRefl*(rimRes*rimRes)/(M_PI*beamRad*beamRad);*/
-          doneIt=1;
-        }/*first hit only*/
-        wave[1][j]+=1.0; /*appRefl*(rimRes*rimRes)/(M_PI*beamRad*beamRad);*/  /*hits per bin*/
-      }
-    }/*range image loop*/
+  for(i=0;i<rImage->nX;i++){
+    dx=(float)(i-rImage->nX/2)*rImage->iRes;
+    for(j=0;j<rImage->nY;j++){
+      place=j*rImage->nX+i;
+      dy=(float)(j-rImage->nY/2)*rImage->iRes;
+      sep=sqrt(dx*dx+dy*dy);
+      doneIt=0;
+
+      for(k=0;k<rImage->nBins;k++){ /*image bin loop*/
+        if(rImage->image[k][place]>0){
+          if(gaussFoot==0){
+            if(sep<=fSigma)weight=1.0;
+            else           weight=0.0;
+          }else if(gaussFoot==-1){
+            weight=1.0;
+          }else if(gaussFoot==1){
+            weight=gaussian((double)sep,(double)fSigma,0.0);
+          }
+
+          if(doneIt==0){
+            wave[0][k]+=weight; /*appRefl*(rimRes*rimRes)/(M_PI*beamRad*beamRad);*/
+            total+=weight;
+            doneIt=1;
+          }/*first hit only*/
+          wave[1][k]+=weight; /*appRefl*(rimRes*rimRes)/(M_PI*beamRad*beamRad);*/  /*hits per bin*/
+        }
+      }/*y loop*/
+    }/*x loop*/
   }/*range image bin loop*/
 
   /*normalise waveforms*/
   total=0.0;
-  for(j=0;j<numb;j++)total+=wave[0][j];
+  for(j=0;j<rImage->nBins;j++)total+=wave[0][j];
   if(total>0.0){
-    for(j=0;j<numb;j++){
+    for(j=0;j<rImage->nBins;j++){
       wave[0][j]/=total;
-      wave[1][j]/=rNx*rNy;
+      wave[1][j]/=totWeight;
     }
   }
 
@@ -802,6 +828,79 @@ void tidyVoxelMap(tlsVoxMap *map,int nVox)
 
   return;
 }/*tidyVoxelMap*/
+
+
+/*###########################################################################*/
+/*find bounds of filled voxels*/
+
+double *findVoxelBounds(int *voxList,int nIn,voxStruct *vox,tlsVoxMap *map,float *grad,double x0,double y0,double z0)
+{
+  int i=0,k=0,vInd=0;
+  int ii=0,jj=0,kk=0;
+  int xBin=0,yBin=0,zBin=0;
+  float zen=0,az=0;
+  double *bounds=NULL,vect[3];
+
+  bounds=dalloc(6,"bounds",0);
+  bounds[0]=bounds[1]=bounds[2]=10000000000.0;
+  bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
+
+  zen=(float)atan2(sqrt((double)grad[0]*(double)grad[0]+(double)grad[1]*(double)grad[1]),(double)grad[2]);
+  az=(float)atan2((double)grad[0],(double)grad[1]);
+
+  /*loop over intersected voxels*/
+  for(i=0;i<nIn;i++){
+    vInd=voxList[i];
+    if(map->nIn[vInd]>0){
+      xBin=vInd%(vox->nX*vox->nY);
+      yBin=(vInd-xBin)%vox->nX;
+      zBin=((vInd-xBin)-yBin*vox->nX)/(vox->nX*vox->nY);
+
+      /*each corner in turn*/
+      for(ii=0;ii<2;ii++){
+        for(jj=0;jj<2;jj++){
+          for(kk=0;kk<2;kk++){
+            /*rotate to beam vector*/
+            vect[0]=(double)(xBin+ii)*vox->res[0]+vox->bounds[0]-x0;
+            vect[1]=(double)(yBin+jj)*vox->res[1]+vox->bounds[1]-y0;
+            vect[2]=(double)(zBin+kk)*vox->res[2]+vox->bounds[2]-z0;
+            rotateZ(vect,(double)(-1.0*az));
+            rotateX(vect,(double)(-1.0*zen));
+            for(k=0;k<3;k++){   /*bound check*/
+              if(vect[k]<bounds[k])bounds[k]=vect[k];
+              if(vect[k]>bounds[k+3])bounds[k+3]=vect[k];
+            }/*bound check*/
+          }
+        }
+      }/*eight corner loop*/
+    }/*filled voxel check*/
+  }/*intersected voxel loop*/
+
+
+
+  return(bounds);
+}/*findVoxelBounds*/
+
+
+/*###########################################################################*/
+/*set waveform elevation along vector*/
+
+void setWaveformRange(float *range,double *origin,float *grad,int nBins,float res)
+{
+  int i=0;
+  float r=0;
+  double zen=0;
+
+  zen=(float)atan2(sqrt((double)grad[0]*(double)grad[0]+(double)grad[1]*(double)grad[1]),(double)grad[2]);
+
+  for(i=0;i<nBins;i++){
+    r=(float)origin[2]+(float)i*res;
+    range[i]=r*(float)cos(zen);
+  }
+
+  return;
+}/*setWaveformRange*/
+
 
 /*the end*/
 /*###########################################################################*/

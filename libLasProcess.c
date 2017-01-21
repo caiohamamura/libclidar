@@ -1748,6 +1748,23 @@ float niMetric(float *wave,double *z,int nBins,float res,double gElev,float c)
 }/*niMetric*/
 
 
+/*####################################*/
+/*maximum significant distance*/
+
+float determineGaussSep(float fSigma,float thresh)
+{
+  float x=0,y=0;
+
+  x=0.0;
+  do{
+    y=(float)gaussian((double)x,(double)fSigma,0.0);
+    x+=0.2;
+  }while(y>=thresh);
+
+  return(x);
+}/*determineGaussSep*/
+
+
 /*the end*/
 /*################################################*/
 

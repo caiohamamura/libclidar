@@ -157,9 +157,12 @@ voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
 void tidyVoxelMap(tlsVoxMap *,int);
 void silhouetteImage(int,pCloudStruct **,tlsScan **,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
-void waveFromImage(char **,float **,int,int,int);
+void waveFromImage(rImageStruct *,float **,char,float,float);
 void fillInRimageGround(rImageStruct *);
-
+double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
+void setWaveformRange(float *,double *,float *,int,float);
+void rotateX(double *,double);
+void rotateZ(double *,double);
 
 /*the end*/
 /*###################################################*/

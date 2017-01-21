@@ -128,6 +128,7 @@ float *findRH(float *,double *,int,double,float,int *);
 float foliageHeightDiversity(float *,int);
 float *waveLmoments(float *,int,float,int);
 float niMetric(float *,double *,int,float,double,float);
+float determineGaussSep(float,float);
 
 /*the end*/
 /*#############################################*/
