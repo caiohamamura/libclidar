@@ -303,7 +303,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
   char foundNew=0;
 
   /*determine angular resolution*/
-  if(vRes>0.0)angStep=atan2(vRes,beamRad);
+  if(vRes>0.0)angStep=atan2(vRes/3.0,beamRad);
   else        angStep=2.0*M_PI/90.0;
 
   /*determine radial resolution*/
@@ -346,6 +346,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
     }/*radial loop*/
     ang+=angStep;
   }/*sub step loop*/
+
   return(pixList);
 }/*beamPixels*/
 
