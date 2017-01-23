@@ -6,6 +6,7 @@
 #include "tools.h"
 #include "libLasRead.h"
 #include "libLidVoxel.h"
+#include "libLasProcess.h"
 
 
 /*#########################*/
@@ -198,13 +199,10 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
 /*#############################################*/
 /*allocate structure for range image*/
 
-rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,float rRes,float iRes,float *grad,double x0,double y0,double z0,double *bounds)
+rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad,double *origin,double *bounds)
 {
   int i=0,k=0;
-  uint32_t j=0,nPoints=0;
-  float zen=0,az=0;
-  double vect[3];
-  double *x=NULL,*y=NULL,*z=NULL;
+  float zen=0;
   rImageStruct *rImage=NULL;
 
   if(!(rImage=(rImageStruct *)calloc(1,sizeof(rImageStruct)))){
@@ -212,9 +210,9 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **alsData,tlsScan **tls
     exit(1);
   }
 
-  rImage->x0=x0;
-  rImage->y0=y0;
-  rImage->z0=z0;
+  rImage->x0=origin[0];
+  rImage->y0=origin[1];
+  rImage->z0=origin[2];
   if(grad){
     if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
       for(i=0;i<3;i++)rImage->grad[i]=grad[i];
@@ -226,59 +224,18 @@ rImageStruct *allocateRangeImage(int nFiles,pCloudStruct **alsData,tlsScan **tls
     rImage->grad[0]=rImage->grad[1]=0.0;
     rImage->grad[2]=-1.0;
   }
-  
 
   /*angles for rotation*/
   zen=(float)atan2(sqrt((double)rImage->grad[0]*(double)rImage->grad[0]+\
        (double)rImage->grad[1]*(double)rImage->grad[1]),(double)rImage->grad[2]);
-  az=(float)atan2((double)rImage->grad[0],(double)rImage->grad[1]);
 
-  /*determine bounds*/
-  if(bounds==NULL){  /*find bounds from data*/
-    rImage->bounds[0]=rImage->bounds[1]=rImage->bounds[2]=10000000000.0;
-    rImage->bounds[3]=rImage->bounds[4]=rImage->bounds[5]=-10000000000.0;
-    for(i=0;i<nFiles;i++){
-      if(alsData){   /*als data*/
-        x=alsData[i]->x;
-        y=alsData[i]->y;
-        z=alsData[i]->z;
-        nPoints=alsData[i]->nPoints;
-      }else{   /*tls data*/
-        nPoints=tlsData[i]->nPoints;
-        x=dalloc(nPoints,"temp x",0);
-        y=dalloc(nPoints,"temp y",0);
-        z=dalloc(nPoints,"temp z",0);
-        for(j=0;j<nPoints;j++){
-          x[j]=(double)tlsData[i]->point[j].x+tlsData[i]->xOff;
-          y[j]=(double)tlsData[i]->point[j].y+tlsData[i]->yOff;
-          z[j]=(double)tlsData[i]->point[j].z+tlsData[i]->zOff;
-        }
-      }
-      for(j=0;j<nPoints;j++){
-        /*rotate to x-y plane*/
-        vect[0]=x[j]-x0;
-        vect[1]=y[j]-y0;
-        vect[2]=z[j]-z0;
-        rotateZ(vect,(double)(-1.0*az));
-        rotateX(vect,(double)(-1.0*zen));
-        for(k=0;k<3;k++){
-          if(vect[k]<rImage->bounds[k])rImage->bounds[k]=vect[k];
-          if(vect[k]>rImage->bounds[k+3])rImage->bounds[k+3]=vect[k];
-        }
-      }
-      if(alsData){   /*als data*/
-        x=NULL;
-        y=NULL;
-        z=NULL;
-      }else{   /*tls data*/
-        TIDY(x);
-        TIDY(y);
-        TIDY(z);
-      }
-    }/*bounds from data loop*/
-  }else{ /*defined bounds*/
-    for(k=0;k<6;k++)rImage->bounds[k]=bounds[k];
-  }/*determine bounds*/
+  rImage->bounds[0]=-1.0*(double)beamRad;
+  rImage->bounds[1]=-1.0*(double)beamRad;
+  rImage->bounds[2]=0.0;
+  rImage->bounds[3]=(double)beamRad;
+  rImage->bounds[4]=(double)beamRad;
+  rImage->bounds[5]=fabs(bounds[5]-bounds[2])*-1.0*(double)cos(zen);
+
 
   rImage->rRes=rRes;
   rImage->iRes=iRes;
@@ -312,7 +269,7 @@ void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNu
   if(grad){
     if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
       /*determine which voxels are intersected*/
-      voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList);
+      voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList,-1.0);
 
       /*loop along intersected voxels*/
       for(i=0;i<nTot;i++){
@@ -331,10 +288,9 @@ void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNu
 /*#######################################*/
 /*voxels intersecting beam with width*/
 
-int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,double *res,int nX,int nY,int nZ,int *nPix,double beamRad,double **rangeList)
+int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,double *res,int nX,int nY,int nZ,int *nPix,double beamRad,double **rangeList,float vRes)
 {
   int i=0,j=0,k=0;
-  int nAng=0;
   int tempPix=0;
   int *pixList=NULL;
   int *tempList=NULL;
@@ -342,44 +298,53 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
   int *markInt(int,int *,int);
   double grad[3];
   float ang=0,angStep=0;  /*angular steps around edge of beam*/
-  float radRes=0;         /*radius to step along radial lines*/
+  float rad=0,radRes=0;   /*radius to step along radial lines*/
   double x=0,y=0,z=0;
   char foundNew=0;
 
-  nAng=90;
-  angStep=2.0*M_PI/(float)nAng;
+  /*determine angular resolution*/
+  if(vRes>0.0)angStep=atan2(vRes,beamRad);
+  else        angStep=2.0*M_PI/90.0;
 
-  //minRes=
+  /*determine radial resolution*/
+  if(vRes>=beamRad)radRes=beamRad;
+  else             radRes=vRes/2.0;
 
   /*central beam*/
   for(i=0;i<3;i++)grad[i]=(double)gradIn[i];
   pixList=findVoxels(&(grad[0]),x0,y0,z0,bounds,res,nPix,nX,nY,nZ,rangeList);
 
   /*loop around rim of the beam*/
-  for(i=0;i<nAng;i++){
-    ang=(float)i*angStep;
-    x=beamRad*sin(ang)+x0;  /*new start along edge of beam*/
-    y=beamRad*cos(ang)+y0;  /*new start along edge of beam*/
-    z=z0;     /*this should take into account the zenith angle of the beam*/
+  ang=0.0;
+  while(ang<2.0*M_PI){  /*angular loop*/
+    rad=0.0;
+    while(rad<=(float)beamRad){   /*radial loop*/
+      x=rad*sin(ang)+x0;  /*new start along edge of beam*/
+      y=rad*cos(ang)+y0;  /*new start along edge of beam*/
+      z=z0;     /*this should take into account the zenith angle of the beam*/
 
-    /*find voxels intersected by the beam along that edge*/
-    for(j=0;j<3;j++)grad[j]=(double)gradIn[j];
-    tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,rangeList);
-    /*now sort through*/
-    for(j=0;j<tempPix;j++){
-      foundNew=1;
-      for(k=0;k<(*nPix);k++){
-        if(pixList[k]==tempList[j]){
-          foundNew=0;
-          break;
-        }
-      }/*final list loop*/
-      if(foundNew==1){  /*if new, mark it*/
-        pixList=markInt(*nPix,pixList,tempList[j]);
-        (*nPix)++;
-      } /*if new, mark it*/
-    }/*temporary list loop*/
-    TIDY(tempList);
+      /*find voxels intersected by the beam along that edge*/
+      for(j=0;j<3;j++)grad[j]=(double)gradIn[j];
+      tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,rangeList);
+      /*now sort through*/
+      for(j=0;j<tempPix;j++){
+        foundNew=1;
+        for(k=0;k<(*nPix);k++){
+          if(pixList[k]==tempList[j]){
+            foundNew=0;
+            break;
+          }
+        }/*final list loop*/
+        if(foundNew==1){  /*if new, mark it*/
+          pixList=markInt(*nPix,pixList,tempList[j]);
+          (*nPix)++;
+        } /*if new, mark it*/
+      }/*temporary list loop*/
+      TIDY(tempList);
+
+      rad+=radRes;
+    }/*radial loop*/
+    ang+=angStep;
   }/*sub step loop*/
   return(pixList);
 }/*beamPixels*/
@@ -679,7 +644,7 @@ void fillInRimageGround(rImageStruct *rImage)
 /*###############################################*/
 /*make a waveform from a point cloud image*/
 
-void waveFromImage(rImageStruct *rImage,float **wave,char gaussFoot,float fSigma,float pSigma)
+void waveFromImage(rImageStruct *rImage,float **wave,char gaussFoot,float fSigma)
 {
   int i=0,j=0,k=0;
   int place=0;
@@ -885,7 +850,7 @@ double *findVoxelBounds(int *voxList,int nIn,voxStruct *vox,tlsVoxMap *map,float
 /*###########################################################################*/
 /*set waveform elevation along vector*/
 
-void setWaveformRange(float *range,double *origin,float *grad,int nBins,float res)
+void setWaveformRange(float *range,double z0,float *grad,int nBins,float res)
 {
   int i=0;
   float r=0;
@@ -894,12 +859,96 @@ void setWaveformRange(float *range,double *origin,float *grad,int nBins,float re
   zen=(float)atan2(sqrt((double)grad[0]*(double)grad[0]+(double)grad[1]*(double)grad[1]),(double)grad[2]);
 
   for(i=0;i<nBins;i++){
-    r=(float)origin[2]+(float)i*res;
-    range[i]=r*(float)cos(zen);
+    r=(float)i*res;
+    range[i]=z0+r*(float)cos(zen);
   }
 
   return;
 }/*setWaveformRange*/
+
+
+/*###########################################################################*/
+/*read bounds for voxels from TLS*/
+
+void readBoundsFromTLS(double *bounds,char **inList,int nScans)
+{
+  int i=0,k=0;
+  uint32_t j=0;
+  double x=0,y=0,z=0;
+  double xCent=0,yCent=0,zCent=0;
+  tlsScan *tempTLS=NULL;
+
+  bounds[0]=bounds[1]=bounds[2]=10000000000.0;
+  bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
+
+  for(i=0;i<nScans;i++){  /*file loop*/
+    tempTLS=readTLSpolarBinary(inList[i]);
+    for(j=0;j<tempTLS->nBeams;j++){/*point loop*/
+      /*beam origin*/
+      xCent=(double)tempTLS->beam[j].x+tempTLS->xOff;
+      yCent=(double)tempTLS->beam[j].y+tempTLS->yOff;
+      zCent=(double)tempTLS->beam[j].z+tempTLS->zOff;
+
+      for(k=0;k<tempTLS->beam[j].nHits;k++){  /*hit loop*/
+        /*point coordinate*/
+        x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+        y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+        z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
+
+        /*determine bounds*/
+        if(x<bounds[0])bounds[0]=x;
+        if(y<bounds[1])bounds[1]=y;
+        if(z<bounds[2])bounds[2]=z;
+        if(x>bounds[3])bounds[3]=x;
+        if(y>bounds[4])bounds[4]=y;
+        if(z>bounds[5])bounds[5]=z;
+      }/*hit loop*/
+    }/*point loop*/
+    tempTLS=tidyTLScan(tempTLS);
+  }/*file loop*/
+
+  return;
+}/*readBoundsFromTLS*/
+
+
+/*###########################################################################*/
+/*clip x and y bounds to a beam*/
+
+void beamVoxelBounds(double *origin,float *grad,float fSigma,char gaussFoot,double *bounds)
+{
+  int i=0;
+  float rad=0;
+  double x=0,y=0;
+
+  if(gaussFoot)rad=determineGaussSep(fSigma,0.001);
+  else         rad=fSigma;
+
+  /*put beam start at top of voxel space*/
+  origin[2]=bounds[5];
+
+  bounds[0]=bounds[1]==100000000000.0;
+  bounds[3]=bounds[4]=-100000000000.0;
+
+  for(i=-1;i<=1;i+=2){  /*loop over edges*/
+    /*top*/
+    x=origin[0]+(float)i*fSigma;
+    y=origin[1]+(float)i*fSigma;
+    if(x<bounds[0])bounds[0]=x;
+    if(x>bounds[3])bounds[3]=x;
+    if(y<bounds[1])bounds[1]=y;
+    if(y>bounds[4])bounds[4]=y;
+
+    /*bottom*/
+    x=origin[0]+(float)i*fSigma+((float)origin[2]-(float)bounds[2])*grad[0];
+    y=origin[1]+(float)i*fSigma+((float)origin[2]-(float)bounds[2])*grad[1];
+    if(x<bounds[0])bounds[0]=x;
+    if(x>bounds[3])bounds[3]=x;
+    if(y<bounds[1])bounds[1]=y;
+    if(y>bounds[4])bounds[4]=y;
+  }/*edges loop*/
+
+  return;
+}/*beamVoxelBounds*/
 
 
 /*the end*/
