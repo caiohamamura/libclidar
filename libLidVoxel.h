@@ -150,19 +150,21 @@ tlsScan *tidyTLScan(tlsScan *);
 tlsScan *tidyTLScans(tlsScan *,int);
 tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
 tlsScan *readTLSpolarBinary(char *);
-rImageStruct *allocateRangeImage(int,pCloudStruct **,tlsScan **,float,float,float *,double,double,double,double *);
+rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
 int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
-int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **);
+int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **,float);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
 void tidyVoxelMap(tlsVoxMap *,int);
 void silhouetteImage(int,pCloudStruct **,tlsScan **,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
-void waveFromImage(rImageStruct *,float **,char,float,float);
+void waveFromImage(rImageStruct *,float **,char,float);
 void fillInRimageGround(rImageStruct *);
 double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
-void setWaveformRange(float *,double *,float *,int,float);
+void setWaveformRange(float *,double,float *,int,float);
 void rotateX(double *,double);
 void rotateZ(double *,double);
+void readBoundsFromTLS(double *,char **,int);
+void beamVoxelBounds(double *,float *,float,char,double *);
 
 /*the end*/
 /*###################################################*/
