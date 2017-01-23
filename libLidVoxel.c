@@ -296,6 +296,8 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
   int *tempList=NULL;
   int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
   int *markInt(int,int *,int);
+  double *markDo(int,double *,double);
+  double *tempRange=NULL;
   double grad[3];
   float ang=0,angStep=0;  /*angular steps around edge of beam*/
   float rad=0,radRes=0;   /*radius to step along radial lines*/
@@ -325,7 +327,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
       /*find voxels intersected by the beam along that edge*/
       for(j=0;j<3;j++)grad[j]=(double)gradIn[j];
-      tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,rangeList);
+      tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,&tempRange);
       /*now sort through*/
       for(j=0;j<tempPix;j++){
         foundNew=1;
@@ -337,10 +339,12 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
         }/*final list loop*/
         if(foundNew==1){  /*if new, mark it*/
           pixList=markInt(*nPix,pixList,tempList[j]);
+          rangeList[0]=markDo(*nPix,rangeList[0],tempRange[j]);
           (*nPix)++;
         } /*if new, mark it*/
       }/*temporary list loop*/
       TIDY(tempList);
+      TIDY(tempRange);
 
       rad+=radRes;
     }/*radial loop*/
