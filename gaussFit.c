@@ -190,7 +190,6 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   /*initial estimates*/
   params=initialSingleGauss(x,decon,nBins,0.0);
 
-
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
     fprintf(stderr,"error in control structure.\n");
@@ -306,7 +305,7 @@ double *initialSingleGauss(float *x,float *y,int nBins,float gWidth)
       break;
     }
   }
-  params[2]=(end-start)/2.0;  /*sigma*/
+  params[2]=fabs(end-start)/2.0;  /*sigma*/
 
   if(gWidth>0.0){
     TIDY(smoothed);
