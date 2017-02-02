@@ -1296,7 +1296,7 @@ char boundsCheck(double x,double y,double z,double *bounds)
 /*########################################################################*/
 /*DEM by nearest neighbour*/
 
-double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY)
+double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY,double groundBreakElev)
 {
   double *gDEM=NULL;
 
@@ -1310,19 +1310,19 @@ double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,fl
 /*########################################################################*/
 /*fit a polynomial to the ground*/
 
-double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY)
+double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY,double groundBreakElev)
 {
   int i=0;
   double maxX=0,maxY=0;
   double *gDEM=NULL;
   double *polyDEM(groundDstruct *,double,double,float,int,int);
   groundDstruct *groundD=NULL;   /*ground data structure*/
-  groundDstruct *arrangeGroundData(pCloudStruct **,int);
+  groundDstruct *arrangeGroundData(pCloudStruct **,int,double);
   void fitManyPlanes(groundDstruct *,int,int);
 
 
   /*allocate and load relevant data*/
-  groundD=arrangeGroundData(data,nFiles);
+  groundD=arrangeGroundData(data,nFiles,groundBreakElev);
 
   *minX=*minY=100000000000.0;
   maxX=maxY=-100000000000.0;
@@ -1489,7 +1489,7 @@ void fitPolyPlane(groundDstruct *groundData)
 /*################################################*/
 /*allocate and load relevant data*/
 
-groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles)
+groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBreakElev)
 {
   int numb=0;
   uint32_t i=0,j=0;
@@ -1523,7 +1523,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles)
   j=0;
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
-      if(data[numb]->class[i]==2){
+      if((data[numb]->class[i]==2)&&(data[numb]->z[i]>=groundBreakElev)){
         groundD->xUse[j]=data[numb]->x[i];
         groundD->yUse[j]=data[numb]->y[i];
         groundD->zUse[j]=data[numb]->z[i];
