@@ -40,6 +40,102 @@
 /*#    along with libClidar.  If not, see <http://www.gnu.org/licenses/>.#*/
 /*########################################################################*/
 
+
+/*##################################################################*/
+/*write TLS point cloud from binary data*/
+
+void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
+{
+  uint32_t i=0,nBeams=0;
+  uint64_t buffSize=0;   /*buffer size*/
+  uint64_t offset=0;
+  double zen=0,az=0;
+  double xCent=0,yCent=0,zCent=0;
+  double x=0,y=0,z=0;
+  uint32_t shotN=0;     /*shot number within this scan*/
+  uint8_t nHits=0,j=0;  /*number of hits of this beam*/
+  float r=0;            /*range*/
+  float refl=0;         /*reflectance*/
+  char *buffer=NULL;
+  FILE *ipoo=NULL;
+
+  /*open file*/
+  if((ipoo=fopen(namen,"rb"))==NULL){
+    fprintf(stderr,"Error opening input file %s\n",namen);
+    exit(1);
+  }
+
+  /*skip to 4 bytes from the end*/
+  if(fseek(ipoo,(long)-4,SEEK_END)){ 
+    fprintf(stderr,"fseek error from end\n");
+    exit(1);
+  }
+  if(fread(&nBeams,sizeof(uint32_t),1,ipoo)!=1){
+    fprintf(stderr,"Error reading number of points\n");
+    exit(1);
+  }
+  buffSize=ftell(ipoo);
+
+  /*read data into buffer*/
+  if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
+    fprintf(stderr,"fseek error to start\n");
+    exit(1);
+  }
+  buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
+  if(fread(&buffer[0],sizeof(char),buffSize,ipoo)!=buffSize){  /*read beams*/
+    fprintf(stderr,"Error reading point data\n");
+    exit(1);
+  }
+  /*close file*/
+  if(ipoo){
+    fclose(ipoo);
+    ipoo=NULL;
+  }
+
+
+  /*loop along buffer and output*/
+  offset=0;
+  for(i=0;i<nBeams;i++){
+    memcpy(&zen,&buffer[offset],8);
+    zen*=M_PI/180.0; /*convert to radians*/
+    offset+=8;
+    memcpy(&az,&buffer[offset],8);
+    az*=M_PI/180.0; /*convert to radians*/
+    offset+=8;
+    memcpy(&xCent,&buffer[offset],8);
+    offset+=8;
+    memcpy(&yCent,&buffer[offset],8);
+    offset+=8;
+    memcpy(&zCent,&buffer[offset],8);
+    offset+=8;
+    memcpy(&shotN,&buffer[offset],4);
+    offset+=4;
+    memcpy(&nHits,&buffer[offset],1);
+    offset+=1;
+
+
+    for(j=0;j<nHits;j++){
+      memcpy(&r,&buffer[offset],4);
+      offset+=4;
+      memcpy(&refl,&buffer[offset],4);
+      offset+=4;
+
+      x=(double)r*sin(zen)*cos(az)+xCent;
+      y=(double)r*sin(zen)*sin(az)+yCent;
+      z=(double)r*cos(zen)+zCent;
+
+      /*check bounds*/
+      if((x>=bounds[0])&&(y>=bounds[1])&&(x>=bounds[2])&&(x<=bounds[3])&&(y<=bounds[4])&&(z<=bounds[5])){
+        fprintf(opoo,"%.3f %.3f %.3f %f %d %d %f %f %f\n",x,y,z,refl,j,nHits,zen,az,r);
+      }
+    }/*hit loop*/
+
+  }/*beam loop*/
+  TIDY(buffer);
+  return;
+}/*writeTLSpointFromBin*/
+
+
 /*##################################################################*/
 /*read single TLS scan, all data*/
 
