@@ -125,7 +125,7 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
       z=(double)r*cos(zen)+zCent;
 
       /*check bounds*/
-      if((x>=bounds[0])&&(y>=bounds[1])&&(x>=bounds[2])&&(x<=bounds[3])&&(y<=bounds[4])&&(z<=bounds[5])){
+      if((x>=bounds[0])&&(y>=bounds[1])&&(z>=bounds[2])&&(x<=bounds[3])&&(y<=bounds[4])&&(z<=bounds[5])){
         fprintf(opoo,"%.3f %.3f %.3f %f %d %d %f %f %f\n",x,y,z,refl,j,nHits,zen,az,r);
       }
     }/*hit loop*/
