@@ -262,7 +262,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
   tlsScan *scans=NULL,*tempTLS=NULL;
-  char hasHit=0;
+  char hasHit=0,doIt=0;
 
   /*max range of Riegl: OTHERS ARE SHORTER. COULD BE ADJUSTABLE*/
   maxR=300.0;
@@ -333,11 +333,15 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
           }/*hits before voxel*/
 
           /*hits within voxel*/
-          if(rangeList[k]<=lastHitR){  /*no information after this*/
-            hasHit=0;
+          doIt=1;
+          if(k>0){
+            minR=rangeList[k-1];
+            if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
+          }else minR=0.0;
+
+          hasHit=0;
+          if(doIt){
             for(n=0;n<tempTLS->beam[j].nHits;n++){
-              if(k>0)minR=rangeList[k-1];
-              else   minR=0.0;
               if((tempTLS->beam[j].r[n]>=minR)&&(tempTLS->beam[j].r[n]<=rangeList[k])){
                 hasHit=1;
                 break;
