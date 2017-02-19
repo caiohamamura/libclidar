@@ -35,8 +35,10 @@
 
 typedef struct{
   int nScans;        /*number of contributing files*/
-  float **hits;      /*hits per scan location*/
-  float **miss;      /*misses per scan location*/
+  float **hits;      /*beams that hit voxel, per scan location*/
+  float **miss;      /*beams blocked before voxel, per scan location*/
+  float **inHit;     /*hits within voxel, per scan location*/
+  float **inMiss;    /*missed within voxel, per scan location*/
   float *rmse;       /*rmse of signal going in*/
   int *contN;        /*for normalising ALS*/
   int nVox;          /*total number of voxels*/
