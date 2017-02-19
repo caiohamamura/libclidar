@@ -249,7 +249,7 @@ tlsScan *readTLSpolarBinary(char *namen)
 
 tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGap,tlsVoxMap *map)
 {
-  int i=0,k=0;
+  int i=0,k=0,n=0;
   int fInd=0,pInd=0;
   int nBuff=0,vPlace=0;
   int xBin=0,yBin=0,zBin=0;
@@ -257,11 +257,12 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
   int *markInt(int,int *,int);
   uint32_t *markUint32(int,uint32_t *,uint32_t);
   uint32_t j=0;
-  float maxR=0,lastHitR=0;
+  float minR=0,maxR=0,lastHitR=0;
   double grad[3],*rangeList=NULL;
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
   tlsScan *scans=NULL,*tempTLS=NULL;
+  char hasHit=0;
 
   /*max range of Riegl: OTHERS ARE SHORTER. COULD BE ADJUSTABLE*/
   maxR=300.0;
@@ -322,13 +323,29 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
         else                        lastHitR=100000.0;
 
         for(k=0;k<nIntersect;k++){
+          /*hits before voxel*/
           if(!useFracGap){  /*simple method. All hit until last return*/
             if(rangeList[k]<=lastHitR)vox->hits[i][voxList[k]]+=1.0;
             else                      vox->miss[i][voxList[k]]+=1.0;
           }else{            /*John's fractional method*/
             fprintf(stderr,"John's folly method not implemented yet\n");
             exit(1);
-          }     
+          }/*hits before voxel*/
+
+          /*hits within voxel*/
+          if(rangeList[k]<=lastHitR){  /*no information after this*/
+            hasHit=0;
+            for(n=0;n<tempTLS->beam[j].nHits;n++){
+              if(k>0)minR=rangeList[k-1];
+              else   minR=0.0;
+              if((tempTLS->beam[j].r[n]>=minR)&&(tempTLS->beam[j].r[n]<=rangeList[k])){
+                hasHit=1;
+                break;
+              }
+            }
+            if(hasHit)vox->inHit[i][voxList[k]]+=1.0;
+            else      vox->inMiss[i][voxList[k]]+=1.0;
+          }/*hits within voxel*/
         }/*voxel intersection loop*/
 
         /*record and map useful points*/

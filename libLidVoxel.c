@@ -746,8 +746,10 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->nVox=vox->nX*vox->nY*vox->nZ;
   vox->nScans=nFiles;
 
-  vox->hits=fFalloc(vox->nScans,"voxel hits",0);
-  vox->miss=fFalloc(vox->nScans,"voxel miss",0);
+  vox->hits=fFalloc(vox->nScans,"voxel beam hits",0);
+  vox->miss=fFalloc(vox->nScans,"voxel beam miss",0);
+  vox->inHit=fFalloc(vox->nScans,"voxel point hits",0);
+  vox->inMiss=fFalloc(vox->nScans,"voxel point miss",0);
   vox->contN=ialloc(vox->nVox,"voxel contribution",0);
   for(j=0;j<vox->nVox;j++)vox->contN[j]=0;
 
@@ -760,8 +762,10 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   for(i=0;i<vox->nScans;i++){
     vox->hits[i]=falloc(vox->nVox,"voxel hits",i+1);
     vox->miss[i]=falloc(vox->nVox,"voxel miss",i+1);
+    vox->inHit[i]=falloc(vox->nVox,"voxel hits",i+1);
+    vox->inMiss[i]=falloc(vox->nVox,"voxel miss",i+1);
     for(j=0;j<vox->nVox;j++){
-      vox->hits[i][j]=vox->miss[i][j]=0.0;
+      vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=0.0;
     }
   }/*file loop*/
 
@@ -778,6 +782,8 @@ voxStruct *tidyVox(voxStruct *vox)
   if(vox){
     TTIDY((void **)vox->hits,vox->nScans);
     TTIDY((void **)vox->miss,vox->nScans);
+    TTIDY((void **)vox->inHit,vox->nScans);
+    TTIDY((void **)vox->inMiss,vox->nScans);
     TIDY(vox->rmse);
     TIDY(vox->contN);
     TIDY(vox);
