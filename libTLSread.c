@@ -353,42 +353,44 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
         }/*voxel intersection loop*/
 
         /*record and map useful points*/
-        for(k=0;k<tempTLS->beam[j].nHits;k++){
-          x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-          y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-          z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
+        if(vox->savePts){
+          for(k=0;k<tempTLS->beam[j].nHits;k++){
+            x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+            y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+            z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
 
-        /*check bounds and copy point if within*/
-          if((x>=vox->bounds[0])&&(y>=vox->bounds[1])&&(z>=vox->bounds[2])&&\
-             (x<=vox->bounds[3])&&(y<=vox->bounds[4])&&(z<=vox->bounds[5])){
-            /*voxel space coordinates*/
-            xBin=(int)((x-vox->bounds[0])/vox->res[0]);
-            yBin=(int)((y-vox->bounds[1])/vox->res[1]);
-            zBin=(int)((z-vox->bounds[2])/vox->res[2]);
-            vPlace=zBin*vox->nX*vox->nY+yBin*vox->nX+xBin;
+            /*check bounds and copy point if within*/
+            if((x>=vox->bounds[0])&&(y>=vox->bounds[1])&&(z>=vox->bounds[2])&&\
+               (x<=vox->bounds[3])&&(y<=vox->bounds[4])&&(z<=vox->bounds[5])){
+              /*voxel space coordinates*/
+              xBin=(int)((x-vox->bounds[0])/vox->res[0]);
+              yBin=(int)((y-vox->bounds[1])/vox->res[1]);
+              zBin=(int)((z-vox->bounds[2])/vox->res[2]);
+              vPlace=zBin*vox->nX*vox->nY+yBin*vox->nX+xBin;
 
-            /*are we within voxel space, to avoid rounding errors*/
-            if((xBin<0)||(xBin>=vox->nX)||(yBin<0)||(yBin>=vox->nY)||(zBin<0)||(zBin>=vox->nZ)){
-              continue;
+              /*are we within voxel space, to avoid rounding errors*/
+              if((xBin<0)||(xBin>=vox->nX)||(yBin<0)||(yBin>=vox->nY)||(zBin<0)||(zBin>=vox->nZ)){
+                continue;
+              }
+
+              /*mark TLS points*/
+              scans[i].point[scans[i].nPoints].x=(float)(x-scans[i].xOff);  /*subtract offset to save disk space*/
+              scans[i].point[scans[i].nPoints].y=(float)(y-scans[i].yOff);  /*subtract offset to save disk space*/
+              scans[i].point[scans[i].nPoints].z=(float)(z-scans[i].zOff);  /*subtract offset to save disk space*/
+              scans[i].point[scans[i].nPoints].r=tempTLS->beam[j].r[k];
+              scans[i].point[scans[i].nPoints].refl=tempTLS->beam[j].refl[k];
+              scans[i].point[scans[i].nPoints].hitN=k;
+              scans[i].point[scans[i].nPoints].nHits=tempTLS->beam[j].nHits;
+
+              /*map to voxels*/
+              map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),i);
+              map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scans[i].nPoints);
+              map->nIn[vPlace]++;
+
+              scans[i].nPoints++;
             }
-
-            /*mark TLS points*/
-            scans[i].point[scans[i].nPoints].x=(float)(x-scans[i].xOff);  /*subtract offset to save disk space*/
-            scans[i].point[scans[i].nPoints].y=(float)(y-scans[i].yOff);  /*subtract offset to save disk space*/
-            scans[i].point[scans[i].nPoints].z=(float)(z-scans[i].zOff);  /*subtract offset to save disk space*/
-            scans[i].point[scans[i].nPoints].r=tempTLS->beam[j].r[k];
-            scans[i].point[scans[i].nPoints].refl=tempTLS->beam[j].refl[k];
-            scans[i].point[scans[i].nPoints].hitN=k;
-            scans[i].point[scans[i].nPoints].nHits=tempTLS->beam[j].nHits;
-
-            /*map to voxels*/
-            map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),i);
-            map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scans[i].nPoints);
-            map->nIn[vPlace]++;
-
-            scans[i].nPoints++;
-          }
-        }/*hit loop*/
+          }/*hit loop*/
+        }/*record point switch*/
 
         TIDY(rangeList);
         TIDY(voxList);

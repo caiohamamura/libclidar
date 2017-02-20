@@ -737,6 +737,8 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->nY=(int)((vox->bounds[4]-vox->bounds[1])/vox->res[1]+0.99);  /*add 0.99 to avoid rounding*/
   vox->nZ=(int)((vox->bounds[5]-vox->bounds[2])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
 
+  vox->savePts=1;   /*defaults*/
+
   /*check for memory wrapping*/
   if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){
     fprintf(stderr,"Voxel bounds are too big to handle. Reduce %d %d %d\n",vox->nX,vox->nY,vox->nZ);

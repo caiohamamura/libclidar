@@ -47,7 +47,9 @@ typedef struct{
   int nZ;            /*number of voxels*/
   double res[3];     /*voxel resolution*/
   double bounds[6];  /*voxel bounds minX minY minZ maxX maxY maxZ*/
+  /*switches*/
   char useRMSE;      /*switch to save RAM in voxelate*/
+  char savePts;      /*save points switch*/
 }voxStruct;
 
 
