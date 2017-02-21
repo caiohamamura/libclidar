@@ -738,6 +738,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->nZ=(int)((vox->bounds[5]-vox->bounds[2])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
 
   vox->savePts=1;   /*defaults*/
+  vox->maxZen=1000000.0;  /*use all points*/
 
   /*check for memory wrapping*/
   if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){

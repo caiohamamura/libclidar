@@ -50,6 +50,7 @@ typedef struct{
   /*switches*/
   char useRMSE;      /*switch to save RAM in voxelate*/
   char savePts;      /*save points switch*/
+  double maxZen;     /*maximum absolute zenith to allow. To filter tilt mount*/
 }voxStruct;
 
 
