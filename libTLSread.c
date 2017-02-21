@@ -305,6 +305,9 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
 
       /*loop over beams*/
       for(j=0;j<tempTLS->nBeams;j++){
+        /*avoid tilt mount if needed*/
+        if(fabs(tempTLS->beam[j].zen)>=vox->maxZen)continue;  /*skip if zenith too high*/
+
         xCent=(double)tempTLS->beam[j].x+tempTLS->xOff;
         yCent=(double)tempTLS->beam[j].y+tempTLS->yOff;
         zCent=(double)tempTLS->beam[j].z+tempTLS->zOff;
@@ -315,6 +318,13 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
         grad[2]=-99999.0;
         voxList=findVoxels(&(grad[0]),xCent,yCent,zCent,vox->bounds,\
                     &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList);
+
+        /*diagnostic dump*/
+        /*if(tempTLS->beam[j].nHits==0){
+          if((tempTLS->beam[j].zen>(M_PI/2.0))||(tempTLS->beam[j].zen<(-1.0*M_PI/2.0))||(zCent<350.0)){
+            fprintf(stdout,"%d %f %f %f %f %f\n",i,tempTLS->beam[j].zen*180.0/M_PI,tempTLS->beam[j].az*180.0/M_PI,xCent,yCent,zCent);
+          }
+        }*/
 
         if(nIntersect==0)continue;   /*if no voxels intersected*/
 
@@ -333,14 +343,16 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
           }/*hits before voxel*/
 
           /*hits within voxel*/
+          /*are we beyond the last return?*/
           doIt=1;
           if(k>0){
             minR=rangeList[k-1];
             if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
           }else minR=0.0;
 
-          hasHit=0;
+          /*if not beyond, is it a hit or a miss in this voxel*/
           if(doIt){
+            hasHit=0;
             for(n=0;n<tempTLS->beam[j].nHits;n++){
               if((tempTLS->beam[j].r[n]>=minR)&&(tempTLS->beam[j].r[n]<=rangeList[k])){
                 hasHit=1;
