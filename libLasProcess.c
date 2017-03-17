@@ -120,8 +120,11 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }
 
   /*smooth before denoising*/
-  if(decon->psWidth>0.0){
+  if(decon->psWidth>0.0){   /*Gaussian smoothing*/
     preSmoothed=smooth(decon->psWidth,waveLen,mediated,decon->res);
+    TIDY(mediated);
+  }else if(decon->preMatchF){  /*matched filter*/
+    preSmoothed=matchedFilter(mediated,waveLen,decon,decon->res);
     TIDY(mediated);
   }else{
     preSmoothed=mediated;
@@ -149,6 +152,9 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   /*smooth if required. Note that pulse is smoothed in readPulse()*/
   if(decon->sWidth>0.0){
     smoothed=smooth(decon->sWidth,waveLen,denoised,decon->res);
+    TIDY(denoised);
+  }else if(decon->posMatchF){  /*matched filter*/
+    smoothed=matchedFilter(denoised,waveLen,decon,decon->res);
     TIDY(denoised);
   }else{
     smoothed=denoised;
@@ -673,6 +679,36 @@ void modalDeviation(float modal,float *wave,uint32_t waveLen,float *modQuart,int
 
 
 /*##################################################*/
+/*matched filter*/
+
+float *matchedFilter(float *wave,int nBins,denPar *denoise,float res)
+{
+  int i=0,j=0,bin=0;
+  float *smoothed=NULL;
+  float energy=0;
+
+  /*allocate space*/
+  smoothed=falloc(nBins,"matched filtered wave",0);
+
+  /*smooth wave*/
+  for(i=0;i<nBins;i++){
+    smoothed[i]=0.0;
+    energy=0.0;
+    for(j=0;j<denoise->pBins;j++){
+      bin=(int)((denoise->pulse[0][j]-denoise->pulse[0][denoise->maxPbin])/res)+i;
+      if((bin>=0)&&(bin<nBins)){
+        smoothed[i]+=denoise->pulse[1][j]*wave[bin];
+        energy+=denoise->pulse[1][j];
+      }
+    }/*pulse loop*/
+    if(energy>0.0)smoothed[i]/=energy;
+  }/*wave loop*/
+
+  return(smoothed);
+}/*matchedFilter*/
+
+
+/*##################################################*/
 /*smooth waveform*/
 
 float *smooth(float sWidth,int nBins,float *data,float res)
@@ -1099,6 +1135,7 @@ void readPulse(denPar *denoise)
   float *tempPulse=NULL;
   float *fitSingleGauss(float *,float *,int,float,int *,float **);
   float *gaussPar=NULL;
+  float max=0;
 
   if((ipoo=fopen(denoise->pNamen,"r"))==NULL){
     fprintf(stderr,"Error opening pulse file %s\n",denoise->pNamen);
@@ -1123,6 +1160,7 @@ void readPulse(denPar *denoise)
 
   /*read data*/
   i=0;
+  max=-1000.0;
   while(fgets(line,200,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){
       if(sscanf(line,"%s %s",temp[0],temp[1])==2){
@@ -1132,6 +1170,10 @@ void readPulse(denPar *denoise)
         }
         denoise->pulse[0][i]=atof(&(temp[0][0]))*denoise->pScale;
         denoise->pulse[1][i]=atof(&(temp[1][0]));
+        if(denoise->pulse[1][i]>max){
+          max=denoise->pulse[1][i];
+          denoise->maxPbin=i;
+        }
         i++;
       }
     }/*comment check*/
@@ -1154,6 +1196,25 @@ void readPulse(denPar *denoise)
     denoise->pulse[1]=smoothed;
     smoothed=NULL;
   }/*smoothing*/
+  if(denoise->psWidth>0.0){
+    smoothed=smooth(denoise->psWidth,denoise->pBins,&(denoise->pulse[1][0]),denoise->pulse[0][1]-denoise->pulse[0][0]);
+    TIDY(denoise->pulse[1])
+    denoise->pulse[1]=smoothed;
+    smoothed=NULL;
+  }/*smoothing*/
+  //if(denoise->preMatchF){
+  //  smoothed=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
+  //  TIDY(denoise->pulse[1])
+  //  denoise->pulse[1]=smoothed;
+  //  smoothed=NULL;
+  //}/*smoothing*/
+  //if(denoise->posMatchF){
+  //  smoothed=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
+  //  TIDY(denoise->pulse[1])
+  //  denoise->pulse[1]=smoothed;
+  //  smoothed=NULL;
+  //}/*smoothing*/
+
 
   /*fit a Gaussian or determine width for hard limits if required*/
   if((denoise->gaussPulse)||(denoise->gaussFilt)){
@@ -1202,6 +1263,8 @@ void setDenoiseDefault(denPar *denoise)
   denoise->threshScale=1.0;
   denoise->bitRate=8;
   denoise->maxDN=-1.0;
+  denoise->preMatchF=0;    /*no matched filter before denoising*/
+  denoise->posMatchF=0;    /*no matched filter after denoising*/
 
   /*deconvolution*/
   denoise->deconMeth=-1;     /*do not deconvolve*/

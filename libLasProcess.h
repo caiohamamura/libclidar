@@ -44,6 +44,8 @@ typedef struct{
   float threshScale; /*scale variable noise threshold*/
   char bitRate;      /*bit rate if using variable noise with floats*/
   float maxDN;       /*maxDN for digitisation*/
+  char preMatchF;    /*matched filter before denoising*/
+  char posMatchF;    /*matched filter after denoising*/
 
   /*deconvolution*/
   float pScale;      /*scale pulse length by*/
@@ -54,6 +56,7 @@ typedef struct{
   float **pulse;     /*pulse to deconvolve by*/
   int pBins;         /*number of pulse bins*/
   float res;         /*waveform resolution*/
+  int maxPbin;       /*maximum pulse bin*/
 
   /*Gaussian fitting*/
   char fitGauss;     /*switch*/
@@ -129,6 +132,8 @@ float foliageHeightDiversity(float *,int);
 float *waveLmoments(float *,int,float,int);
 float niMetric(float *,double *,int,float,double,float);
 float determineGaussSep(float,float);
+float *matchedFilter(float *,int,denPar *,float);
+float *smooth(float,int,float *,float);
 
 /*the end*/
 /*#############################################*/
