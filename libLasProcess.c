@@ -269,7 +269,7 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
     waveStats(&maxPulse,&pulseE,denoise->pBins,denoise->pulse[1],pRes);
 
     /*calculate RMSE*/
-    RMSE=matchRMSE(denoise->pBins,denoise->matchPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
+    RMSE=matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
     TIDY(matchWave);
 
     /*fprintf(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
@@ -697,8 +697,8 @@ float *matchedFilter(float *wave,int nBins,denPar *denoise,float res)
     for(j=0;j<denoise->pBins;j++){
       bin=(int)((denoise->pulse[0][j]-denoise->pulse[0][denoise->maxPbin])/res)+i;
       if((bin>=0)&&(bin<nBins)){
-        smoothed[i]+=denoise->pulse[1][j]*wave[bin];
-        energy+=denoise->pulse[1][j];
+        smoothed[i]+=denoise->matchPulse[j]*wave[bin];
+        energy+=denoise->matchPulse[j];
       }
     }/*pulse loop*/
     if(energy>0.0)smoothed[i]/=energy;
@@ -1184,10 +1184,13 @@ void readPulse(denPar *denoise)
     ipoo=NULL;
   }
 
-  /*if we want a matched filter pulse*/
+  /*if we want a pulse to detect hard targets*/
   if(denoise->matchHard){
-    denoise->matchPulse=smooth(0.3,denoise->pBins,denoise->pulse[1],denoise->pulse[0][1]-denoise->pulse[0][0]);
+    denoise->hardPulse=smooth(0.3,denoise->pBins,denoise->pulse[1],denoise->pulse[0][1]-denoise->pulse[0][0]);
   }
+
+  /*matched filter if we need it*/
+  if(denoise->preMatchF||denoise->posMatchF)denoise->matchPulse=denoise->pulse[1];
 
   /*smooth if required*/
   if(denoise->sWidth>0.0){
@@ -1202,19 +1205,11 @@ void readPulse(denPar *denoise)
     denoise->pulse[1]=smoothed;
     smoothed=NULL;
   }/*smoothing*/
-  //if(denoise->preMatchF){
-  //  smoothed=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
-  //  TIDY(denoise->pulse[1])
-  //  denoise->pulse[1]=smoothed;
-  //  smoothed=NULL;
-  //}/*smoothing*/
-  //if(denoise->posMatchF){
-  //  smoothed=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
-  //  TIDY(denoise->pulse[1])
-  //  denoise->pulse[1]=smoothed;
-  //  smoothed=NULL;
-  //}/*smoothing*/
 
+  /*smooth deconvolution by matched flter if needed*/
+  if((denoise->preMatchF||denoise->posMatchF)&&(denoise->deconMeth>=0)){
+    denoise->pulse[1]=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
+  }/*smoothing*/
 
   /*fit a Gaussian or determine width for hard limits if required*/
   if((denoise->gaussPulse)||(denoise->gaussFilt)){

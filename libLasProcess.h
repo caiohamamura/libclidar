@@ -55,6 +55,7 @@ typedef struct{
   char pNamen[400];  /*pulse filename*/
   float **pulse;     /*pulse to deconvolve by*/
   int pBins;         /*number of pulse bins*/
+  float *matchPulse; /*matched filter pulse*/
   float res;         /*waveform resolution*/
   int maxPbin;       /*maximum pulse bin*/
 
@@ -69,7 +70,7 @@ typedef struct{
   /*Gaussians to identify hard targets*/
   char matchHard;    /*match check hard targets*/
   float hardThresh;  /*minimum match*/
-  float *matchPulse; /*match filtered pulse to compare*/
+  float *hardPulse; /*pulse to compare for hard targets*/
   /*OLD*/
   char gaussFilt;    /*switch*/
   float hardWidth;   /*maxWidth of hard feature*/
