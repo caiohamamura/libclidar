@@ -84,6 +84,7 @@ typedef struct{
 typedef struct{
   int nPulses;
   int *nBins;
+  float *res;
   float *sWidth;
   float **pulse;
 }smoothPulse;
