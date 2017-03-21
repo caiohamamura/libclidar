@@ -718,11 +718,15 @@ float *smooth(float sWidth,int nBins,float *data,float res)
   int p1=0,p2=0;         /*array places*/
   int nPulse=0;          /*number of pulse bins*/
   float *smoothed=NULL;
-  float energy=0;
+  float energy=0,newRes=0;
   float *setPulse(float,int *,float);
   float *markFloat(int,float *,float);
   int *markInt(int,int *,int);
   char newPulse=0;
+
+
+  /*Nyquist sample*/
+  newRes=res/3.0;
 
   /*smooth as required*/
   smoothed=falloc(nBins,"",0);
@@ -731,7 +735,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
     /*test to see if a new pulse array is needed*/
     newPulse=1;
     for(tP=0;tP<smooPulse.nPulses;tP++){
-      if(fabs(sWidth-smooPulse.sWidth[tP])<TOL){
+      if((fabs(sWidth-smooPulse.sWidth[tP])<TOL)&&((fabs((newRes)-smooPulse.res[tP])<TOL))){
         newPulse=0;
         break;
       }
@@ -744,7 +748,8 @@ float *smooth(float sWidth,int nBins,float *data,float res)
         fprintf(stderr,"Error reallocating %lu\n",(smooPulse.nPulses+1)*sizeof(float *));
         exit(1);
       }
-      smooPulse.pulse[tP]=setPulse(sWidth,&nPulse,res);
+      smooPulse.res=markFloat(smooPulse.nPulses,smooPulse.res,newRes);
+      smooPulse.pulse[tP]=setPulse(sWidth,&nPulse,smooPulse.res[smooPulse.nPulses]);
       smooPulse.sWidth=markFloat(smooPulse.nPulses,smooPulse.sWidth,sWidth);
       smooPulse.nBins=markInt(smooPulse.nPulses,smooPulse.nBins,nPulse);
       smooPulse.nPulses++;
@@ -754,8 +759,8 @@ float *smooth(float sWidth,int nBins,float *data,float res)
       smoothed[i]=smooPulse.pulse[tP][0]*data[i];
       energy=smooPulse.pulse[tP][0];
       for(j=1;j<smooPulse.nBins[tP];j++){
-        p1=i-j;
-        p2=i+j;
+        p1=i-(int)((float)j*smooPulse.res[tP]/res);
+        p2=i+(int)((float)j*smooPulse.res[tP]/res);
         if((p1>=0)&&(p1<nBins)){
           smoothed[i]+=smooPulse.pulse[tP][j]*data[p1];
           energy+=smooPulse.pulse[tP][j];
@@ -778,6 +783,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
 
 void tidySMoothPulse()
 {
+  TIDY(smooPulse.res);
   TIDY(smooPulse.nBins);
   TIDY(smooPulse.sWidth);
   TTIDY((void **)smooPulse.pulse,smooPulse.nPulses);
@@ -1190,7 +1196,10 @@ void readPulse(denPar *denoise)
   }
 
   /*matched filter if we need it*/
-  if(denoise->preMatchF||denoise->posMatchF)denoise->matchPulse=denoise->pulse[1];
+  if(denoise->preMatchF||denoise->posMatchF){
+    denoise->matchPulse=falloc(denoise->pBins,"matched pulse",0);
+    for(i=0;i<denoise->pBins;i++)denoise->matchPulse[i]=denoise->pulse[1][i];
+  }
 
   /*smooth if required*/
   if(denoise->sWidth>0.0){
@@ -1208,7 +1217,10 @@ void readPulse(denPar *denoise)
 
   /*smooth deconvolution by matched flter if needed*/
   if((denoise->preMatchF||denoise->posMatchF)&&(denoise->deconMeth>=0)){
-    denoise->pulse[1]=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
+    smoothed=matchedFilter(&(denoise->pulse[1][0]),denoise->pBins,denoise,denoise->pulse[0][1]-denoise->pulse[0][0]);
+    TIDY(denoise->pulse[1]);
+    denoise->pulse[1]=smoothed;
+    smoothed=NULL;
   }/*smoothing*/
 
   /*fit a Gaussian or determine width for hard limits if required*/
