@@ -726,7 +726,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
 
 
   /*Nyquist sample*/
-  newRes=res/3.0;
+  newRes=res/6.0;
 
   /*smooth as required*/
   smoothed=falloc(nBins,"",0);

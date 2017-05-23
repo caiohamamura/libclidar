@@ -8,6 +8,8 @@
 #include "libLasProcess.h"
 
 
+
+
 /*#######################################*/
 /*# Copyright 2006-2016, Steven Hancock #*/
 /*# The program is distributed under    #*/
@@ -84,12 +86,11 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   float minErr=0;
   float *fitGauss(float *,float *,int,float,turnStruct *,float);
   turnStruct *turnings=NULL;
-  turnStruct *findTurning(float *,int,float);
+  turnStruct *findTurning(float *,int,float,float *);
   multRet *returns=NULL;
   multRet *filterData(float *,int,float);
 
   minErr=0.01;
-
 
   /*split up separate returns*/
   returns=filterData(decon,nBins,0.0001);
@@ -104,10 +105,11 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
     if(returns->sBin[ret]<0){  /*in case all bounds are of interest*/
       returns->sBin[ret]=0;
       returns->temp[ret]=&(returns->temp[ret][0]);
+      returns->width[ret]=nBins;
     }
 
     /*determine number of Gaussians in this return*/
-    turnings=findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth);
+    turnings=findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth,x);
 
     /*make a padded x arrays*/
     padX=falloc(returns->width[ret],"padded x",0);
@@ -455,12 +457,14 @@ multRet *filterData(float *y,int numb,float offset)
   int i=0,j=0,place=0;
   float mean=0; /*,stdev=0;*/
   float waveThresh=0;
-  float tol=0;
+  float tol=0,max=0;
   multRet *returns=NULL;
   char inFeat=0,markStart=0;
   char found=0;
 
-  tol=0.000001; /*smallest floating point number*/
+  max=-1000.0;
+  for(i=0;i<numb;i++)if(y[i]>max)max=y[i];
+  tol=max/800.0; //0.000001; /*smallest floating point number*/
 
   if(!(returns=(multRet *)calloc(1,sizeof(multRet)))){
     fprintf(stderr,"error in multiple return structure.\n");
@@ -482,8 +486,8 @@ multRet *filterData(float *y,int numb,float offset)
   else         waveThresh=mean+tol;
   if(waveThresh<tol)waveThresh=tol;*/
 
-  mean=0.0;
   waveThresh=tol;
+  mean=tol/10.0;
 
   inFeat=0;
   for(i=0;i<numb;i++){
@@ -532,7 +536,7 @@ multRet *filterData(float *y,int numb,float offset)
     for(j=0;j<returns->width[i];j++){
       place=j+returns->sBin[i];
       if((place>=0)&&(place<numb)){
-        returns->temp[i][j+gaussBuffBins]=y[place]-mean;
+        returns->temp[i][j+gaussBuffBins]=y[place];
       }else fprintf(stderr,"Bawbag %d of %d\n",place,numb);
     }
     for(j=gaussBuffBins+returns->width[i];j<2*gaussBuffBins+returns->width[i];j++)returns->temp[i][j]=0.0;
@@ -636,14 +640,16 @@ float *initialGuess(float *x,float *y,int numb,int nGauss,int *bound,float minGs
 }/*initialGuess*/
 
 
+
 /*###############################################*/
 /*find turning points for other methods*/
 
-turnStruct *findTurning(float *y,int width,float preSmooth)
+turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
 {
   int i=0;
   float *smoothed=NULL;
-  float *d2x=NULL;
+  float *d2x=NULL,*temp=NULL;
+  float tol=0;
   turnStruct *turnings=NULL;
 
   /*smooth to taste*/
@@ -653,7 +659,17 @@ turnStruct *findTurning(float *y,int width,float preSmooth)
 
   /*determine second derivative*/
   d2x=falloc(width,"d2x",0);
-  for(i=1;i<width-1;i++)d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
+  tol=-1000.0;
+  for(i=1;i<width-1;i++){
+    d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
+    if(fabs(d2x[i])>tol)tol=d2x[i];
+  }
+  tol/=1000.0;
+
+  temp=smooth(preSmooth,width,d2x,0.15);
+  TIDY(d2x);
+  d2x=temp;
+  temp=NULL;
 
   if(!(turnings=(turnStruct *)calloc(1,sizeof(turnStruct)))){
     fprintf(stderr,"error in multiple return structure.\n");
@@ -668,7 +684,7 @@ turnStruct *findTurning(float *y,int width,float preSmooth)
   turnings->nFeats++;
   for(i=2;i<width-2;i++){
     if(smoothed[i]>0.0){
-      if((d2x[i]<=d2x[i-1])&&(d2x[i]<d2x[i+1])){  /*minimum of the second derivative*/
+      if(((d2x[i]-d2x[i-1])>tol)&&((d2x[i]-d2x[i+1])>tol)){  /*minimum of the second derivative*/
         turnings->bound=markInt(turnings->nFeats,turnings->bound,i-1);
         turnings->nFeats++;
       }

@@ -135,7 +135,6 @@ float *waveLmoments(float *,int,float,int);
 float niMetric(float *,double *,int,float,double,float);
 float determineGaussSep(float,float);
 float *matchedFilter(float *,int,denPar *,float);
-float *smooth(float,int,float *,float);
 
 /*the end*/
 /*#############################################*/
