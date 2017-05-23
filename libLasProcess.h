@@ -120,8 +120,6 @@ typedef struct{
 /*common function definitions*/
 
 float *smooth(float,int,float *,float);
-smoothPulse smooPulse;   /*global structure to save reallocation*/
-
 
 /*#############################################*/
 /*functions*/

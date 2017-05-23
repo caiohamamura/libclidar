@@ -198,6 +198,7 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
     exit(1);
   }
   config->nofinitecheck=1;
+  config->maxiter=1000;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
     fprintf(stderr,"error in mpfit structure.\n");
     exit(1);
