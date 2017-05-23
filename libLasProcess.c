@@ -43,6 +43,7 @@
 
 
 #define TOL 0.00001
+smoothPulse smooPulse;   /*global structure to save reallocation*/
 
 
 /*##################################################*/
@@ -726,7 +727,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
 
 
   /*Nyquist sample*/
-  newRes=res/6.0;
+  newRes=res/3.0;
 
   /*smooth as required*/
   smoothed=falloc(nBins,"",0);
@@ -759,8 +760,8 @@ float *smooth(float sWidth,int nBins,float *data,float res)
       smoothed[i]=smooPulse.pulse[tP][0]*data[i];
       energy=smooPulse.pulse[tP][0];
       for(j=1;j<smooPulse.nBins[tP];j++){
-        p1=i-(int)((float)j*smooPulse.res[tP]/res);
-        p2=i+(int)((float)j*smooPulse.res[tP]/res);
+        p1=i-(int)((float)j*smooPulse.res[tP]/res+0.5);
+        p2=i+(int)((float)j*smooPulse.res[tP]/res+0.5);
         if((p1>=0)&&(p1<nBins)){
           smoothed[i]+=smooPulse.pulse[tP][j]*data[p1];
           energy+=smooPulse.pulse[tP][j];
