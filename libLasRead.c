@@ -697,6 +697,7 @@ pCloudStruct *tidyPointCloud(pCloudStruct *data)
     TIDY(data->refl);
     TIDY(data->class);
     TIDY(data->nRet);
+    TIDY(data->retNumb);
     TIDY(data->packetDes);
     TTIDY((void **)data->grad,3);
     data->grad=NULL;
