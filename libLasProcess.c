@@ -1582,7 +1582,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   /*count the number of points*/
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
-      if((minX>-10000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
+      if((maxX<-1000000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
         if(data[numb]->class[i]==2)groundD->nPoints++;
       }/*within bound check*/
     }/*point loop*/
@@ -1597,7 +1597,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   j=0;
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
-      if((minX>-10000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
+      if((maxX<-1000000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
         if((data[numb]->class[i]==2)&&(data[numb]->z[i]>=groundBreakElev)){
           groundD->xUse[j]=data[numb]->x[i];
           groundD->yUse[j]=data[numb]->y[i];
