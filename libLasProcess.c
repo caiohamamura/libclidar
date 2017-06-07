@@ -1381,32 +1381,34 @@ double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,fl
 /*########################################################################*/
 /*fit a polynomial to the ground*/
 
-double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,float res,int *nX,int *nY,double groundBreakElev)
+double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,double *maxX,double *maxY,float res,int *nX,int *nY,double groundBreakElev)
 {
   int i=0;
-  double maxX=0,maxY=0;
   double *gDEM=NULL;
   double *polyDEM(groundDstruct *,double,double,float,int,int);
   groundDstruct *groundD=NULL;   /*ground data structure*/
-  groundDstruct *arrangeGroundData(pCloudStruct **,int,double);
+  groundDstruct *arrangeGroundData(pCloudStruct **,int,double,double,double,double,double);
   void fitManyPlanes(groundDstruct *,int,int);
 
 
   /*allocate and load relevant data*/
-  groundD=arrangeGroundData(data,nFiles,groundBreakElev);
+  groundD=arrangeGroundData(data,nFiles,groundBreakElev,*minX,*minY,*maxX,*maxY);
 
-  *minX=*minY=100000000000.0;
-  maxX=maxY=-100000000000.0;
-  for(i=0;i<nFiles;i++){
-    if(data[i]->nPoints>0){
-      if(data[i]->bounds[0]<*minX)*minX=data[i]->bounds[0];
-      if(data[i]->bounds[1]<*minY)*minY=data[i]->bounds[1];
-      if(data[i]->bounds[3]>maxX)maxX=data[i]->bounds[3];
-      if(data[i]->bounds[4]>maxY)maxY=data[i]->bounds[4];
+  /*find bounds if needed*/
+  if(*maxX<-1000.0){
+    *minX=*minY=100000000000.0;
+    *maxX=*maxY=-100000000000.0;
+    for(i=0;i<nFiles;i++){
+      if(data[i]->nPoints>0){
+        if(data[i]->bounds[0]<*minX)*minX=data[i]->bounds[0];
+        if(data[i]->bounds[1]<*minY)*minY=data[i]->bounds[1];
+        if(data[i]->bounds[3]>*maxX)*maxX=data[i]->bounds[3];
+        if(data[i]->bounds[4]>*maxY)*maxY=data[i]->bounds[4];
+      }
     }
   }
-  *nX=(int)((maxX-*minX)/(double)res);
-  *nY=(int)((maxY-*minY)/(double)res);
+  *nX=(int)((*maxX-*minX)/(double)res);
+  *nY=(int)((*maxY-*minY)/(double)res);
 
   if(groundD->nPoints>0){  /*check that there are ground returns*/
     /*fit the ground*/
@@ -1489,7 +1491,6 @@ void fitManyPlanes(groundDstruct *groundData,int cNx,int cNy)
     }
   }
 
-
   return;
 }/*fitManyPlanes*/
 
@@ -1560,7 +1561,7 @@ void fitPolyPlane(groundDstruct *groundData)
 /*################################################*/
 /*allocate and load relevant data*/
 
-groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBreakElev)
+groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBreakElev,double minX,double minY,double maxX,double maxY)
 {
   int numb=0;
   uint32_t i=0,j=0;
@@ -1581,7 +1582,9 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   /*count the number of points*/
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
-      if(data[numb]->class[i]==2)groundD->nPoints++;
+      if((minX>-10000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
+        if(data[numb]->class[i]==2)groundD->nPoints++;
+      }/*within bound check*/
     }/*point loop*/
   }/*file loop*/
 
@@ -1594,12 +1597,14 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   j=0;
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
-      if((data[numb]->class[i]==2)&&(data[numb]->z[i]>=groundBreakElev)){
-        groundD->xUse[j]=data[numb]->x[i];
-        groundD->yUse[j]=data[numb]->y[i];
-        groundD->zUse[j]=data[numb]->z[i];
-        j++;
-      }/*is point ground*/
+      if((minX>-10000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
+        if((data[numb]->class[i]==2)&&(data[numb]->z[i]>=groundBreakElev)){
+          groundD->xUse[j]=data[numb]->x[i];
+          groundD->yUse[j]=data[numb]->y[i];
+          groundD->zUse[j]=data[numb]->z[i];
+          j++;
+        }/*is point ground*/
+      }/*within bound check*/
     }/*point loop*/
   }/*file loop*/
 
