@@ -1395,7 +1395,7 @@ double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,
   groundD=arrangeGroundData(data,nFiles,groundBreakElev,*minX,*minY,*maxX,*maxY);
 
   /*find bounds if needed*/
-  if(*maxX<-1000.0){
+  if(*maxX<-1000.0){  /*if <1000, no vounds defined*/
     *minX=*minY=100000000000.0;
     *maxX=*maxY=-100000000000.0;
     for(i=0;i<nFiles;i++){
@@ -1582,6 +1582,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   /*count the number of points*/
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
+      /*are we wthin bounds, or have bounds not been defined yet? In the latter case, read everything*/
       if((maxX<-1000000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
         if(data[numb]->class[i]==2)groundD->nPoints++;
       }/*within bound check*/
@@ -1597,6 +1598,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   j=0;
   for(numb=0;numb<nFiles;numb++){
     for(i=0;i<data[numb]->nPoints;i++){
+      /*are we wthin bounds, or have bounds not been defined yet? In the latter case, read everything*/
       if((maxX<-1000000.0)||((data[numb]->x[i]>=minX)&&(data[numb]->x[i]<=maxX)&&(data[numb]->y[i]>=minY)&&(data[numb]->y[i]<=maxY))){
         if((data[numb]->class[i]==2)&&(data[numb]->z[i]>=groundBreakElev)){
           groundD->xUse[j]=data[numb]->x[i];
