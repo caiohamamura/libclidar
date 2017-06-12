@@ -93,6 +93,7 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
         fInd=map->mapFile[vInd][i];
         pInd=map->mapPoint[vInd][i];
 
+        fprintf(stdout,"indices %d %d\n",fInd,pInd);
         vect[0]=(double)tlsData[fInd]->point[pInd].x+tlsData[fInd]->xOff-rImage->x0;
         vect[1]=(double)tlsData[fInd]->point[pInd].y+tlsData[fInd]->yOff-rImage->y0;
         vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
@@ -945,16 +946,16 @@ void beamVoxelBounds(double *origin,float *grad,float fSigma,char gaussFoot,doub
 
   for(i=-1;i<=1;i+=2){  /*loop over edges*/
     /*top*/
-    x=origin[0]+(float)i*fSigma;
-    y=origin[1]+(float)i*fSigma;
+    x=origin[0]+(float)i*rad;
+    y=origin[1]+(float)i*rad;
     if(x<bounds[0])bounds[0]=x;
     if(x>bounds[3])bounds[3]=x;
     if(y<bounds[1])bounds[1]=y;
     if(y>bounds[4])bounds[4]=y;
 
     /*bottom*/
-    x=origin[0]+(float)i*fSigma+((float)origin[2]-(float)bounds[2])*grad[0];
-    y=origin[1]+(float)i*fSigma+((float)origin[2]-(float)bounds[2])*grad[1];
+    x=origin[0]+(float)i*rad+((float)origin[2]-(float)bounds[2])*grad[0];
+    y=origin[1]+(float)i*rad+((float)origin[2]-(float)bounds[2])*grad[1];
     if(x<bounds[0])bounds[0]=x;
     if(x>bounds[3])bounds[3]=x;
     if(y<bounds[1])bounds[1]=y;
