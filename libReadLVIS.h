@@ -33,8 +33,9 @@
 
 
 
+
 /*#######################################*/
-/*LVIS v1.03 structure*/
+/*LVIS v1.03 and below structure*/
 
 typedef struct{
    uint32_t lfid;       /* LVIS file identifier*/
@@ -52,13 +53,27 @@ typedef struct{
    float  sigmean;   /* signal mean noise level, calculated in-flight (counts)*/
    unsigned char txwave[80];  /* transmit waveform, recorded in-flight (counts)*/
    unsigned char rxwave[432]; /* return   waveform, recorded in-flight (counts)*/
-}lvisData103;
+}lvisData;
+
+
+/*#######################################*/
+/*LVIS overall structure*/
+
+typedef struct{
+  int verMaj;      /*major version*/
+  int verMin;      /*minor version*/
+  int nWaves;      /*number of waveforms*/
+  int nBins;       /*number of waveform bins*/
+  FILE *ipoo;      /*input file*/
+  lvisData *data;  /*data pointer*/
+  char byteord;    /*byte order of this computer*/
+}lvisStruct;
 
 
 /*#######################################*/
 /*functions*/
 
-lvisData103 *readData(char *,int *);
+lvisData *readLVISdata(char *,int *);
 void checkLVISsizes();
 
 /*the end*/
