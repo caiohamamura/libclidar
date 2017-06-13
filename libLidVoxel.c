@@ -247,7 +247,7 @@ rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad
   /*allocate image and set blank*/
   rImage->image=chChalloc(rImage->nBins,"range image",0);
   for(i=0;i<rImage->nBins;i++){
-    rImage->image[i]=challoc(rImage->nX*rImage->nY,"range image",i+1);
+    rImage->image[i]=challoc((uint64_t)rImage->nX*(uint64_t)rImage->nY,"range image",i+1);
     for(k=rImage->nX*rImage->nY-1;k>=0;k--)rImage->image[i][k]=0;
   }
   return(rImage);

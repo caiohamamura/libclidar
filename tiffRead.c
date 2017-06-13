@@ -45,7 +45,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
 
   if(readData){
     if(type==0){  /*unsigned char*/
-      geotiff->image=uchalloc(geotiff->nX*geotiff->nY,namen,0);
+      geotiff->image=uchalloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0);
       for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
         if(TIFFReadScanline(tiffIn,&(geotiff->image[i*geotiff->nX]),i,1)!=1){
           fprintf(stderr,"Error reading scan line %d from tiff image\n",i);

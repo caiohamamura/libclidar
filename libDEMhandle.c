@@ -53,7 +53,7 @@ demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double max
   FILE *ipoo=NULL;
 
   maxLen=100000;
-  line=challoc(maxLen,"line",0);
+  line=challoc((uint64_t)maxLen,"line",0);
 
   if(!(dem=(demStruct *)calloc(1,sizeof(demStruct)))){
     fprintf(stderr,"error demStruct allocation.\n");

@@ -72,13 +72,11 @@ lvisData *readLVISdata(char *namen,int *nWaves)
   char *buffer=NULL;
   FILE *ipoo=NULL;
 
-
   /*open file*/
   if((ipoo=fopen(namen,"rb"))==NULL){
     fprintf(stderr,"Error opening input file %s\n",namen);
     exit(1);
   }
-
 
   /*read file size*/
   if(fseek(ipoo,(long)0,SEEK_END)){
@@ -90,7 +88,6 @@ lvisData *readLVISdata(char *namen,int *nWaves)
     fprintf(stderr,"fseek error\n");
     exit(1);
   }
-
 
   /*allocate space*/
   buffer=challoc(len,"buffer",0);
