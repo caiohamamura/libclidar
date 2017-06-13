@@ -81,7 +81,7 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     fprintf(stderr,"fseek error to start\n");
     exit(1);
   }
-  buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
+  buffer=challoc((uint64_t)buffSize,"buffer",0);   /*allocate spave*/
   if(fread(&buffer[0],sizeof(char),buffSize,ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading point data\n");
     exit(1);
@@ -178,7 +178,7 @@ tlsScan *readTLSpolarBinary(char *namen)
     fprintf(stderr,"fseek error to start\n");
     exit(1);
   }
-  buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
+  buffer=challoc((uint64_t)buffSize,"buffer",0);   /*allocate spave*/
   if(fread(&buffer[0],sizeof(char),buffSize,ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading point data\n");
     exit(1);

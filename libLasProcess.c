@@ -1717,7 +1717,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
 
   *nRH=(int)(100.0/rhRes+1);
   rh=falloc(*nRH,"rh metrics",0);
-  done=challoc(*nRH,"RH done flag",0);
+  done=challoc((uint64_t)(*nRH),"RH done flag",0);
   for(i=0;i<(*nRH);i++){
     done[i]=0;
     rh[i]=-9999.0;
