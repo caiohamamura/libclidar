@@ -64,11 +64,11 @@ void checkLVISsizes()
 /*########################################*/
 /*read data*/
 
-lvisData103 *readData(char *namen,int *nWaves)
+lvisData *readLVISdata(char *namen,int *nWaves)
 {
   uint64_t i=0,len=0;
   uint64_t offset=0;
-  lvisData103 *data=NULL;
+  lvisData *data=NULL;
   char *buffer=NULL;
   FILE *ipoo=NULL;
 
@@ -94,8 +94,8 @@ lvisData103 *readData(char *namen,int *nWaves)
 
   /*allocate space*/
   buffer=challoc(len,"buffer",0);
-  *nWaves=(int)(len/sizeof(lvisData103));
-  if(!(data=(lvisData103 *)calloc(*nWaves,sizeof(lvisData103)))){
+  *nWaves=(int)(len/sizeof(lvisData));
+  if(!(data=(lvisData *)calloc(*nWaves,sizeof(lvisData)))){
     fprintf(stderr,"error data structure allocation.\n");
     exit(1);
   }
@@ -158,20 +158,11 @@ lvisData103 *readData(char *namen,int *nWaves)
     data[i].lat431=doOneSwap(data[i].lat431);
     data[i].z431=floOneSwap(data[i].z431);
     data[i].sigmean=floOneSwap(data[i].sigmean);
-
-   float  sigmean;   /* signal mean noise level, calculated in-flight (counts)*/
-   unsigned char txwave[80];  /* transmit waveform, recorded in-flight (counts)*/
-
-
-
-
-    data[i].z0=floOneSwap(data[i].z0);
-    data[i].z431=floOneSwap(data[i].z431);
   }
   TIDY(buffer);
 
   return(data);
-}/*readData*/
+}/*readLVISdata*/
 
 
 /*the end*/
