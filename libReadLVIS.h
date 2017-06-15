@@ -35,7 +35,7 @@
 
 
 /*#######################################*/
-/*LVIS v1.03 and below structure*/
+/*LVIS LGW v1.03 and below structure*/
 
 typedef struct{
    uint32_t lfid;       /* LVIS file identifier*/
@@ -53,7 +53,7 @@ typedef struct{
    float  sigmean;   /* signal mean noise level, calculated in-flight (counts)*/
    unsigned char txwave[80];  /* transmit waveform, recorded in-flight (counts)*/
    unsigned char rxwave[432]; /* return   waveform, recorded in-flight (counts)*/
-}lvisData;
+}lvisLGWdata;
 
 
 /*#######################################*/
@@ -65,16 +65,42 @@ typedef struct{
   int nWaves;      /*number of waveforms*/
   int nBins;       /*number of waveform bins*/
   FILE *ipoo;      /*input file*/
-  lvisData *data;  /*data pointer*/
+  lvisLGWdata *data;  /*data pointer*/
   char byteord;    /*byte order of this computer*/
-}lvisStruct;
+}lvisLGWstruct;
+
+
+/*#####################################*/
+/*LVIS HDF5 structure*/
+
+typedef struct{
+  int nWaves;   /*number of waveforms*/
+  int nBins;    /*number of waveform bins*/
+  int pBins;     /*number of pulse bins*/
+  /*data per wave*/
+  double *lon0;       /*LON0*/
+  double *lat0;       /*LAT0*/
+  double *lon1023;    /*LON1023*/
+  double *lat1023;    /*LAT1023*/
+  uint32_t *lfid;     /*LFID*/
+  uint32_t *shotN;    /*SHOTNUMBER*/
+  uint16_t **wave;    /*RXWAVE*/
+  uint16_t **pulse;   /*TXWAVE*/
+  float *zen;         /*INCIDENTANGLE*/
+  float *z0;         /*Z0*/
+  float *z1023;      /*Z1023*/
+  float *sigmean;     /*SIGMEAN*/
+  double *time;       /*TIME*/
+}lvisHDF;
 
 
 /*#######################################*/
 /*functions*/
 
-lvisData *readLVISdata(char *,int *);
+lvisLGWdata *readLVISlgw(char *,int *);
 void checkLVISsizes();
+lvisHDF *tidyLVISstruct(lvisHDF *);
+lvisHDF *readLVIShdf(char *);
 
 /*the end*/
 /*####################################################*/
