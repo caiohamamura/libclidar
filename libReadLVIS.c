@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+#include "hdf5.h"
 #include "stdint.h"
 #include "tools.h"
 #include "libReadLVIS.h" 
@@ -64,11 +65,11 @@ void checkLVISsizes()
 /*########################################*/
 /*read data*/
 
-lvisData *readLVISdata(char *namen,int *nWaves)
+lvisLGWdata *readLVISlgw(char *namen,int *nWaves)
 {
   uint64_t i=0,len=0;
   uint64_t offset=0;
-  lvisData *data=NULL;
+  lvisLGWdata *data=NULL;
   char *buffer=NULL;
   FILE *ipoo=NULL;
 
@@ -91,8 +92,8 @@ lvisData *readLVISdata(char *namen,int *nWaves)
 
   /*allocate space*/
   buffer=challoc(len,"buffer",0);
-  *nWaves=(int)(len/sizeof(lvisData));
-  if(!(data=(lvisData *)calloc(*nWaves,sizeof(lvisData)))){
+  *nWaves=(int)(len/sizeof(lvisLGWdata));
+  if(!(data=(lvisLGWdata *)calloc(*nWaves,sizeof(lvisLGWdata)))){
     fprintf(stderr,"error data structure allocation.\n");
     exit(1);
   }
@@ -159,8 +160,284 @@ lvisData *readLVISdata(char *namen,int *nWaves)
   TIDY(buffer);
 
   return(data);
-}/*readLVISdata*/
+}/*readLVISlgw*/
 
+
+/*#####################################*/
+/*tidy LVIS structure*/
+
+lvisHDF *tidyLVISstruct(lvisHDF *lvis)
+{
+  if(lvis){
+    TIDY(lvis->lon0);       /*LON0*/
+    TIDY(lvis->lat0);       /*LAT0*/
+    TIDY(lvis->lon1023);    /*LON1023*/
+    TIDY(lvis->lat1023);    /*LAT1023*/
+    TIDY(lvis->lfid);     /*LFID*/
+    TIDY(lvis->shotN);    /*SHOTNUMBER*/
+    TTIDY((void **)lvis->wave,1);    /*RXWAVE*/
+    TTIDY((void **)lvis->pulse,1);   /*TXWAVE*/
+    TIDY(lvis->zen);         /*INCIDENTANGLE*/
+    TIDY(lvis->z0);         /*Z0*/
+    TIDY(lvis->z1023);      /*Z1023*/
+    TIDY(lvis->sigmean);     /*SIGMEAN*/
+    TIDY(lvis->time);       /*TIME*/
+    TIDY(lvis);
+  }
+  return(lvis);
+}/*tidyLVISstruct*/
+
+
+/*#####################################*/
+/*readHDF5 LVIS file*/
+
+lvisHDF *readLVIShdf(char *inNamen)
+{
+  int nWaves=0;
+  lvisHDF *lvis=NULL;
+  void checkNumber(int,int,char *);
+  float *read1dFloatHDF5(hid_t,char *,int *);
+  double *read1dDoubleHDF5(hid_t,char *,int *);
+  uint32_t *read1dUint32HDF5(hid_t,char *,int *);
+  uint16_t **readDatasetHDF5(hid_t,char *,int *,int *);
+  hid_t file;         /* Handles */
+
+
+  /*allocate structure*/
+  if(!(lvis=(lvisHDF *)calloc(1,sizeof(lvisHDF)))){
+    fprintf(stderr,"error in LVIS structure allocation.\n");
+    exit(1);
+  }
+
+  /*set to NULL to start with*/
+  lvis->lon0=NULL;     /*LON0*/
+  lvis->lat0=NULL;     /*LAT0*/
+  lvis->lon1023=NULL;  /*LON1023*/
+  lvis->lat1023=NULL;  /*LAT1023*/
+  lvis->lfid=NULL;     /*LFID*/
+  lvis->shotN=NULL;    /*SHOTNUMBER*/
+  lvis->wave=NULL;     /*RXWAVE*/
+  lvis->pulse=NULL;    /*TXWAVE*/
+  lvis->zen=NULL;      /*INCIDENTANGLE*/
+  lvis->z0=NULL;       /*Z0*/
+  lvis->z1023=NULL;    /*Z1023*/
+  lvis->sigmean=NULL;  /*SIGMEAN*/
+  lvis->time=NULL;     /*TIME*/
+
+  /*open HDF file*/
+  fprintf(stdout,"Reading %s\n",inNamen);
+  file=H5Fopen(inNamen,H5F_ACC_RDONLY,H5P_DEFAULT);
+
+  /*read 1D double arrays*/
+  lvis->lon0=read1dDoubleHDF5(file,"LON0",&nWaves);
+  lvis->nWaves=nWaves;
+  lvis->lat0=read1dDoubleHDF5(file,"LAT0",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"LAT0");
+  lvis->lon1023=read1dDoubleHDF5(file,"LON1023",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"LON1023");
+  lvis->lat1023=read1dDoubleHDF5(file,"LAT1023",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"LAT1023");
+  lvis->time=read1dDoubleHDF5(file,"TIME",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"TIME");
+
+  /*read 1D float arrays*/
+  lvis->zen=read1dFloatHDF5(file,"INCIDENTANGLE",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"INCIDENTANGLE");
+  lvis->z0=read1dFloatHDF5(file,"Z0",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"Z0");
+  lvis->z1023=read1dFloatHDF5(file,"Z1023",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"Z1023");
+  lvis->sigmean=read1dFloatHDF5(file,"SIGMEAN",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"SIGMEAN");
+
+  /*read 1D uint32 arrays*/
+  lvis->lfid=read1dUint32HDF5(file,"LFID",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"LFID");
+  lvis->shotN=read1dUint32HDF5(file,"SHOTNUMBER",&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"SHOTNUMBER");
+
+  /*read 2d unit16 arrays*/
+  lvis->wave=readDatasetHDF5(file,"RXWAVE",&lvis->nBins,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"RXWAVE");
+  lvis->pulse=readDatasetHDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"TXWAVE");
+
+  /*close file*/
+  if(H5Fclose(file)){
+    fprintf(stderr,"Issue closing file\n");
+    exit(1);
+  }
+
+  return(lvis);
+}/*readLVIShdf*/
+
+
+/*#####################################*/
+/*check integers match*/
+
+void checkNumber(int newNumb,int oldNumb,char *label)
+{
+  if(newNumb!=oldNumb){
+    fprintf(stderr,"Number mismatch %d %d for %s\n",newNumb,oldNumb,label);
+    exit(1);
+  }
+  return;
+}/*checkNumber*/
+
+
+/*#####################################*/
+/*read a HDF5 dataset*/
+
+uint16_t **readDatasetHDF5(hid_t file,char *label,int *nBins,int *nWaves)
+{
+  int i=0,ndims=0;
+  uint16_t **jimlad=NULL;
+  hid_t dset,space;
+  hsize_t *dims=NULL;
+
+  /*open dataset*/
+  dset=H5Dopen2(file,label,H5P_DEFAULT);
+
+  /*get dimensions*/
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_ndims(space);
+  if(!(dims=(hsize_t *)calloc(ndims,sizeof(hsize_t)))){
+    fprintf(stderr,"error in float buffer allocation.\n");
+    exit(1);
+  }
+
+  if(H5Sget_simple_extent_dims(space,dims,NULL)!=ndims){
+    fprintf(stderr,"Error\n");
+    exit(1);
+  }
+  (*nWaves)=(int)dims[0];
+  (*nBins)=(int)dims[1];
+
+  //tid=H5Dget_type(dset);
+
+  /*allocate space*/
+  jimlad=(uint16_t **)malloc(dims[0]*sizeof(uint16_t *));
+  jimlad[0]=(uint16_t *)malloc(dims[0]*dims[1]*sizeof(uint16_t));
+  for(i=1;i<dims[0];i++)jimlad[i]=jimlad[0]+i*dims[1];
+
+  /*read data*/
+  if(H5Dread(dset,H5T_NATIVE_USHORT,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad[0])){
+    fprintf(stderr,"Error reading data %s\n",label);
+    exit(1);
+  }
+
+  /*close dataset*/
+  if(H5Dclose(dset)){
+    fprintf(stderr,"Error closing data %s\n",label);
+    exit(1);
+  }
+  if(H5Sclose(space)){
+    fprintf(stderr,"Error closing space %s\n",label);
+    exit(1);
+  }
+
+  TIDY(dims);
+  return(jimlad);
+}/*readDatasetHDF5*/
+
+
+/*#####################################*/
+/*read 1D uint32 array from HDF5*/
+
+uint32_t *read1dUint32HDF5(hid_t file,char *varName,int *nBins)
+{
+  int ndims=0;
+  hid_t dset,space,filetype;         /* Handles */
+  herr_t status;
+  hsize_t dims[1];
+  uint32_t *jimlad=NULL;
+
+  dset=H5Dopen2(file,varName,H5P_DEFAULT);
+  filetype=H5Dget_type(dset);
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_dims(space,dims,NULL);
+  if(ndims>1){
+    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    exit(1);
+  }
+  *nBins=dims[0];
+  if(!(jimlad=(uint32_t *)calloc(*nBins,sizeof(uint32_t)))){
+    fprintf(stderr,"error in float buffer allocation.\n");
+    exit(1);
+  }
+  status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
+  if(status){
+    fprintf(stderr,"Data reading error %d\n",status);
+    exit(1);
+  }
+  status=H5Dclose(dset);
+
+  return(jimlad);
+}/*read1dUint32HDF5*/
+
+
+/*#####################################*/
+/*read 1D float array from HDF5*/
+
+float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
+{
+  int ndims=0;
+  hid_t dset,space,filetype;         /* Handles */
+  herr_t status;
+  hsize_t dims[1];
+  float *jimlad=NULL;
+
+  dset=H5Dopen2(file,varName,H5P_DEFAULT);
+  filetype=H5Dget_type(dset);
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_dims(space,dims,NULL);
+  if(ndims>1){
+    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    exit(1);
+  }
+  *nBins=dims[0];
+  jimlad=falloc(dims[0],"",0);
+  status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
+  if(status){
+    fprintf(stderr,"Data reading error %d\n",status);
+    exit(1);
+  }
+  status=H5Dclose(dset);
+
+  return(jimlad);
+}/*read1dFloatHDF5*/
+
+
+/*#####################################*/
+/*read 1D double array from HDF5*/
+
+double *read1dDoubleHDF5(hid_t file,char *varName,int *nBins)
+{
+  int ndims=0;
+  hid_t dset,space,filetype;         /* Handles */
+  herr_t status;
+  hsize_t dims[1];
+  double *jimlad=NULL;
+
+  dset=H5Dopen2(file,varName,H5P_DEFAULT);
+  filetype=H5Dget_type(dset);
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_dims(space,dims,NULL);
+  if(ndims>1){
+    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    exit(1);
+  }
+  *nBins=dims[0];
+  jimlad=dalloc(dims[0],"",0);
+  status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
+  if(status){
+    fprintf(stderr,"Data reading error %d\n",status);
+    exit(1);
+  }
+  status=H5Dclose(dset);
+
+  return(jimlad);
+}/*read1dDoubleHDF5*/
 
 /*the end*/
 /*####################################################*/
