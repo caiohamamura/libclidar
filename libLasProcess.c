@@ -1709,6 +1709,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   float totE=0,r=0;
   float *rh=NULL;
   float tolerance=0;
+  float lastRet=0;
   char *done=NULL;
 
   /*total energy*/
@@ -1739,21 +1740,28 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
             done[j]=1;
           }
         }
+        lastRet=(float)(z[i]-gHeight);
       }
     }
   }else{
     for(i=0;i<nBins;i++){  /*wave is from bottom to top*/
       cumul+=wave[i];
-      for(j=0;j<(*nRH);j++){
-        r=((float)j*(float)(rhRes/100.0))*totE;
-        if(r>totE)r=totE;
-        if((done[j]==0)&&(cumul>=(r-tolerance))&&(cumul>tolerance)){
-          rh[j]=(float)(z[i]-gHeight);
-          done[j]=1;
+      if(wave[i]>tolerance){
+        for(j=0;j<(*nRH);j++){
+          r=((float)j*(float)(rhRes/100.0))*totE;
+          if(r>totE)r=totE;
+          if((done[j]==0)&&(cumul>=(r-tolerance))){
+            rh[j]=(float)(z[i]-gHeight);
+            done[j]=1;
+          }
         }
+        lastRet=(float)(z[i]-gHeight);
       }
     }
   }
+
+  /*in case there was a rounding error for RH100*/
+  if(rh[(*nRH)-1]<-9000.0)rh[(*nRH)-1]=lastRet;
 
   TIDY(done);
   return(rh);
