@@ -488,7 +488,7 @@ multRet *filterData(float *y,int numb,float offset)
   if(waveThresh<tol)waveThresh=tol;*/
 
   waveThresh=tol;
-  mean=tol/10.0;
+  mean=0.0;
 
   inFeat=0;
   for(i=0;i<numb;i++){
@@ -650,7 +650,6 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
   int i=0;
   float *smoothed=NULL;
   float *d2x=NULL,*temp=NULL;
-  float tol=0;
   turnStruct *turnings=NULL;
 
   /*smooth to taste*/
@@ -660,12 +659,7 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
 
   /*determine second derivative*/
   d2x=falloc(width,"d2x",0);
-  tol=-1000.0;
-  for(i=1;i<width-1;i++){
-    d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
-    if(fabs(d2x[i])>tol)tol=d2x[i];
-  }
-  tol/=1000.0;
+  for(i=1;i<width-1;i++)d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
 
   temp=smooth(preSmooth,width,d2x,0.15);
   TIDY(d2x);
@@ -685,7 +679,7 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
   turnings->nFeats++;
   for(i=2;i<width-2;i++){
     if(smoothed[i]>0.0){
-      if(((d2x[i]-d2x[i-1])>tol)&&((d2x[i]-d2x[i+1])>tol)){  /*minimum of the second derivative*/
+      if((d2x[i]<=d2x[i-1])&&(d2x[i]<d2x[i+1])){  /*minimum of the second derivative*/
         turnings->bound=markInt(turnings->nFeats,turnings->bound,i-1);
         turnings->nFeats++;
       }

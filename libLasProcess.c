@@ -1725,7 +1725,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   }
 
   /*make toelrance have the RH metric step*/
-  tolerance=0.00000000000001*totE;
+  tolerance=totE*rhRes/(100.0*3000.0);  /*0.00000000000001*totE;*/
 
   cumul=0.0;
   if(z[nBins-i]<z[0]){   /*wave is from from top to bottom*/
