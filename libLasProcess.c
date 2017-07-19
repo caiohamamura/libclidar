@@ -42,7 +42,7 @@
 /*########################################################################*/
 
 
-#define TOL 0.00001
+#define TOL 0.00001      /*generic floating plint tolerance*/
 smoothPulse smooPulse;   /*global structure to save reallocation*/
 
 
