@@ -109,6 +109,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
     }
   }/*read data question*/
 
+  TIDY(buff);
   XTIFFClose(tiffIn);
   return;
 }/*readGeotiff*/
