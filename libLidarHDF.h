@@ -94,34 +94,6 @@ typedef struct{
 }lvisHDF;
 
 
-/*###########################################################*/
-/*GEDI HDF5 structure*/
-
-typedef struct{
-  /*header*/
-  int nWaves;      /*number of waveforms*/
-  int nBins;       /*number of waveform bins*/
-  int idLength;    /*length of wavefor ID strings*/
-  float pSigma;    /*pulse length*/
-  float fSigma;    /*footprint width*/
-  /*beams*/
-  float *wave;     /*waveform*/
-  float *ground;   /*ground waveforms*/
-  float *z0;       /*wave top elevations*/
-  float *zN;       /*wave bottom elevations*/
-  double *lon;     /*longitudes*/
-  double *lat;     /*latitudes*/
-  float *slope;    /*ground slope*/
-  float *cov;      /*canopy cover*/
-  float *gElev;    /*ground elevation, CofG*/
-  float *demElev;  /*ground elevation, DEM*/
-  char *waveID;    /*waveform ID*/
-  float *beamDense;/*beam density*/
-  float *pointDense;/*point density*/
-  float *zen;      /*scan angles, or mean angles*/
-}gediHDF;
-
-
 /*#######################################*/
 /*functions*/
 
@@ -134,8 +106,6 @@ void write1dFloatHDF5(hid_t,char *,float *,int);
 void write2dFloatHDF5(hid_t,char *,float *,int,int);
 void write2dCharHDF5(hid_t,char *,char *,int,int);
 void write1dIntHDF5(hid_t,char *,int *,int);
-void writeGEDIhdf(gediHDF *,char *);
-gediHDF *tidyGediHDF(gediHDF *);
 
 
 /*the end*/
