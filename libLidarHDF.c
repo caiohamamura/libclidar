@@ -196,10 +196,7 @@ lvisHDF *readLVIShdf(char *inNamen)
   int nWaves=0;
   lvisHDF *lvis=NULL;
   void checkNumber(int,int,char *);
-  float *read1dFloatHDF5(hid_t,char *,int *);
-  double *read1dDoubleHDF5(hid_t,char *,int *);
-  uint32_t *read1dUint32HDF5(hid_t,char *,int *);
-  uint16_t **readDatasetHDF5(hid_t,char *,int *,int *);
+  uint16_t **read2dUint16HDF5(hid_t,char *,int *,int *);
   hid_t file;         /* Handles */
 
 
@@ -257,9 +254,9 @@ lvisHDF *readLVIShdf(char *inNamen)
   checkNumber(nWaves,lvis->nWaves,"SHOTNUMBER");
 
   /*read 2d unit16 arrays*/
-  lvis->wave=readDatasetHDF5(file,"RXWAVE",&lvis->nBins,&nWaves);
+  lvis->wave=read2dUint16HDF5(file,"RXWAVE",&lvis->nBins,&nWaves);
   checkNumber(nWaves,lvis->nWaves,"RXWAVE");
-  lvis->pulse=readDatasetHDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
+  lvis->pulse=read2dUint16HDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
   checkNumber(nWaves,lvis->nWaves,"TXWAVE");
 
   /*close file*/
@@ -288,7 +285,7 @@ void checkNumber(int newNumb,int oldNumb,char *label)
 /*#####################################*/
 /*read a HDF5 dataset*/
 
-uint16_t **readDatasetHDF5(hid_t file,char *label,int *nBins,int *nWaves)
+uint16_t **read2dUint16HDF5(hid_t file,char *label,int *nBins,int *nWaves)
 {
   int i=0,ndims=0;
   uint16_t **jimlad=NULL;
@@ -338,7 +335,114 @@ uint16_t **readDatasetHDF5(hid_t file,char *label,int *nBins,int *nWaves)
 
   TIDY(dims);
   return(jimlad);
-}/*readDatasetHDF5*/
+}/*read2dUint16HDF5*/
+
+
+/*#########################################################*/
+/*read a 1.5D float HDF5 dataset (2D compressed into 1D)*/
+
+float *read15dFloatHDF5(hid_t file,char *label,int *nWaves,int *nBins)
+{
+  int ndims=0;
+  float *jimlad=NULL;
+  hid_t dset,space,filetype;
+  hsize_t *dims=NULL;
+
+  /*open dataset*/
+  dset=H5Dopen2(file,label,H5P_DEFAULT);
+
+  /*get dimensions*/
+  space=H5Dget_space(dset);
+  filetype=H5Dget_type(dset);
+  ndims=H5Sget_simple_extent_ndims(space);
+  if(!(dims=(hsize_t *)calloc(ndims,sizeof(hsize_t)))){
+    fprintf(stderr,"error in float buffer allocation.\n");
+    exit(1);
+  }
+
+  if(H5Sget_simple_extent_dims(space,dims,NULL)!=ndims){
+    fprintf(stderr,"Error\n");
+    exit(1);
+  }
+  (*nWaves)=(int)dims[0];
+  (*nBins)=(int)dims[1];
+
+  /*allocate space*/
+  jimlad=falloc((*nWaves)*(*nBins),"1.5d float array HDF",0);
+
+  /*read data*/
+  if(H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad)){
+    fprintf(stderr,"Error reading data %s\n",label);
+    exit(1);
+  }
+
+  /*close dataset*/
+  if(H5Dclose(dset)){
+    fprintf(stderr,"Error closing data %s\n",label);
+    exit(1);
+  }
+  if(H5Sclose(space)){
+    fprintf(stderr,"Error closing space %s\n",label);
+    exit(1);
+  }
+
+  TIDY(dims);
+  return(jimlad);
+}/*read15dFloatHDF5*/
+
+
+
+/*#########################################################*/
+/*read a 1.5D char HDF5 dataset (2D compressed into 1D)*/
+
+char *read15dCharHDF5(hid_t file,char *label,int *nWaves,int *nBins)
+{ 
+  int ndims=0;
+  char *jimlad=NULL;
+  hid_t dset,space,filetype;
+  hsize_t *dims=NULL;
+  
+  /*open dataset*/
+  dset=H5Dopen2(file,label,H5P_DEFAULT);
+  
+  /*get dimensions*/
+  space=H5Dget_space(dset);
+  filetype=H5Dget_type(dset);
+  ndims=H5Sget_simple_extent_ndims(space);
+  if(!(dims=(hsize_t *)calloc(ndims,sizeof(hsize_t)))){
+    fprintf(stderr,"error in float buffer allocation.\n");
+    exit(1);
+  }
+  
+  if(H5Sget_simple_extent_dims(space,dims,NULL)!=ndims){
+    fprintf(stderr,"Error\n");
+    exit(1);
+  }
+  (*nWaves)=(int)dims[0];
+  (*nBins)=(int)dims[1];
+  
+  /*allocate space*/
+  jimlad=challoc((*nWaves)*(*nBins),"1.5d float array HDF",0);
+  
+  /*read data*/
+  if(H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad)){
+    fprintf(stderr,"Error reading data %s\n",label);
+    exit(1);
+  }
+  
+  /*close dataset*/
+  if(H5Dclose(dset)){
+    fprintf(stderr,"Error closing data %s\n",label);
+    exit(1);
+  }
+  if(H5Sclose(space)){
+    fprintf(stderr,"Error closing space %s\n",label);
+    exit(1);
+  }
+  
+  TIDY(dims);
+  return(jimlad);
+}/*read15dCharHDF5*/
 
 
 /*#####################################*/
@@ -371,9 +475,41 @@ uint32_t *read1dUint32HDF5(hid_t file,char *varName,int *nBins)
     exit(1);
   }
   status=H5Dclose(dset);
-
+  status=H5Sclose(space);
   return(jimlad);
 }/*read1dUint32HDF5*/
+
+
+/*#####################################*/
+/*read 1D int array from HDF5*/
+
+int *read1dIntHDF5(hid_t file,char *varName,int *nBins)
+{
+  int ndims=0;
+  hid_t dset,space,filetype;         /* Handles */
+  herr_t status;
+  hsize_t dims[1];
+  int *jimlad=NULL;
+
+  dset=H5Dopen2(file,varName,H5P_DEFAULT);
+  filetype=H5Dget_type(dset);
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_dims(space,dims,NULL);
+  if(ndims>1){
+    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    exit(1);
+  }
+  *nBins=dims[0];
+  jimlad=ialloc(dims[0],"",0);
+  status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
+  if(status){
+    fprintf(stderr,"Data reading error %d\n",status);
+    exit(1);
+  }
+  status=H5Dclose(dset);
+  status=H5Sclose(space);
+  return(jimlad);
+}/*read1dIntHDF5*/
 
 
 /*#####################################*/
@@ -403,7 +539,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
     exit(1);
   }
   status=H5Dclose(dset);
-
+  status=H5Sclose(space);
   return(jimlad);
 }/*read1dFloatHDF5*/
 
@@ -435,7 +571,7 @@ double *read1dDoubleHDF5(hid_t file,char *varName,int *nBins)
     exit(1);
   }
   status=H5Dclose(dset);
-
+  status=H5Sclose(space);
   return(jimlad);
 }/*read1dDoubleHDF5*/
 
@@ -478,6 +614,7 @@ void write1dDoubleHDF5(hid_t file,char *varName,double *data,int nWaves)
 
   /*close data*/
   status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
   return;
 }/*write1dDoubleHDF5*/
 
@@ -522,6 +659,7 @@ void write2dCharHDF5(hid_t file,char *varName,char *data,int nWaves,int nBins)
 
   /*close data*/
   status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
   return;
 }/*write2dCharHDF5*/
 
@@ -608,6 +746,7 @@ void write1dFloatHDF5(hid_t file,char *varName,float *data,int nWaves)
 
   /*close data*/
   status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
   return;
 }/*write1dFloatHDF5*/
 
@@ -650,6 +789,7 @@ void write1dIntHDF5(hid_t file,char *varName,int *data,int nWaves)
 
   /*close data*/
   status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
   return;
 }/*write1dIntHDF5*/
 
