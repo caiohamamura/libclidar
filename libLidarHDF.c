@@ -65,12 +65,13 @@ void checkLVISsizes()
 /*########################################*/
 /*read data*/
 
-lvisLGWdata *readLVISlgw(char *namen,int *nWaves)
+lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 {
   uint64_t i=0,len=0;
   uint64_t offset=0;
   lvisLGWdata *data=NULL;
   char *buffer=NULL;
+  void lgwVersionFind(lvisLGWstruct *,char *,int);
   FILE *ipoo=NULL;
 
   /*open file*/
@@ -90,14 +91,9 @@ lvisLGWdata *readLVISlgw(char *namen,int *nWaves)
     exit(1);
   }
 
-  /*allocate space*/
-  buffer=challoc(len,"buffer",0);
-  *nWaves=(int)(len/sizeof(lvisLGWdata));
-  if(!(data=(lvisLGWdata *)calloc(*nWaves,sizeof(lvisLGWdata)))){
-    fprintf(stderr,"error data structure allocation.\n");
-    exit(1);
-  }
 
+  /*allocate reading space*/
+  buffer=challoc(len,"buffer",0);
   /*read data*/
   if(fread(&(buffer[0]),sizeof(char),len,ipoo)!=len){
     fprintf(stderr,"error reading data\n");
@@ -107,40 +103,58 @@ lvisLGWdata *readLVISlgw(char *namen,int *nWaves)
     fclose(ipoo);
     ipoo=NULL;
   }
+
+  /*determine version type*/
+  lgwVersionFind(lvis,buffer,len);
+
+  if(!(data=(lvisLGWdata *)calloc(lvis->nWaves,sizeof(lvisLGWdata)))){
+    fprintf(stderr,"error data structure allocation.\n");
+    exit(1);
+  }
+
   /*copy data*/
   offset=0;
-  for(i=0;i<(*nWaves);i++){
-    memcpy(&(data[i].lfid),&(buffer[offset]),sizeof(uint32_t));
-    offset+=sizeof(uint32_t);
-    memcpy(&(data[i].shotN),&(buffer[offset]),sizeof(uint32_t));
-    offset+=sizeof(uint32_t);
-    memcpy(&(data[i].az),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
-    memcpy(&(data[i].zen),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
-    memcpy(&(data[i].range),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
-    memcpy(&(data[i].lvistime),&(buffer[offset]),sizeof(double));
-    offset+=sizeof(double);
+  for(i=0;i<lvis->nWaves;i++){
+    if(lvis->verMin>0){
+      memcpy(&(data[i].lfid),&(buffer[offset]),sizeof(uint32_t));
+      offset+=(uint64_t)sizeof(uint32_t);
+      memcpy(&(data[i].shotN),&(buffer[offset]),sizeof(uint32_t));
+      offset+=(uint64_t)sizeof(uint32_t);
+    }
+    if(lvis->verMin>=3){
+      memcpy(&(data[i].az),&(buffer[offset]),sizeof(float));
+      offset+=(uint64_t)sizeof(float);
+      memcpy(&(data[i].zen),&(buffer[offset]),sizeof(float));
+      offset+=(uint64_t)sizeof(float);
+      memcpy(&(data[i].range),&(buffer[offset]),sizeof(float));
+      offset+=(uint64_t)sizeof(float);
+    }
+    if(lvis->verMin>=2){
+      memcpy(&(data[i].lvistime),&(buffer[offset]),sizeof(double));
+      offset+=(uint64_t)sizeof(double);
+    }
     memcpy(&(data[i].lon0),&(buffer[offset]),sizeof(double));
-    offset+=sizeof(double);
+    offset+=(uint64_t)sizeof(double);
     memcpy(&(data[i].lat0),&(buffer[offset]),sizeof(double));
-    offset+=sizeof(double);
+    offset+=(uint64_t)sizeof(double);
     memcpy(&(data[i].z0),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
+    offset+=(uint64_t)sizeof(float);
     memcpy(&(data[i].lon431),&(buffer[offset]),sizeof(double));
-    offset+=sizeof(double);
+    offset+=(uint64_t)sizeof(double);
     memcpy(&(data[i].lat431),&(buffer[offset]),sizeof(double));
-    offset+=sizeof(double);
+    offset+=(uint64_t)sizeof(double);
     memcpy(&(data[i].z431),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
+    offset+=(uint64_t)sizeof(float);
     memcpy(&(data[i].sigmean),&(buffer[offset]),sizeof(float));
-    offset+=sizeof(float);
-    memcpy(&(data[i].txwave[0]),&(buffer[offset]),sizeof(unsigned char)*80);
-    offset+=sizeof(unsigned char)*80;
-    memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*432);
-    offset+=sizeof(unsigned char)*432;
-
+    offset+=(uint64_t)sizeof(float);
+    if(lvis->nTxBins>0){
+      data[i].txwave=uchalloc(lvis->nTxBins,"txwave",i+1);
+      memcpy(&(data[i].txwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nTxBins);
+      offset+=(uint64_t)sizeof(unsigned char)*80;
+    }else data[i].txwave=NULL;
+    data[i].rxwave=uchalloc(lvis->nBins,"rxwave",0);
+    memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
+    offset+=(uint64_t)sizeof(unsigned char)*lvis->nBins;
 
     /*byteswap*/
     data[i].lfid=u32OneSwap(data[i].lfid);
@@ -161,6 +175,67 @@ lvisLGWdata *readLVISlgw(char *namen,int *nWaves)
 
   return(data);
 }/*readLVISlgw*/
+
+
+/*#####################################*/
+/*determine lgw version*/
+
+void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,int len)
+{
+  int i=0,j=0,nWaves=0;
+  int nVers=0,*rLen=NULL;
+  uint64_t offset=0;
+  double lat0=0;
+  char thisVers=0;
+
+  /*length of data packet in each version type*/
+  nVers=5;
+  rLen=ialloc(nVers,"record length",0);
+  rLen[0]=(int)sizeof(lvis_lgw_v1_00);
+  rLen[1]=(int)sizeof(lvis_lgw_v1_01);
+  rLen[2]=(int)sizeof(lvis_lgw_v1_02);
+  rLen[3]=(int)sizeof(lvis_lgw_v1_03);
+  rLen[4]=(int)sizeof(lvis_lgw_v1_04);
+
+  /*do numbers make sense*/
+  for(i=0;i<nVers;i++){
+    nWaves=(int)(len/rLen[i]);
+    thisVers=1;
+    for(j=0;j<nWaves;j++){
+      offset=(uint64_t)j*(uint64_t)rLen[j];
+      if(i==1)offset+=2*(int)sizeof(uint32_t)+(int)sizeof(double);
+      else if(i==2)offset+=2*(int)sizeof(uint32_t)+2*(int)sizeof(double);
+      else if(i>=3)offset+=2*(int)sizeof(uint32_t)+2*(int)sizeof(double)+3*(int)sizeof(float);
+
+      memcpy(&lat0,&(buffer[offset]),sizeof(double));
+
+      if((lat0<-90.0)||(lat0>90.0)){
+        thisVers=0;
+        break;
+      }
+    }/*wave loop*/
+
+    /*is it this version?*/
+    if(thisVers){
+      lvis->verMin=i;
+      lvis->verMaj=1;
+      lvis->nWaves=nWaves;
+      break;
+    }
+  }/*version loop*/
+
+  /*set array lengths*/
+  if(lvis->verMin<4)lvis->nBins=432;
+  else              lvis->nBins=528;
+  if(lvis->verMin<3)lvis->nTxBins=0;
+  else if(lvis->verMin<4)lvis->nTxBins=80;
+  else                   lvis->nTxBins=120;
+
+  lvis->data=NULL;
+
+  TIDY(rLen);
+  return;
+}/*lgwVersionFind*/
 
 
 /*#####################################*/
