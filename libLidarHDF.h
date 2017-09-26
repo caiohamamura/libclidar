@@ -98,7 +98,7 @@ typedef struct{
 /*#######################################*/
 /*lgw types fpr reading*/
 
-#pragma pack(1)
+/*#pragma pack(1)*/
 struct lvis_lgw_v1_00{
    double lon0;
    double lat0;
@@ -111,7 +111,7 @@ struct lvis_lgw_v1_00{
 };
 typedef struct lgw_v1_00 * ptr_lgw_v1_00;
 
-#pragma pack(1)
+/*#pragma pack(1)*/
 struct lvis_lgw_v1_01{
    uint32_t lfid;
    uint32_t shotnumber;
@@ -126,7 +126,7 @@ struct lvis_lgw_v1_01{
 };
 typedef struct lgw_v1_01 * ptr_lgw_v1_01;
 
-#pragma pack(1)
+/*#pragma pack(1)*/
 struct lvis_lgw_v1_02{
    uint32_t lfid;
    uint32_t shotnumber;
@@ -142,7 +142,7 @@ struct lvis_lgw_v1_02{
 };
 typedef struct lgw_v1_02 * ptr_lgw_v1_02;
 
-#pragma pack(1)
+/*#pragma pack(1)*/
 struct lvis_lgw_v1_03{
    uint32_t lfid;
    uint32_t shotnumber;
@@ -162,7 +162,7 @@ struct lvis_lgw_v1_03{
 };
 typedef struct lgw_v1_03 * ptr_lgw_v1_03;
 
-#pragma pack(1)
+/*#pragma pack(1)*/
 struct lvis_lgw_v1_04{
    uint32_t lfid;
    uint32_t shotnumber;
