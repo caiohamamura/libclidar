@@ -51,8 +51,8 @@ typedef struct{
    double lat431;    /* latitude of the lowest sample of the waveform (degrees north)*/
    float  z431;      /* elevation of the lowest sample of the waveform (m)*/
    float  sigmean;   /* signal mean noise level, calculated in-flight (counts)*/
-   unsigned char txwave[80];  /* transmit waveform, recorded in-flight (counts)*/
-   unsigned char rxwave[432]; /* return   waveform, recorded in-flight (counts)*/
+   unsigned char *txwave;  /* transmit waveform, recorded in-flight (counts)*/
+   unsigned char *rxwave; /* return   waveform, recorded in-flight (counts)*/
 }lvisLGWdata;
 
 
@@ -63,7 +63,8 @@ typedef struct{
   int verMaj;      /*major version*/
   int verMin;      /*minor version*/
   int nWaves;      /*number of waveforms*/
-  int nBins;       /*number of waveform bins*/
+  int nBins;       /*number of rx waveform bins*/
+  int nTxBins;     /*number of tx waveform bins*/
   FILE *ipoo;      /*input file*/
   lvisLGWdata *data;  /*data pointer*/
   char byteord;    /*byte order of this computer*/
@@ -95,9 +96,88 @@ typedef struct{
 
 
 /*#######################################*/
+/*lgw types fpr reading*/
+
+typedef struct{
+   double lon0;
+   double lat0;
+   float  z0; 
+   double lon431;
+   double lat431;
+   float  z431;
+   float  sigmean;
+   unsigned char wave[432];
+}lvis_lgw_v1_00;
+
+typedef struct{
+   uint32_t lfid;
+   uint32_t shotnumber;
+   double lon0;
+   double lat0;
+   float  z0;
+   double lon431;
+   double lat431;
+   float  z431;
+   float  sigmean;
+   unsigned char wave[432];
+}lvis_lgw_v1_01;
+
+typedef struct{
+   uint32_t lfid;
+   uint32_t shotnumber;
+   double lvistime;
+   double lon0;
+   double lat0;
+   float  z0;
+   double lon431;
+   double lat431;
+   float  z431;
+   float  sigmean;
+   unsigned char wave[432];
+}lvis_lgw_v1_02;
+
+typedef struct{
+   uint32_t lfid;
+   uint32_t shotnumber;
+   float azimuth;
+   float incidentangle;
+   float range;
+   double lvistime;
+   double lon0;
+   double lat0;
+   float  z0;
+   double lon431;
+   double lat431;
+   float  z431;
+   float  sigmean;
+   unsigned char txwave[80];
+   unsigned char rxwave[432];
+}lvis_lgw_v1_03;
+
+typedef struct{
+   uint32_t lfid;
+   uint32_t shotnumber;
+   float azimuth;
+   float incidentangle;
+   float range;
+   double lvistime;
+   double lon0;
+   double lat0;
+   float  z0;
+   double lon527;
+   double lat527;
+   float  z527;
+   float  sigmean;
+   uint16_t txwave[120];
+   uint16_t rxwave[528];
+}lvis_lgw_v1_04;
+
+
+
+/*#######################################*/
 /*functions*/
 
-lvisLGWdata *readLVISlgw(char *,int *);
+lvisLGWdata *readLVISlgw(char *,lvisLGWstruct *);
 void checkLVISsizes();
 lvisHDF *tidyLVISstruct(lvisHDF *);
 lvisHDF *readLVIShdf(char *);
