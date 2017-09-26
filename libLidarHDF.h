@@ -98,18 +98,21 @@ typedef struct{
 /*#######################################*/
 /*lgw types fpr reading*/
 
-typedef struct{
+#pragma pack(1)
+struct lvis_lgw_v1_00{
    double lon0;
    double lat0;
-   float  z0; 
+   float  z0;
    double lon431;
    double lat431;
    float  z431;
    float  sigmean;
    unsigned char wave[432];
-}lvis_lgw_v1_00;
+};
+typedef struct lgw_v1_00 * ptr_lgw_v1_00;
 
-typedef struct{
+#pragma pack(1)
+struct lvis_lgw_v1_01{
    uint32_t lfid;
    uint32_t shotnumber;
    double lon0;
@@ -120,9 +123,11 @@ typedef struct{
    float  z431;
    float  sigmean;
    unsigned char wave[432];
-}lvis_lgw_v1_01;
+};
+typedef struct lgw_v1_01 * ptr_lgw_v1_01;
 
-typedef struct{
+#pragma pack(1)
+struct lvis_lgw_v1_02{
    uint32_t lfid;
    uint32_t shotnumber;
    double lvistime;
@@ -134,9 +139,11 @@ typedef struct{
    float  z431;
    float  sigmean;
    unsigned char wave[432];
-}lvis_lgw_v1_02;
+};
+typedef struct lgw_v1_02 * ptr_lgw_v1_02;
 
-typedef struct{
+#pragma pack(1)
+struct lvis_lgw_v1_03{
    uint32_t lfid;
    uint32_t shotnumber;
    float azimuth;
@@ -152,9 +159,11 @@ typedef struct{
    float  sigmean;
    unsigned char txwave[80];
    unsigned char rxwave[432];
-}lvis_lgw_v1_03;
+};
+typedef struct lgw_v1_03 * ptr_lgw_v1_03;
 
-typedef struct{
+#pragma pack(1)
+struct lvis_lgw_v1_04{
    uint32_t lfid;
    uint32_t shotnumber;
    float azimuth;
@@ -170,8 +179,8 @@ typedef struct{
    float  sigmean;
    uint16_t txwave[120];
    uint16_t rxwave[528];
-}lvis_lgw_v1_04;
-
+};
+typedef struct lgw_v1_04 * ptr_lgw_v1_04;
 
 
 /*#######################################*/

@@ -71,7 +71,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
   uint64_t offset=0;
   lvisLGWdata *data=NULL;
   char *buffer=NULL;
-  void lgwVersionFind(lvisLGWstruct *,char *,int);
+  void lgwVersionFind(lvisLGWstruct *,char *,uint64_t);
   FILE *ipoo=NULL;
 
   /*open file*/
@@ -180,7 +180,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 /*#####################################*/
 /*determine lgw version*/
 
-void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,int len)
+void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
 {
   int i=0,j=0,nWaves=0;
   int nVers=0,*rLen=NULL;
@@ -191,35 +191,41 @@ void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,int len)
   /*length of data packet in each version type*/
   nVers=5;
   rLen=ialloc(nVers,"record length",0);
-  rLen[0]=(int)sizeof(lvis_lgw_v1_00);
-  rLen[1]=(int)sizeof(lvis_lgw_v1_01);
-  rLen[2]=(int)sizeof(lvis_lgw_v1_02);
-  rLen[3]=(int)sizeof(lvis_lgw_v1_03);
-  rLen[4]=(int)sizeof(lvis_lgw_v1_04);
+  rLen[0]=(int)sizeof(struct lvis_lgw_v1_00);
+  rLen[1]=(int)sizeof(struct lvis_lgw_v1_01);
+  rLen[2]=(int)sizeof(struct lvis_lgw_v1_02);
+  rLen[3]=(int)sizeof(struct lvis_lgw_v1_03);
+  rLen[4]=(int)sizeof(struct lvis_lgw_v1_04);
+  lvis->verMin=0;
+  lvis->verMaj=1;
+  lvis->nWaves=0;
 
   /*do numbers make sense*/
+  //for(i=0;i<nVers;i++){
   for(i=0;i<nVers;i++){
-    nWaves=(int)(len/rLen[i]);
+    nWaves=(int)(len/(uint64_t)rLen[i]);
     thisVers=1;
     for(j=0;j<nWaves;j++){
-      offset=(uint64_t)j*(uint64_t)rLen[j];
-      if(i==1)offset+=2*(int)sizeof(uint32_t)+(int)sizeof(double);
-      else if(i==2)offset+=2*(int)sizeof(uint32_t)+2*(int)sizeof(double);
-      else if(i>=3)offset+=2*(int)sizeof(uint32_t)+2*(int)sizeof(double)+3*(int)sizeof(float);
+      offset=(uint64_t)j*(uint64_t)rLen[i];
+      if(i==1)offset+=2*(uint64_t)sizeof(uint32_t)+(uint64_t)sizeof(double);
+      else if(i==2)offset+=2*(uint64_t)sizeof(uint32_t)+2*(uint64_t)sizeof(double);
+      else if(i>=3)offset+=2*(uint64_t)sizeof(uint32_t)+2*(uint64_t)sizeof(double)+3*(uint64_t)sizeof(float);
 
       memcpy(&lat0,&(buffer[offset]),sizeof(double));
+      lat0=doOneSwap(lat0);
 
-      if((lat0<-90.0)||(lat0>90.0)){
+      if((lat0<-360.0)||(lat0>360.0)){
         thisVers=0;
         break;
-      }
+      }//else fprintf(stdout,"poss %d %f %d\n",i,lat0,j);
+
     }/*wave loop*/
 
     /*is it this version?*/
     if(thisVers){
       lvis->verMin=i;
-      lvis->verMaj=1;
       lvis->nWaves=nWaves;
+      fprintf(stdout,"LVIS version 1.%d\n",i);
       break;
     }
   }/*version loop*/
