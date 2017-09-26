@@ -191,17 +191,16 @@ void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
   /*length of data packet in each version type*/
   nVers=5;
   rLen=ialloc(nVers,"record length",0);
-  rLen[0]=(int)sizeof(struct lvis_lgw_v1_00);
-  rLen[1]=(int)sizeof(struct lvis_lgw_v1_01);
-  rLen[2]=(int)sizeof(struct lvis_lgw_v1_02);
-  rLen[3]=(int)sizeof(struct lvis_lgw_v1_03);
-  rLen[4]=(int)sizeof(struct lvis_lgw_v1_04);
+  rLen[0]=476; /*(int)sizeof(struct lvis_lgw_v1_00);*/
+  rLen[1]=484; /*(int)sizeof(struct lvis_lgw_v1_01);*/
+  rLen[2]=492; /*(int)sizeof(struct lvis_lgw_v1_02);*/
+  rLen[3]=584; /*(int)sizeof(struct lvis_lgw_v1_03);*/
+  rLen[4]=1368; /*(int)sizeof(struct lvis_lgw_v1_04);*/
   lvis->verMin=0;
   lvis->verMaj=1;
   lvis->nWaves=0;
 
   /*do numbers make sense*/
-  //for(i=0;i<nVers;i++){
   for(i=0;i<nVers;i++){
     nWaves=(int)(len/(uint64_t)rLen[i]);
     thisVers=1;
