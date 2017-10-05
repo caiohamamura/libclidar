@@ -941,7 +941,7 @@ void beamVoxelBounds(double *origin,float *grad,float fSigma,char gaussFoot,doub
   /*put beam start at top of voxel space*/
   origin[2]=bounds[5];
 
-  bounds[0]=bounds[1]==100000000000.0;
+  bounds[0]=bounds[1]=100000000000.0;
   bounds[3]=bounds[4]=-100000000000.0;
 
   for(i=-1;i<=1;i+=2){  /*loop over edges*/
