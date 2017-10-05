@@ -93,7 +93,6 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
         fInd=map->mapFile[vInd][i];
         pInd=map->mapPoint[vInd][i];
 
-        fprintf(stdout,"indices %d %d\n",fInd,pInd);
         vect[0]=(double)tlsData[fInd]->point[pInd].x+tlsData[fInd]->xOff-rImage->x0;
         vect[1]=(double)tlsData[fInd]->point[pInd].y+tlsData[fInd]->yOff-rImage->y0;
         vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
