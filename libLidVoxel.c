@@ -55,7 +55,7 @@ double tanAz=0,cosAz=0,sinAz=0;
 /*#############################################*/
 /*make silhouette image from point cloud*/
 
-void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageStruct *rImage,lidVoxPar *lidPar,int *voxList,int nIn,tlsVoxMap *map)
+void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan *tlsData,rImageStruct *rImage,lidVoxPar *lidPar,int *voxList,int nIn,tlsVoxMap *map)
 {
   int i=0,k=0,bin=0;
   int vInd=0,pInd=0,fInd=0;
@@ -93,9 +93,9 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
         fInd=map->mapFile[vInd][i];
         pInd=map->mapPoint[vInd][i];
 
-        vect[0]=(double)tlsData[fInd]->point[pInd].x+tlsData[fInd]->xOff-rImage->x0;
-        vect[1]=(double)tlsData[fInd]->point[pInd].y+tlsData[fInd]->yOff-rImage->y0;
-        vect[2]=(double)tlsData[fInd]->point[pInd].z+tlsData[fInd]->zOff-rImage->z0;
+        vect[0]=(double)tlsData[fInd].point[pInd].x+tlsData[fInd].xOff-rImage->x0;
+        vect[1]=(double)tlsData[fInd].point[pInd].y+tlsData[fInd].yOff-rImage->y0;
+        vect[2]=(double)tlsData[fInd].point[pInd].z+tlsData[fInd].zOff-rImage->z0;
 
         /*rotate to x-y plane*/
         rotateZ(vect,(double)(-1.0*az));
@@ -104,7 +104,7 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan **tlsData,rImageS
 
         if((bin>=0)&&(bin<rImage->nBins)){
           /*black out the points*/
-          markPointSilhouette(&(vect[0]),rImage,bin,lidPar,tlsData[fInd]->point[pInd].gap,tlsData[fInd]->point[pInd].refl,tlsData[fInd]->point[pInd].r);
+          markPointSilhouette(&(vect[0]),rImage,bin,lidPar,tlsData[fInd].point[pInd].gap,tlsData[fInd].point[pInd].refl,tlsData[fInd].point[pInd].r);
         } 
       }/*point in voxel loop*/
     }/*voxel loop*/

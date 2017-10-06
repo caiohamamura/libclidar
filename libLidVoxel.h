@@ -161,7 +161,7 @@ int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
 void tidyVoxelMap(tlsVoxMap *,int);
-void silhouetteImage(int,pCloudStruct **,tlsScan **,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
+void silhouetteImage(int,pCloudStruct **,tlsScan *,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
 void waveFromImage(rImageStruct *,float **,char,float);
 void fillInRimageGround(rImageStruct *);
 double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
