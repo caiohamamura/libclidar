@@ -398,7 +398,6 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
               map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),i);
               map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scans[i].nPoints);
               map->nIn[vPlace]++;
-
               scans[i].nPoints++;
             }
           }/*hit loop*/
