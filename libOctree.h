@@ -30,14 +30,41 @@
 
 
 /*#######################################*/
-/*octree structure*/
+/*the tree itself*/
 
 typedef struct{
-  int maxN;
-  int nLevel;
+  void **tree;  /*recursive octree pointer*/
+  uint32_t *mapInd;   /*map index*/ 
+}treeStruct;
 
-  uint32_t **nIn;
+
+/*#######################################*/
+/*octree structure. 2D for now*/
+
+typedef struct{
+  int topN;     /*number of pixels at top level*/
+  int nLevel;   /*number of levels of octree*/
+  float res;    /*resolution of top level*/
+  double minX;  /*min x of octree*/
+  double maxX;  /*max x of octree*/
+  double minY;  /*min y of octree*/
+  double maxY;  /*max y of octree*/
+  int nX;       /*number of x pixels at top level*/
+  int nY;       /*number of y pixels at top level*/
+
+  treeStruct **tree;  /*the octree*/
+
+  int **mapFile;       /*map to file indices*/
+  uint32_t **mapPoint;  /*map to point indices*/
+  uint32_t **nIn;      /*number of points within lowest level*/
 }octTreeStruct;
+
+
+/*#######################################################################*/
+/*functions*/
+
+octTreeStruct *allocateOctree(int,int,double,double,double,double);
+void fillOctree(double,double,double,int,uint32_t,octTreeStruct *);
 
 /*the end*/
 /*#######################################*/
