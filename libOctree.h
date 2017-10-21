@@ -34,7 +34,7 @@
 
 typedef struct{
   void **tree;  /*recursive octree pointer*/
-  uint32_t *mapInd;   /*map index*/ 
+  uint32_t mapInd;   /*map index*/ 
 }treeStruct;
 
 
@@ -55,16 +55,30 @@ typedef struct{
   treeStruct **tree;  /*the octree*/
 
   int **mapFile;       /*map to file indices*/
-  uint32_t **mapPoint;  /*map to point indices*/
-  uint32_t **nIn;      /*number of points within lowest level*/
-}octTreeStruct;
+  uint32_t **mapPoint; /*map to point indices*/
+  uint32_t *nIn;      /*number of points within lowest level*/
+  uint32_t nMaps;      /*number of map array elements*/
+}octreeStruct;
+
+
+/*#########################################*/
+/*structure to hold map of points to use*/
+
+typedef struct{
+  uint32_t nPoints;  /*number of points to test*/
+  int *fList;        /*list of file indices*/
+  uint32_t *pList;   /*list of point indices*/
+}pointMapStruct;
 
 
 /*#######################################################################*/
 /*functions*/
 
-octTreeStruct *allocateOctree(int,int,double,double,double,double);
-void fillOctree(double,double,double,int,uint32_t,octTreeStruct *);
+octreeStruct *allocateOctree(int,int,double,double,double,double);
+octreeStruct *tidyOctree(octreeStruct *);
+pointMapStruct *mapFromOctree(int *,int,octreeStruct *);
+void fillOctree(double,double,double,int,uint32_t,octreeStruct *);
+
 
 /*the end*/
 /*#######################################*/
