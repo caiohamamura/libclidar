@@ -737,8 +737,6 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->nY=(int)((vox->bounds[4]-vox->bounds[1])/vox->res[1]+0.99);  /*add 0.99 to avoid rounding*/
   vox->nZ=(int)((vox->bounds[5]-vox->bounds[2])/vox->res[2]+0.99);  /*add 0.99 to avoid rounding*/
 
-fprintf(stdout,"number %d %d %d\n",vox->nX,vox->nY,vox->nZ);
-
   vox->savePts=1;   /*defaults*/
   vox->maxZen=1000000.0;  /*use all points*/
 
