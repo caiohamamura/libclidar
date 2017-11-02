@@ -52,13 +52,16 @@ octreeStruct *allocateOctree(int nLevels,int topN,double minX,double maxX,double
     exit(1);
   }
 
+  /*set number of levels*/
+  octree->nLevel=nLevels;
+
   /*copy bounds*/
   octree->minX=minX;
   octree->maxX=maxX;
   octree->minY=minY;
   octree->maxY=maxY;
 
-  /*determine resoplution*/
+  /*determine resolution*/
   dX=(float)(maxX-minX);
   dY=(float)(maxY-minY);
   octree->res=(dX>dY)?(float)(dX/(double)topN):(float)(dY/(double)topN);
@@ -176,11 +179,12 @@ void mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double 
 /*####################################################*/
 /*return list of files and point intersecting*/
 
-pointMapStruct *mapFromOctree(int *octList,int nOct,octreeStruct *octree)
+pointMapStruct *mapFromOctree(int *octList,int nOct,octreeStruct *octree,double minX,double maxX,double minY,double maxY)
 {
-  int i=0,ind=0;
+  int i=0,ind=0,xBin=0,yBin=0;
+  double x0=0,y0=0;
   pointMapStruct *pointmap=NULL;
-  void readOctree(treeStruct *,pointMapStruct *,int,octreeStruct *);
+  void readOctree(treeStruct *,pointMapStruct *,int,octreeStruct *,double,double,float,double,double,double,double);
 
   /*allocate space*/
   if(!(pointmap=(pointMapStruct *)calloc(1,sizeof(pointMapStruct)))){
@@ -195,7 +199,11 @@ pointMapStruct *mapFromOctree(int *octList,int nOct,octreeStruct *octree)
   for(i=0;i<nOct;i++){
     ind=octList[i];
     if(octree->tree[ind]){
-      readOctree(octree->tree[ind],pointmap,0,octree);
+      xBin=ind%octree->nX;
+      yBin=ind/octree->nX;
+      x0=(double)xBin*(double)octree->res+octree->minX;
+      y0=(double)yBin*(double)octree->res+octree->minY;
+      readOctree(octree->tree[ind],pointmap,0,octree,x0,y0,octree->res/2.0,minX,maxX,minY,maxY);
     }
   }/*top level loop*/
 
@@ -206,16 +214,31 @@ pointMapStruct *mapFromOctree(int *octList,int nOct,octreeStruct *octree)
 /*#######################################*/
 /*read the octree*/
 
-void readOctree(treeStruct *tree,pointMapStruct *pointmap,int level,octreeStruct *octree)
+void readOctree(treeStruct *tree,pointMapStruct *pointmap,int level,octreeStruct *octree,double x0,double y0,float res,double minX,double maxX,double minY,double maxY)
 {
-  int i=0;
+  int i=0,k=0,place=0;
   uint32_t j=0,mapInd=0,ind=0;
-  void readOctree(treeStruct *,pointMapStruct *,int,octreeStruct *);
+  double newX0=0,newY0=0,newX1=0,newY1=0;
+  void readOctree(treeStruct *,pointMapStruct *,int,octreeStruct *,double,double,float,double,double,double,double);
+
 
   /*check if bottom level or not*/
   if(level<(octree->nLevel-1)){  /*recursively loop into octree*/
-    for(i=0;i<4;i++){
-      if(tree[i].tree)readOctree((treeStruct *)tree[i].tree,pointmap,level-1,octree);
+    /*loop over octree children*/
+    for(i=0;i<2;i++){
+      newX0=x0+(double)i*(double)res;
+      for(k=0;k<2;k++){
+        place=k*2+i;
+        if(tree->tree[place]){
+          newY0=y0+(double)k*(double)res;
+          newX1=newX0+(double)res;
+          newY1=newY0+(double)res;
+
+          /*check bounds*/
+          if((newX1<minX)||(newX0>maxX)||(newY0>maxY)||(newY1<minY))continue;
+          readOctree((treeStruct *)tree->tree[place],pointmap,level+1,octree,newX0,newY0,res/2.0,minX,maxX,minY,maxY);
+        }
+      }
     }
   }else{  /*final level, count points*/
     mapInd=tree->mapInd;
