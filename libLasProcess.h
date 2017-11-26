@@ -52,7 +52,9 @@ typedef struct{
   int maxIter;       /*maximum number of iterations*/
   double deChang;    /*change between decon iterations to stop*/
   char deconMeth;    /*deconvolution method, -1 none, 0 Gold, 1 Richardson-Lucy*/
+  char deconGauss;   /*is pulse a Gaussian or not*/
   char pNamen[400];  /*pulse filename*/
+  float pSigma;      /*pulse width if a Gaussian is used*/
   float **pulse;     /*pulse to deconvolve by*/
   int pBins;         /*number of pulse bins*/
   float *matchPulse; /*matched filter pulse*/
