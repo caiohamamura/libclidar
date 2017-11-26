@@ -1142,54 +1142,70 @@ void readPulse(denPar *denoise)
   float *tempPulse=NULL;
   float *fitSingleGauss(float *,float *,int,float,int *,float **);
   float *gaussPar=NULL;
-  float max=0;
+  float max=0,pRes=0,mu=0;
+  float *setPulse(float,int *,float);
 
-  if((ipoo=fopen(denoise->pNamen,"r"))==NULL){
-    fprintf(stderr,"Error opening pulse file %s\n",denoise->pNamen);
-    exit(1);
-  }
+  /*is it an assymmetric or gaussian pulse?*/
+  if(!denoise->deconGauss){
+    if((ipoo=fopen(denoise->pNamen,"r"))==NULL){
+      fprintf(stderr,"Error opening pulse file %s\n",denoise->pNamen);
+      exit(1);
+    }
 
-  denoise->pBins=0;
-  /*count number of bins*/
-  while(fgets(line,200,ipoo)!=NULL){
-    if(strncasecmp(line,"#",1))denoise->pBins++;
-  }/*line counting*/
+    denoise->pBins=0;
+    /*count number of bins*/
+    while(fgets(line,200,ipoo)!=NULL){
+      if(strncasecmp(line,"#",1))denoise->pBins++;
+    }/*line counting*/
 
+    /*rewind*/
+    if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
+      fprintf(stderr,"fseek error\n");
+      exit(1);
+    }
 
-  /*rewind*/
-  if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
-    fprintf(stderr,"fseek error\n");
-    exit(1);
-  }
+    denoise->pulse=fFalloc(2,"",0);
+    for(i=0;i<2;i++)denoise->pulse[i]=falloc(denoise->pBins,"",i+1);
 
-  denoise->pulse=fFalloc(2,"",0);
-  for(i=0;i<2;i++)denoise->pulse[i]=falloc(denoise->pBins,"",i+1);
-
-  /*read data*/
-  i=0;
-  max=-1000.0;
-  while(fgets(line,200,ipoo)!=NULL){
-    if(strncasecmp(line,"#",1)){
-      if(sscanf(line,"%s %s",temp[0],temp[1])==2){
-        if(i>denoise->pBins){
-          fprintf(stderr,"Error\n");
-          exit(1);
+    /*read data*/
+    i=0;
+    max=-1000.0;
+    while(fgets(line,200,ipoo)!=NULL){
+      if(strncasecmp(line,"#",1)){
+        if(sscanf(line,"%s %s",temp[0],temp[1])==2){
+          if(i>denoise->pBins){
+            fprintf(stderr,"Error\n");
+            exit(1);
+          }
+          denoise->pulse[0][i]=atof(&(temp[0][0]))*denoise->pScale;
+          denoise->pulse[1][i]=atof(&(temp[1][0]));
+          if(denoise->pulse[1][i]>max){
+            max=denoise->pulse[1][i];
+            denoise->maxPbin=i;
+          }
+          i++;
         }
-        denoise->pulse[0][i]=atof(&(temp[0][0]))*denoise->pScale;
-        denoise->pulse[1][i]=atof(&(temp[1][0]));
-        if(denoise->pulse[1][i]>max){
-          max=denoise->pulse[1][i];
-          denoise->maxPbin=i;
-        }
-        i++;
-      }
-    }/*comment check*/
-  }/*data reading*/
+      }/*comment check*/
+    }/*data reading*/
 
-  if(ipoo){
-    fclose(ipoo);
-    ipoo=NULL;
-  }
+    if(ipoo){
+      fclose(ipoo);
+      ipoo=NULL;
+    }
+  }else{  /*Gaussian pulse*/
+    pRes=0.01;
+    denoise->pulse=fFalloc(2,"",0);
+    tempPulse=setPulse(denoise->pSigma*denoise->pScale,&denoise->pBins,pRes);
+    for(i=0;i<2;i++)denoise->pulse[i]=falloc(2*denoise->pBins,"",i+1);
+    mu=(float)denoise->pBins*pRes;
+    for(i=0;i<2*denoise->pBins;i++){
+      denoise->pulse[0][i]=(float)i*pRes-mu;
+      if(i>=denoise->pBins)denoise->pulse[1][i]=tempPulse[i-denoise->pBins];
+      else if(i>0)         denoise->pulse[1][i]=tempPulse[denoise->pBins-i];
+      else                 denoise->pulse[1][i]=0.0;
+    }
+    TIDY(tempPulse);
+  }/*Gaussian or assymmetric pulse test*/
 
   /*if we want a pulse to detect hard targets*/
   if(denoise->matchHard){
@@ -1279,6 +1295,8 @@ void setDenoiseDefault(denPar *denoise)
   denoise->pScale=1.0;      /*scale pulse length by*/
   denoise->maxIter=2000;     /*maximum number of iterations*/
   denoise->deChang=pow(10,0-7.0);  /*change between decon iterations to stop*/
+  denoise->deconGauss=1;     /*use Gaussian pulse by default*/
+  denoise->pSigma=1.0;
   strcpy(denoise->pNamen,"/home/sh563/data/bess/leica_shape/leicaPulse.dat");  /*pulse filename*/
   denoise->pulse=NULL;       /*pulse to deconvolve by*/
   denoise->pBins=0;          /*number of pulse bins*/

@@ -164,7 +164,8 @@ void mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double 
 
   /*which level are we in*/
   if(level<(octree->nLevel-1)){  /*keep recurssing*/
-    mapOctree(level+1,octree,(treeStruct **)(&tree[0]->tree[place]),x,y,z,res/2.0,x0+(double)xBin*(double)res,y0+(double)yBin*(double)res,nFile,nPoint);
+    res/=2.0;
+    mapOctree(level+1,octree,(treeStruct **)(&tree[0]->tree[place]),x,y,z,res,x0+(double)xBin*(double)res,y0+(double)yBin*(double)res,nFile,nPoint);
   }else{  /*mark the points*/
     mapInd=tree[0]->mapInd;
     octree->mapPoint[mapInd]=markUint32(octree->nIn[mapInd],octree->mapPoint[mapInd],nPoint);
