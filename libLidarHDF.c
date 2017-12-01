@@ -336,8 +336,10 @@ lvisHDF *readLVIShdf(char *inNamen)
   /*read 2d unit16 arrays*/
   lvis->wave=read2dUint16HDF5(file,"RXWAVE",&lvis->nBins,&nWaves);
   checkNumber(nWaves,lvis->nWaves,"RXWAVE");
-  lvis->pulse=read2dUint16HDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
-  checkNumber(nWaves,lvis->nWaves,"TXWAVE");
+  /*if there is a pulse*/
+  /*lvis->pulse=read2dUint16HDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,"TXWAVE");*/
+  fprintf(stdout,"Note that txwaves are not currently read. Check required\n");
 
   /*close file*/
   if(H5Fclose(file)){
@@ -657,6 +659,48 @@ double *read1dDoubleHDF5(hid_t file,char *varName,int *nBins)
 
 
 /*####################################################*/
+/*write a 1D uint32 array*/
+
+void write1dUint32HDF5(hid_t file,char *varName,uint32_t *data,int nWaves)
+{
+  hid_t dset;
+  herr_t status;
+  hsize_t dims[1];
+  hid_t datatype,dataspace;  /*data definitions*/
+  hid_t lcpl_id,dcpl_id,dapl_id;     /*creation and access properties*/
+
+  /*define dataspace*/
+  dims[0]=(hsize_t)nWaves;
+  dataspace=H5Screate_simple(1,dims,NULL);
+  datatype=H5Tcopy(H5T_NATIVE_UINT);
+  /*access and creation properties*/
+  lcpl_id=H5Pcopy(H5P_DEFAULT);
+  dcpl_id=H5Pcopy(H5P_DEFAULT);
+  dapl_id=H5Pcopy(H5P_DEFAULT);
+
+  /*create new dataset*/
+  dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
+  if(dset<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*write data*/
+  status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
+  if(status<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*close data*/
+  status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
+
+  return;
+}/*write1dUint16HDF5*/
+
+
+/*####################################################*/
 /*write a 1D float array*/
 
 void write1dDoubleHDF5(hid_t file,char *varName,double *data,int nWaves)
@@ -742,6 +786,50 @@ void write2dCharHDF5(hid_t file,char *varName,char *data,int nWaves,int nBins)
   status=H5Sclose(dataspace);
   return;
 }/*write2dCharHDF5*/
+
+
+/*####################################################*/
+/*write a uint16 float array*/
+
+void write2dUint16HDF5(hid_t file,char *varName,uint16_t *data,int nWaves,int nBins)
+{
+  hid_t dset;
+  herr_t status;
+  hsize_t dims[2];
+  hid_t datatype,dataspace;  /*data definitions*/
+  hid_t lcpl_id,dcpl_id,dapl_id;     /*creation and access properties*/
+
+
+  /*define dataspace*/
+  dims[0]=(hsize_t)nWaves;
+  dims[1]=(hsize_t)nBins;
+  dataspace=H5Screate_simple(2,dims,NULL);
+  datatype=H5Tcopy(H5T_NATIVE_USHORT);
+  /*access and creation properties*/
+  lcpl_id=H5Pcopy(H5P_DEFAULT);
+  dcpl_id=H5Pcopy(H5P_DEFAULT);
+  dapl_id=H5Pcopy(H5P_DEFAULT);
+
+
+  /*create new dataset*/
+  dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
+  if(dset<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*write data*/
+  status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
+  if(status<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*close data*/
+  status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
+  return;
+}/*write2dUint16HDF5*/
 
 
 /*####################################################*/
