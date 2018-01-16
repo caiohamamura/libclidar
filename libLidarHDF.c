@@ -156,16 +156,13 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
     memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
     offset+=(uint64_t)sizeof(unsigned char)*lvis->nBins;
 
-    if(lvis->verMin<3){ /*need to set zenith by other means*/
-      data[i].zen=1.0/sqrt(pow(atan2(fabs(data[i].z0-data[i].z431),431.0*0.3),2.0)+1.0);
-    }
-
 
     /*byteswap*/
     data[i].lfid=u32OneSwap(data[i].lfid);
     data[i].shotN=u32OneSwap(data[i].shotN);
     data[i].az=floOneSwap(data[i].az);
-    data[i].zen=floOneSwap(data[i].zen);
+    if(lvis->verMin>=3)data[i].zen=floOneSwap(data[i].zen);  /*only swap if read from file*/
+    else data[i].zen=1.0/sqrt(pow(atan2(fabs(data[i].z0-data[i].z431),431.0*0.3),2.0)+1.0);  /*otherwise set from elevations*/
     data[i].range=floOneSwap(data[i].range);
     data[i].lvistime=doOneSwap(data[i].lvistime);
     data[i].lon0=doOneSwap(data[i].lon0);
