@@ -69,6 +69,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 {
   uint64_t i=0,len=0;
   uint64_t offset=0;
+  float arg=0;
   lvisLGWdata *data=NULL;
   char *buffer=NULL;
   void lgwVersionFind(lvisLGWstruct *,char *,uint64_t);
@@ -161,8 +162,6 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
     data[i].lfid=u32OneSwap(data[i].lfid);
     data[i].shotN=u32OneSwap(data[i].shotN);
     data[i].az=floOneSwap(data[i].az);
-    if(lvis->verMin>=3)data[i].zen=floOneSwap(data[i].zen);  /*only swap if read from file*/
-    else data[i].zen=1.0/sqrt(pow(atan2(fabs(data[i].z0-data[i].z431),431.0*0.3),2.0)+1.0);  /*otherwise set from elevations*/
     data[i].range=floOneSwap(data[i].range);
     data[i].lvistime=doOneSwap(data[i].lvistime);
     data[i].lon0=doOneSwap(data[i].lon0);
@@ -172,6 +171,11 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
     data[i].lat431=doOneSwap(data[i].lat431);
     data[i].z431=floOneSwap(data[i].z431);
     data[i].sigmean=floOneSwap(data[i].sigmean);
+    if(lvis->verMin>=3)data[i].zen=floOneSwap(data[i].zen);  /*only swap if read from file*/
+    else{                                                    /*otherwise set from elevations*/
+      arg=fabs(data[i].z0-data[i].z431)/(431.0*0.3);
+      if(arg>0.0)data[i].zen=atan2(sqrt(1.0-arg*arg),arg)*180.0/M_PI;
+    }
   }
   TIDY(buffer);
 
