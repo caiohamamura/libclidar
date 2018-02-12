@@ -52,6 +52,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   int i=0;
   int offset=0;         /*to step around header byte arrays*/
   int tempLen=0;
+  uint64_t temp64=0;
   char *pubHead=NULL;   /*public header*/
   lasFile *las=NULL;
 
@@ -90,7 +91,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   memcpy(&las->headSize,&pubHead[offset],2);
   TIDY(pubHead);
 
-  if((las->vMajor!=1)||(las->vMinor>3)){
+  if((las->vMajor!=1)||(las->vMinor>4)){
     fprintf(stderr,"Version too new for this program\n");
     fprintf(stderr,"Version %d.%d\n",las->vMajor,las->vMinor);
     exit(1);
@@ -130,7 +131,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   offset=111;  /*number of points by return*/
   for(i=0;i<7;i++)memcpy(&las->nPbyRet[i],&pubHead[offset+4*i],4);
 
-  /*we have lost 8 bytes somewhere here*/
+  /*we have lost 8 bytes somewhere here, because the above is 5 byte, fool*/
   offset=139-8;
   for(i=0;i<3;i++){  /*point scaling factors*/
     memcpy(&las->posScale[i],&pubHead[offset],8);
@@ -148,9 +149,15 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
     //fprintf(stdout,"Bounds %d %f %f\n",i,las->minB[i],las->maxB[i]);
   }/*read bounds*/
 
-  if((las->vMajor==1)&&(las->vMinor==3)){
+  if((las->vMajor==1)&&(las->vMinor>2)){
     offset=235-8;   /*Waveform packet start*/
     memcpy(&(las->waveStart),&(pubHead[offset]),sizeof(uint64_t));
+  }
+
+  if((las->vMajor==1)&&(las->vMinor==4)){  /*8 byte point record*/
+    offset=255-8;
+    memcpy(&temp64,&(pubHead[offset]),sizeof(uint64_t));
+    las->nPoints=(uint32_t)temp64;
   }
 
   TIDY(pubHead);
