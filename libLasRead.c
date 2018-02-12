@@ -157,7 +157,13 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   if((las->vMajor==1)&&(las->vMinor==4)){  /*8 byte point record*/
     offset=255-8;
     memcpy(&temp64,&(pubHead[offset]),sizeof(uint64_t));
-    las->nPoints=(uint32_t)temp64;
+    if((las->nPoints==0)&&(temp64>0)){
+      if(temp64>=4294967296){
+        fprintf(stderr,"Currently the library cannot handle more than 4294967296 points per file\n");
+        exit(1);
+      }
+      las->nPoints=(uint32_t)temp64;
+    }
   }
 
   TIDY(pubHead);
