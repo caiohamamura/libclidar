@@ -154,6 +154,7 @@ typedef struct{
 tlsScan *tidyTLScan(tlsScan *);
 tlsScan *tidyTLScans(tlsScan *,int);
 tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
+tlsScan *readOneTLS(char *,voxStruct *,char,tlsVoxMap *,int);
 tlsScan *readTLSpolarBinary(char *);
 rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
 int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);

@@ -245,6 +245,184 @@ tlsScan *readTLSpolarBinary(char *namen)
 
 
 /*##################################################################*/
+/*read a single TLS scan within a voxel*/
+
+tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,int fInd)
+{
+  int k=0,n=0;
+  int pInd=0;
+  int nBuff=0,vPlace=0;
+  int xBin=0,yBin=0,zBin=0;
+  int *voxList=NULL,nIntersect=0;
+  int *markInt(int,int *,int);
+  uint32_t *markUint32(int,uint32_t *,uint32_t);
+  uint32_t j=0;
+  float minR=0,maxR=0,lastHitR=0;
+  double grad[3],*rangeList=NULL;
+  double xCent=0,yCent=0,zCent=0;
+  double x=0,y=0,z=0;
+  tlsScan *scan=NULL,*tempTLS=NULL;
+  char hasHit=0,doIt=0;
+
+  /*max range of Riegl: OTHERS ARE SHORTER. COULD BE ADJUSTABLE*/
+  maxR=300.0;
+
+  /*allocate space*/
+  if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
+    fprintf(stderr,"error tls allocation.\n");
+    exit(1);
+  }
+  if(map->mapFile==NULL){
+    map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
+    if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
+      fprintf(stderr,"error in voxel point map allocation.\n");
+      exit(1);
+    }
+    map->nIn=ialloc(vox->nVox,"voxel map number",0);        /*file per voxel*/
+  }
+
+  /*read all data into RAM*/
+  tempTLS=readTLSpolarBinary(namen);
+
+  nBuff=4*tempTLS->nBeams;
+  if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
+    fprintf(stderr,"error tls allocation.\n");
+    exit(1);
+  }
+  scan->nPoints=scan->nBeams=0;
+  scan->beam=NULL;
+  scan->xOff=tempTLS->xOff;
+  scan->yOff=tempTLS->yOff;
+  scan->zOff=tempTLS->zOff;
+  /*fprintf(stdout,"Scan centre %f %f %f\n",scan->xOff,scan->yOff,scan->zOff);*/
+
+  /*determine which are within bounds*/
+  /*are we within 300 m of the bounds?*/
+  if(((vox->bounds[0]-tempTLS->xOff)<=maxR)&&((vox->bounds[1]-tempTLS->yOff)<=maxR)&&\
+     ((vox->bounds[2]-tempTLS->zOff)<=maxR)&&((vox->bounds[3]-tempTLS->xOff)>=(-1.0*maxR))&&\
+     ((vox->bounds[4]-tempTLS->yOff)>=(-1.0*maxR))&&((vox->bounds[5]-tempTLS->zOff)>=(-1.0*maxR))){
+
+    /*loop over beams*/
+    for(j=0;j<tempTLS->nBeams;j++){
+      /*avoid tilt mount if needed*/
+      if(fabs(tempTLS->beam[j].zen)>=vox->maxZen)continue;  /*skip if zenith too high*/
+
+      xCent=(double)tempTLS->beam[j].x+tempTLS->xOff;
+      yCent=(double)tempTLS->beam[j].y+tempTLS->yOff;
+      zCent=(double)tempTLS->beam[j].z+tempTLS->zOff;
+
+      /*intersecting voxels*/
+      grad[0]=tempTLS->beam[j].zen;
+      grad[1]=tempTLS->beam[j].az;
+      grad[2]=-99999.0;
+      voxList=findVoxels(&(grad[0]),xCent,yCent,zCent,vox->bounds,\
+                  &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList);
+
+      if(nIntersect==0)continue;   /*if no voxels intersected*/
+
+      /*gap fraction*/
+      if(tempTLS->beam[j].nHits>0)lastHitR=tempTLS->beam[j].r[tempTLS->beam[j].nHits-1];
+      else                        lastHitR=100000.0;
+
+      for(k=0;k<nIntersect;k++){
+        /*hits before voxel*/
+        if(!useFracGap){  /*simple method. All hit until last return*/
+          if(rangeList[k]<=lastHitR)vox->hits[fInd][voxList[k]]+=1.0;
+          else                      vox->miss[fInd][voxList[k]]+=1.0;
+        }else{            /*John's fractional method*/
+          fprintf(stderr,"John's folly method not implemented yet\n");
+          exit(1);
+        }/*hits before voxel*/
+
+        /*hits within voxel*/
+        /*are we beyond the last return?*/
+        doIt=1;
+        if(k>0){
+          minR=rangeList[k-1];
+          if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
+        }else minR=0.0;
+
+        /*if not beyond, is it a hit or a miss in this voxel*/
+        if(doIt){
+          hasHit=0;
+          for(n=0;n<tempTLS->beam[j].nHits;n++){
+            if((tempTLS->beam[j].r[n]>=minR)&&(tempTLS->beam[j].r[n]<=rangeList[k])){
+              hasHit=1;
+              break;
+            }
+          }
+          if(hasHit)vox->inHit[fInd][voxList[k]]+=1.0;
+          else      vox->inMiss[fInd][voxList[k]]+=1.0;
+        }/*hits within voxel*/
+      }/*voxel intersection loop*/
+      /*record and map useful points*/
+      if(vox->savePts){
+        for(k=0;k<tempTLS->beam[j].nHits;k++){
+          x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+          y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
+          z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
+
+          /*check bounds and copy point if within*/
+          if((x>=vox->bounds[0])&&(y>=vox->bounds[1])&&(z>=vox->bounds[2])&&\
+             (x<=vox->bounds[3])&&(y<=vox->bounds[4])&&(z<=vox->bounds[5])){
+            /*voxel space coordinates*/
+            xBin=(int)((x-vox->bounds[0])/vox->res[0]);
+            yBin=(int)((y-vox->bounds[1])/vox->res[1]);
+            zBin=(int)((z-vox->bounds[2])/vox->res[2]);
+            vPlace=zBin*vox->nX*vox->nY+yBin*vox->nX+xBin;
+
+            /*are we within voxel space, to avoid rounding errors*/
+            if((xBin<0)||(xBin>=vox->nX)||(yBin<0)||(yBin>=vox->nY)||(zBin<0)||(zBin>=vox->nZ)){
+              continue;
+            }
+
+            /*mark TLS points*/
+            scan->point[scan->nPoints].x=(float)(x-scan->xOff);  /*subtract offset to save disk space*/
+            scan->point[scan->nPoints].y=(float)(y-scan->yOff);  /*subtract offset to save disk space*/
+            scan->point[scan->nPoints].z=(float)(z-scan->zOff);  /*subtract offset to save disk space*/
+            scan->point[scan->nPoints].r=tempTLS->beam[j].r[k];
+            scan->point[scan->nPoints].refl=tempTLS->beam[j].refl[k];
+            scan->point[scan->nPoints].hitN=k;
+            scan->point[scan->nPoints].nHits=tempTLS->beam[j].nHits;
+            /*map to voxels*/
+            map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),fInd);
+            map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scan->nPoints);
+            map->nIn[vPlace]++;
+            scan->nPoints++;
+          }
+        }/*hit loop*/
+      }/*record point switch*/
+
+      TIDY(rangeList);
+      TIDY(voxList);
+    }/*beam loop*/
+
+    /*reallocate*/
+    if((scan->nPoints>0)&&(scan->nPoints<tempTLS->nPoints)){
+      if(!(scan->point=(tlsPoint *)realloc(scan->point,scan->nPoints*sizeof(tlsPoint)))){
+        fprintf(stderr,"Balls\n");
+        exit(1);
+      }
+    }else if(scan->nPoints==0)TIDY(scan->point);
+
+    /*determine gap fraction*/
+    for(vPlace=0;vPlace<vox->nVox;vPlace++){
+      for(k=0;k<map->nIn[vPlace];k++){
+        pInd=map->mapPoint[vPlace][k];
+        if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
+          scan->point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
+        }else scan->point[pInd].gap=1.0;
+      }
+    }
+  }/*voxel bound check*/
+
+  /*tidy temporary space*/
+  tempTLS=tidyTLScan(tempTLS);
+  return(scan);
+}/*readOneTLS*/
+
+
+/*##################################################################*/
 /*read multiple TLS scan data within a voxel grid*/
 
 tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGap,tlsVoxMap *map)
