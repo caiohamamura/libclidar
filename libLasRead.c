@@ -355,7 +355,7 @@ void readLasPoint(lasFile *las,uint32_t j)
 
   if(las->pointFormat<6){
     memcpy(&las->scanAng,&las->pointBuff[offset],1);
-    las->scanAng=(uint16_t)tempByte;
+    las->scanAng=(int16_t)tempByte;
     offset+=1;
     memcpy(&las->userData,&las->pointBuff[offset],1);
     offset+=1;

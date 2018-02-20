@@ -104,7 +104,7 @@ typedef struct{
   unsigned char edge;
 
   unsigned char classif;  /*point classification*/
-  uint16_t scanAng;       /*scan angle*/
+  int16_t scanAng;        /*scan angle*/
   unsigned char userData; /*user data*/
   uint16_t psID;          /*point source ID, used for Leica's AGC*/
   double gpsTime;         /*GPS time*/
@@ -162,7 +162,7 @@ typedef struct{
   int *refl;
   char *nRet;               /*number of discrete returns per beam*/
   char *retNumb;            /*this point's return number*/
-  uint16_t *scanAng;        /*scan angle*/
+  int16_t *scanAng;         /*scan angle*/
   unsigned char *packetDes; /*waveform or not*/
   float **grad;             /*Poynting vector*/
   float *time;              /*time in picoseconds of this wave*/
