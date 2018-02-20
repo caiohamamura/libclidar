@@ -34,7 +34,7 @@
 
 
 /*###########################################*/
-/*lasfile point bit field*/
+/*lasfile point bit field, 1.3 and earlier*/
 
 typedef struct{
   unsigned char retNumb: 3;
@@ -42,6 +42,19 @@ typedef struct{
   unsigned char sDir: 1;
   unsigned char edge: 1;
 }b_field;
+
+
+/*###########################################*/
+/*lasfile point bit field, 1.4*/
+
+typedef struct{
+  unsigned char retNumb: 4;
+  unsigned char nRet: 4;
+  unsigned char classF: 4;
+  unsigned char sChan: 2;
+  unsigned char sDir: 1;
+  unsigned char edge: 1;
+}nb_field;
 
 
 /*###########################################*/
@@ -80,8 +93,18 @@ typedef struct{
   int32_t z;           /*index to calculate coordinate*/
   uint16_t refl;       /*point intensity*/
   b_field field;         /*bit field containing all sorts*/
+  nb_field newField;      /*las 1.4 bit field*/
+
+  /*bit field parameters*/
+  unsigned char retNumb;
+  unsigned char nRet;
+  unsigned char classF;
+  unsigned char sChan;
+  unsigned char sDir;
+  unsigned char edge;
+
   unsigned char classif;  /*point classification*/
-  char scanAng;           /*scan angle*/
+  uint16_t scanAng;       /*scan angle*/
   unsigned char userData; /*user data*/
   uint16_t psID;          /*point source ID, used for Leica's AGC*/
   double gpsTime;         /*GPS time*/
@@ -139,7 +162,7 @@ typedef struct{
   int *refl;
   char *nRet;               /*number of discrete returns per beam*/
   char *retNumb;            /*this point's return number*/
-  char *scanAng;            /*scan angle*/
+  uint16_t *scanAng;        /*scan angle*/
   unsigned char *packetDes; /*waveform or not*/
   float **grad;             /*Poynting vector*/
   float *time;              /*time in picoseconds of this wave*/

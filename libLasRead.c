@@ -275,7 +275,7 @@ void readLasPoint(lasFile *las,uint32_t j)
 {
   uint64_t offset=0;
   uint64_t offTo=0;
-
+  char tempByte=0;
 
   /*if not already, open file*/
   if(las->ipoo==NULL){
@@ -322,46 +322,74 @@ void readLasPoint(lasFile *las,uint32_t j)
   offTo=(uint64_t)(j-las->buffStart)*(uint64_t)las->pRecLen;
 
   /*point format 3 and 4*/
-  offset=0+offTo;
+  offset=offTo;
   memcpy(&las->x,&las->pointBuff[offset],4);
-  offset=4+offTo;
+  offset+=4;
   memcpy(&las->y,&las->pointBuff[offset],4);
-  offset=8+offTo;
+  offset+=4;
   memcpy(&las->z,&las->pointBuff[offset],4);
-  offset=12+offTo;
+  offset+=4;
   memcpy(&las->refl,&las->pointBuff[offset],2);
-  offset=14+offTo;
-  memcpy(&las->field,&las->pointBuff[offset],1);
-  offset=15+offTo;
+  offset+=2;
+
+  if(las->pointFormat<6){
+    memcpy(&las->field,&las->pointBuff[offset],1);
+    offset+=1;
+    las->retNumb=las->field.retNumb;
+    las->nRet=las->field.nRet;
+    las->sDir=las->field.sDir;
+    las->edge=las->field.edge;
+  }else{
+    memcpy(&las->newField,&las->pointBuff[offset],2);
+    offset+=2;
+    las->retNumb=las->newField.retNumb;
+    las->nRet=las->newField.nRet;
+    las->classF=las->newField.classF;
+    las->sChan=las->newField.sChan;
+    las->sDir=las->newField.sDir;
+    las->edge=las->newField.edge;
+  }
+
   memcpy(&las->classif,&las->pointBuff[offset],1);
-  offset=16+offTo;
-  memcpy(&las->scanAng,&las->pointBuff[offset],1);
-  offset=17+offTo;
-  memcpy(&las->userData,&las->pointBuff[offset],1);
-  offset=18+offTo;
+  offset+=1;
+
+  if(las->pointFormat<6){
+    memcpy(&las->scanAng,&las->pointBuff[offset],1);
+    las->scanAng=(uint16_t)tempByte;
+    offset+=1;
+    memcpy(&las->userData,&las->pointBuff[offset],1);
+    offset+=1;
+  }else{
+    memcpy(&las->userData,&las->pointBuff[offset],1);
+    offset+=1;
+    memcpy(&las->scanAng,&las->pointBuff[offset],2);
+    offset+=2;
+  }
+
   memcpy(&las->psID,&las->pointBuff[offset],2);
-  if(las->pointFormat==4){   /*full waveform data*/
-    offset=28+offTo;
+  offset+=2;
+
+  if((las->pointFormat==4)||(las->pointFormat==5)||(las->pointFormat==9)||(las->pointFormat==10)){   /*full waveform data*/
     memcpy(&las->packetDes,&las->pointBuff[offset],1);
-    offset=29+offTo;
+    offset+=1;
     memcpy(&las->waveMap,&las->pointBuff[offset],8);
-    offset=37+offTo;
+    offset+=8;
     memcpy(&las->waveLen,&las->pointBuff[offset],4);
-    offset=41+offTo;
+    offset+=4;
     memcpy(&las->time,&las->pointBuff[offset],4);
-    offset=45+offTo;
+    offset+=4;
     memcpy(&las->grad[0],&las->pointBuff[offset],4);
-    offset=49+offTo;
+    offset+=4;
     memcpy(&las->grad[1],&las->pointBuff[offset],4);
-    offset=53+offTo;
+    offset+=4;
     memcpy(&las->grad[2],&las->pointBuff[offset],4);
+    offset+=4;
   }else{
     las->packetDes=0;
     las->grad[0]=las->grad[1]=las->grad[2]=0.0;  /*leave the grad bits blank*/
   }
 
-  if(las->pointFormat==3){  /*there is RGB*/
-    offset=28+offTo;
+  if((las->pointFormat==3)||(las->pointFormat==10)||(las->pointFormat==8)||(las->pointFormat==7)||(las->pointFormat==5)){  /*there is RGB*/
     memcpy(&las->RGB[0],&las->pointBuff[offset],3*2);
   }/*there is RGB*/
 
@@ -486,7 +514,7 @@ void binPosition(double *x,double *y,double *z,int bin,double xCent,double yCent
 
 char checkOneWave(lasFile *lasIn)
 {
-  if((lasIn->packetDes)&&(lasIn->field.nRet==lasIn->field.retNumb)&&(lasIn->waveLen>0))return(1);
+  if((lasIn->packetDes)&&(lasIn->nRet==lasIn->retNumb)&&(lasIn->waveLen>0))return(1);
   else                                                                                 return(0);
 }/*checkOneWave*/
 
