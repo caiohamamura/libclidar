@@ -1846,12 +1846,12 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
       total+=1.0;
     }
   }
+  histBins=(int)((max-min)/res+1.0);
 
   /*exit if the waveform is blank*/
-  if(total<TOL)return(0.0);
+  if((total<TOL)||(histBins<1))return(0.0);
 
   /*make histogram*/
-  histBins=(int)((max-min)/res+1.0);
   hist=falloc(histBins,"FHD histogram",0);
   for(i=0;i<nBins;i++){
     if(wave[i]>thresh){
