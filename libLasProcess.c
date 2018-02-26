@@ -1787,13 +1787,16 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
 
 
 /*####################################################*/
-/*foliage height diversity*/
+/*foliage height diversity from waveform*/
 
 float foliageHeightDiversity(float *wave,int nBins)
 {
   int i=0;
   float FHD=0,thresh=0;
   float p=0,total=0;
+
+  /*only if there is a valid wave*/
+  if(wave==NULL)return(-100000.0);
 
   /*determine a threshold*/
   thresh=TOL;
@@ -1812,6 +1815,90 @@ float foliageHeightDiversity(float *wave,int nBins)
 
   return(FHD);
 }/*foliageHeightDiversity*/
+
+
+/*####################################################*/
+/*foliage height diversity from histogram*/
+
+float foliageHeightDiversityHist(float *wave,int nBins,float res)
+{
+  int i=0,histBins=0;
+  int bin=0;
+  float FHD=0,thresh=0;
+  float max=0,min=0;
+  float p=0,total=0;
+  float *hist=NULL;
+
+  /*exit if there is not a valid wave*/
+  if(wave==NULL)return(0.0);
+
+  /*determine a threshold*/
+  thresh=TOL;
+
+  /*find bounds*/
+  max=-100000.0;
+  min=10000000.0;
+  total=0.0;
+  for(i=0;i<nBins;i++){
+    if(wave[i]>thresh){
+      if(wave[i]>max)max=wave[i];
+      if(wave[i]<min)min=wave[i];
+      total+=1.0;
+    }
+  }
+
+  /*exit if the waveform is blank*/
+  if(total<TOL)return(0.0);
+
+  /*make histogram*/
+  histBins=(int)((max-min)/res+1.0);
+  hist=falloc(histBins,"FHD histogram",0);
+  for(i=0;i<nBins;i++){
+    if(wave[i]>thresh){
+      bin=(int)((wave[i]-min)/res);
+      hist[bin]+=1.0;
+    }
+  }
+
+
+  FHD=0.0;
+  for(i=0;i<histBins;i++){
+    p=hist[i]/total;
+    if(p>0.0)FHD-=p*log(p);
+  }
+
+  TIDY(hist);
+  return(FHD);
+}/*foliageHeightDiversityHist*/
+
+
+
+/*####################################################*/
+/*subtract ground from canopy and correct for attenuation*/
+
+float *subtractGroundFromCan(float *wave,float *ground,int nBins)
+{
+  int i=0;
+  float tot=0,gap=0;
+  float *canWave=NULL;
+
+  /*allocate*/
+  canWave=falloc(nBins,"canope wave",0);
+
+  /*wave integram for attenuation correction*/
+  tot=0.0;
+  for(i=0;i<nBins;i++)tot+=wave[i];
+
+  /*calculate*/
+  gap=1.0;
+  for(i=0;i<nBins;i++){
+    if(gap>0.0)canWave[i]=(wave[i]-ground[i])/gap;
+    if(canWave[i]<0.0)canWave[i]=0.0;
+    gap-=wave[i]/tot;
+  }
+
+  return(canWave);
+}/*subtractGroundFromCan*/
 
 
 /*####################################################*/
