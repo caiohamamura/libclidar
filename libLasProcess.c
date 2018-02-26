@@ -1874,6 +1874,40 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
 
 
 /*####################################################*/
+/*subtract lowest Gaussian from canopy and correct for attenuation*/
+
+float *subtractGaussFromCan(float *wave,int nBins,float mu,float A,float sig,double *z)
+{
+  int i=0;
+  float tot=0,gap=0;
+  float *canWave=NULL;
+  float delta=0;
+
+  canWave=falloc(nBins,"canopy only wave",0);
+
+  /*subtract ground*/
+  tot=0.0;
+  for(i=0;i<nBins;i++){
+    if((float)z[i]>=mu){
+      canWave[i]=wave[i]-A*(float)gaussian(z[i],(double)sig,(double)mu);
+      if(canWave[i]<0.0)canWave[i]=0.0;
+      tot+=canWave[i];
+    }else  canWave[i]=0.0;
+  }
+
+  /*correct for attenuation*/
+  gap=1.0;
+  for(i=0;i<nBins;i++){
+    delta=canWave[i]/tot;
+    if(gap>0.0)canWave[i]/=gap;
+    gap-=delta;
+  }
+
+  return(canWave);
+}/*subtractGaussFromCan*/
+
+
+/*####################################################*/
 /*subtract ground from canopy and correct for attenuation*/
 
 float *subtractGroundFromCan(float *wave,float *ground,int nBins)
