@@ -46,6 +46,9 @@ typedef struct{
   float maxDN;       /*maxDN for digitisation*/
   char preMatchF;    /*matched filter before denoising*/
   char posMatchF;    /*matched filter after denoising*/
+  char corrDrift;    /*correct detector drift switch*/
+  char varDrift;     /*calculate drift parameter for every waveform*/
+  float fixedDrift;  /*fixed drift correction factor if using*/
 
   /*deconvolution*/
   float pScale;      /*scale pulse length by*/

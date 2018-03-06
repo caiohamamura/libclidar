@@ -89,6 +89,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   float *hardHitWave(denPar *,int);
   float *sampled=NULL;
   float *digitise(float *,int,char,float);
+  float *correctDrift(float *,int,int,denPar *);
   void medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
   void meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
   char checkHardEnergy(int *,float *,float);
@@ -107,9 +108,12 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
-  /*convert to a float array for ease*/
+  /*create a new array to denoise*/
   temp=falloc(waveLen,"presmoothed",0);
   for(i=0;i<waveLen;i++)temp[i]=wave[i];
+
+  /*correct for detector drift*/
+  temp=correctDrift(wave,waveLen,(int)(decon->statsLen/decon->res),decon);
 
   /*median filter if needed*/
   if(decon->medLen>0){
@@ -1289,6 +1293,10 @@ void setDenoiseDefault(denPar *denoise)
   denoise->maxDN=-1.0;
   denoise->preMatchF=0;    /*no matched filter before denoising*/
   denoise->posMatchF=0;    /*no matched filter after denoising*/
+  /*detector drift*/
+  denoise->corrDrift=0;    /*do not correct for drift*/
+  denoise->varDrift=1;     /*if we do correct, use a variable drift factor*/
+  denoise->fixedDrift=0.0; /*if we are using a fixed drift factor, use this*/
 
   /*deconvolution*/
   denoise->deconMeth=-1;     /*do not deconvolve*/
@@ -2001,6 +2009,64 @@ float determineGaussSep(float fSigma,float thresh)
   return(x);
 }/*determineGaussSep*/
 
+
+/*####################################################*/
+/*correct detector drift*/
+
+float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
+{
+  int i=0,sBin=0,eBin=0;
+  float xi=0,meanAft=0;
+  float tot=0,cumul=0;
+  float *drift=NULL;
+  void startEndPoints(int *,int *,float *,float *,int,int,float);
+
+
+  /*allocate*/
+  drift=falloc(nBins,"drift corrected wave",0);
+
+  /*do we fix detector drift?*/
+  if(den->corrDrift){
+    /*total energy*/
+    tot=0.0;
+    //for(i=0;i<nBins;i++)tot+=wave[i]-den->meanN*res;
+
+    /*find start and end points*/
+    //startEndPoints(&sBin,&eBin,&meanAft,wave,nBins,noiseBins,den->threshScale);
+
+    if(den->varDrift){  /*work out drift correction factor*/
+
+    }else xi=den->fixedDrift;
+
+    /*apply correction*/
+    cumul=0.0;
+    for(i=0;i<nBins;i++){
+      //cumul+=wave[i]*res/tot;
+    }
+
+
+  }else{   /*copy old wave*/
+    for(i=0;i<nBins;i++)drift[i]=wave[i];
+  }
+
+  return(drift);
+}/*correctDrift*/
+
+
+/*####################################################*/
+/*fnd start and end points to use for detector drift*/
+
+/*void startEndPoints(int *sBin,int *eBin,float *meanAft,float *wave,int nBins,int noiseBins,float threshScale,float meanN,float nStdev)
+{
+  int i=0;
+
+  thresh=threshScale*nStdev+meanN;
+  for(i=0;i<nBins;i++){
+
+  }
+
+  return;
+}*//*startEndPoints*/
 
 /*the end*/
 /*################################################*/
