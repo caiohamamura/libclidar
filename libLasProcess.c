@@ -108,11 +108,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
-  /*create a new array to denoise*/
-  temp=falloc(waveLen,"presmoothed",0);
-  for(i=0;i<waveLen;i++)temp[i]=wave[i];
-
-  /*correct for detector drift*/
+  /*correct for detector drift if needed*/
   temp=correctDrift(wave,waveLen,(int)(decon->statsLen/decon->res),decon);
 
   /*median filter if needed*/
@@ -2027,9 +2023,10 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 
   /*do we fix detector drift?*/
   if(den->corrDrift){
+fprintf(stderr,"Correcting drift\n");
     /*total energy*/
     tot=0.0;
-    //for(i=0;i<nBins;i++)tot+=wave[i]-den->meanN*res;
+    for(i=0;i<nBins;i++)tot+=wave[i]-den->meanN*den->res;
 
     /*find start and end points*/
     //startEndPoints(&sBin,&eBin,&meanAft,wave,nBins,noiseBins,den->threshScale);
@@ -2041,9 +2038,11 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
     /*apply correction*/
     cumul=0.0;
     for(i=0;i<nBins;i++){
-      //cumul+=wave[i]*res/tot;
+      drift[i]=wave[i]+cumul*xi;
+      cumul+=(drift[i]-den->meanN)*den->res/tot;
     }
 
+    /*check for success*/
 
   }else{   /*copy old wave*/
     for(i=0;i<nBins;i++)drift[i]=wave[i];
