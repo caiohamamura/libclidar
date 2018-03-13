@@ -2013,9 +2013,12 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 {
   int i=0,sBin=0,eBin=0;
   float xi=0,meanAft=0;
-  float tot=0,cumul=0;
   float *drift=NULL;
-  void startEndPoints(int *,int *,float *,float *,int,int,float);
+  float step=0;
+  float initialDriftGuess(int,int,float *,float,float);
+  void removeDrift(float *,float *,int,float,float,float);
+  void endPointForDrift(int *,int *,float *,float *,int,int,float,int,float);
+  char dir=0;
 
 
   /*allocate*/
@@ -2023,28 +2026,41 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 
   /*do we fix detector drift?*/
   if(den->corrDrift){
-fprintf(stderr,"Correcting drift\n");
-    /*total energy*/
-    tot=0.0;
-    for(i=0;i<nBins;i++)tot+=wave[i]-den->meanN*den->res;
+    if(!den->varDrift){  /*fixed drift factor*/
+      xi=den->fixedDrift;
+      removeDrift(drift,wave,nBins,den->meanN,den->res,xi);
+    }else{               /*variable drift factor*/
+      /*find end point and mean after noise level*/
+      endPointForDrift(&sBin,&eBin,&meanAft,wave,nBins,noiseBins,den->threshScale,den->minWidth,den->meanN);
 
-    /*find start and end points*/
-    //startEndPoints(&sBin,&eBin,&meanAft,wave,nBins,noiseBins,den->threshScale);
+      /*initial guess*/
+      xi=initialDriftGuess(sBin,eBin,wave,den->meanN,meanAft);
+      if(den->meanN>meanAft)dir=1;
+      else                  dir=-1;
+      step=xi;
 
-    if(den->varDrift){  /*work out drift correction factor*/
+      /*iterate over factors*/
+      while(fabs(den->meanN-meanAft)>0.1){
+fprintf(stderr,"%f %f %f\n",den->meanN,meanAft,xi);
+        /*try this value for xi*/
+        removeDrift(drift,wave,nBins,den->meanN,den->res,xi);
 
-    }else xi=den->fixedDrift;
+        /*check for success*/
+        meanAft=0.0;
+        for(i=nBins-1;i>=eBin;i--)meanAft+=drift[i];
+        meanAft/=(int)(nBins-eBin);
 
-    /*apply correction*/
-    cumul=0.0;
-    for(i=0;i<nBins;i++){
-      drift[i]=wave[i]+cumul*xi;
-      cumul+=(drift[i]-den->meanN)*den->res/tot;
+        /*adjust xi*/
+        if(den->meanN>meanAft){
+          if(dir<0)step/=2.0;
+          xi+=step;
+        }else{
+          if(dir>0)step/=2.0;
+          xi-=step;
+        }
+      }
     }
-
-    /*check for success*/
-
-  }else{   /*copy old wave*/
+  }else{   /*if not fixing, copy old wave*/
     for(i=0;i<nBins;i++)drift[i]=wave[i];
   }
 
@@ -2053,19 +2069,84 @@ fprintf(stderr,"Correcting drift\n");
 
 
 /*####################################################*/
-/*fnd start and end points to use for detector drift*/
+/*intial guess of the drift factor*/
 
-/*void startEndPoints(int *sBin,int *eBin,float *meanAft,float *wave,int nBins,int noiseBins,float threshScale,float meanN,float nStdev)
+float initialDriftGuess(int sBin,int eBin,float *wave,float meanN,float meanAft)
 {
   int i=0;
+  float tot=0,cumul=0;
 
-  thresh=threshScale*nStdev+meanN;
+  /*total energy above mean noise before*/
+  tot=0.0;
+  for(i=sBin;i<=eBin;i++)tot+=wave[i]-meanN;
+
+  return((meanN-meanAft)/tot);
+}/*initialDriftGuess*/
+
+
+/*####################################################*/
+/*remove drift with known factor*/
+
+void removeDrift(float *drift,float *wave,int nBins,float meanN,float res,float xi)
+{
+  int i=0;
+  float cumul=0.0;
+
+  cumul=0.0;
   for(i=0;i<nBins;i++){
-
+    drift[i]=wave[i]+cumul*xi;
+    cumul+=(drift[i]-meanN)*res;
   }
 
   return;
-}*//*startEndPoints*/
+}/*removeDrift*/
+
+
+/*####################################################*/
+/*find end point and after mean noise to use for detector drift*/
+
+void endPointForDrift(int *sBin,int *eBin,float *meanAft,float *wave,int nBins,int noiseBins,float threshScale,int minWidth,float meanN)
+{
+  int i=0,nIn=0;
+  float thresh=0,stdev=0;
+
+  stdev=0.0;
+  for(i=0;i<noiseBins;i++)stdev+=(wave[i]-meanN)*(wave[i]-meanN);
+  stdev=sqrt(stdev/(float)noiseBins);
+
+  /*find start*/
+  thresh=meanN+stdev*threshScale;
+  nIn=0;
+  for(i=0;i<nBins;i++){
+    if((wave[i]-meanN)>=thresh)nIn++;
+    else                       nIn=0;
+    if(nIn>=minWidth){
+      *sBin=i;
+      break;
+    }
+  }
+
+
+  /*find stats at end*/
+  *meanAft=stdev=0.0;
+  for(i=nBins-noiseBins;i<nBins;i++)*meanAft+=(wave[i]-meanN)*(wave[i]-meanN);
+  *meanAft/=(float)noiseBins;
+  for(i=nBins-noiseBins;i<nBins;i++)stdev+=(wave[i]-*meanAft)*(wave[i]-*meanAft);
+
+  /*find end*/
+  thresh=*meanAft+stdev*threshScale;
+  nIn=0;
+  for(i=nBins-1;i>=0;i--){
+    if((wave[i]-*meanAft)>=thresh)nIn++;
+    else                          nIn=0;
+    if(nIn>=minWidth){
+      *eBin=i;
+      break;
+    }
+  }
+
+  return;
+}/*startEndPoints*/
 
 /*the end*/
 /*################################################*/
