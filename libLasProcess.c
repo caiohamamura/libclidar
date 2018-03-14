@@ -108,8 +108,9 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
-  /*correct for detector drift if needed*/
-  temp=correctDrift(wave,waveLen,(int)(decon->statsLen/decon->res),decon);
+  /*convert to a float array for ease*/
+  temp=falloc(waveLen,"presmoothed",0);
+  for(i=0;i<waveLen;i++)temp[i]=wave[i];
 
   /*median filter if needed*/
   if(decon->medLen>0){
@@ -132,13 +133,17 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
     mediated=NULL;
   }
 
+  /*correct for detector drift if needed*/
+  temp=correctDrift(preSmoothed,waveLen,(int)(decon->statsLen/decon->res),decon);
+  TIDY(preSmoothed);
+
   /*remove background noise*/
   if((decon->meanN>0.0)||(decon->thresh>0.0)){
-    denoised=denoise(decon->meanN,decon->thresh,decon->minWidth,waveLen,preSmoothed,thisTail,decon->noiseTrack);
-    TIDY(preSmoothed);
+    denoised=denoise(decon->meanN,decon->thresh,decon->minWidth,waveLen,temp,thisTail,decon->noiseTrack);
+    TIDY(temp);
   }else{
-    denoised=preSmoothed;
-    preSmoothed=NULL;
+    denoised=temp;
+    temp=NULL;
   }
 
   /*see if it a single return*/
@@ -2012,9 +2017,10 @@ float determineGaussSep(float fSigma,float thresh)
 float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 {
   int i=0,sBin=0,eBin=0;
+  int iters=0,maxIter=0;
   float xi=0,meanAft=0;
   float *drift=NULL;
-  float step=0;
+  float step=0,diff=0,lastDiff=0;
   float initialDriftGuess(int,int,float *,float,float);
   void removeDrift(float *,float *,int,float,float,float);
   void endPointForDrift(int *,int *,float *,float *,int,int,float,int,float);
@@ -2023,6 +2029,7 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 
   /*allocate*/
   drift=falloc(nBins,"drift corrected wave",0);
+
 
   /*do we fix detector drift?*/
   if(den->corrDrift){
@@ -2037,11 +2044,14 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
       xi=initialDriftGuess(sBin,eBin,wave,den->meanN,meanAft);
       if(den->meanN>meanAft)dir=1;
       else                  dir=-1;
-      step=xi;
+      step=(xi>0.01)?xi:0.01;
 
       /*iterate over factors*/
-      while(fabs(den->meanN-meanAft)>0.1){
-fprintf(stderr,"%f %f %f\n",den->meanN,meanAft,xi);
+      maxIter=1000;
+      iters=0;
+      diff=fabs(den->meanN-meanAft);
+      lastDiff=1000.0;
+      while((fabs(diff)>0.01)&&(fabs(diff-lastDiff)>0.000000001)&&(iters<maxIter)){
         /*try this value for xi*/
         removeDrift(drift,wave,nBins,den->meanN,den->res,xi);
 
@@ -2058,6 +2068,9 @@ fprintf(stderr,"%f %f %f\n",den->meanN,meanAft,xi);
           if(dir>0)step/=2.0;
           xi-=step;
         }
+        lastDiff=diff;
+        diff=fabs(den->meanN-meanAft);
+        iters++;
       }
     }
   }else{   /*if not fixing, copy old wave*/
@@ -2074,7 +2087,7 @@ fprintf(stderr,"%f %f %f\n",den->meanN,meanAft,xi);
 float initialDriftGuess(int sBin,int eBin,float *wave,float meanN,float meanAft)
 {
   int i=0;
-  float tot=0,cumul=0;
+  float tot=0;
 
   /*total energy above mean noise before*/
   tot=0.0;
@@ -2117,11 +2130,18 @@ void endPointForDrift(int *sBin,int *eBin,float *meanAft,float *wave,int nBins,i
   /*find start*/
   thresh=meanN+stdev*threshScale;
   nIn=0;
+  *sBin=-1;
   for(i=0;i<nBins;i++){
     if((wave[i]-meanN)>=thresh)nIn++;
     else                       nIn=0;
     if(nIn>=minWidth){
-      *sBin=i;
+      for(;i>=0;i--){
+        if(wave[i]<=meanN){
+          *sBin=i;
+          break;
+        }
+      }
+      if(*sBin<0)*sBin=0;
       break;
     }
   }
@@ -2129,18 +2149,26 @@ void endPointForDrift(int *sBin,int *eBin,float *meanAft,float *wave,int nBins,i
 
   /*find stats at end*/
   *meanAft=stdev=0.0;
-  for(i=nBins-noiseBins;i<nBins;i++)*meanAft+=(wave[i]-meanN)*(wave[i]-meanN);
+  for(i=nBins-noiseBins;i<nBins;i++)*meanAft+=wave[i];
   *meanAft/=(float)noiseBins;
   for(i=nBins-noiseBins;i<nBins;i++)stdev+=(wave[i]-*meanAft)*(wave[i]-*meanAft);
+  stdev=sqrt(stdev/(float)noiseBins);
 
   /*find end*/
   thresh=*meanAft+stdev*threshScale;
   nIn=0;
+  *eBin=-1;
   for(i=nBins-1;i>=0;i--){
-    if((wave[i]-*meanAft)>=thresh)nIn++;
-    else                          nIn=0;
+    if((wave[i]-(*meanAft))>=thresh)nIn++;
+    else                            nIn=0;
     if(nIn>=minWidth){
-      *eBin=i;
+      for(;i<nBins;i++){
+        if(wave[i]<=meanN){
+          *eBin=i;
+          break;
+        }
+      }
+      if(*eBin<0)*eBin=nBins-1;
       break;
     }
   }
