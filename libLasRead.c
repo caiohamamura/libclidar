@@ -423,7 +423,7 @@ unsigned char *readLasWave(uint64_t waveMap,int32_t waveLen,FILE *ipoo,uint64_t 
 char **readInList(int *nFiles,char *inList)
 {
   int i=0;
-  char line[200];
+  char line[400];
   char **namen=NULL;
   FILE *ipoo=NULL;
 
@@ -432,7 +432,7 @@ char **readInList(int *nFiles,char *inList)
     exit(1);
   }
   i=0;   /*count up files*/
-  while(fgets(line,200,ipoo)!=NULL){
+  while(fgets(line,399,ipoo)!=NULL){
     if(strncasecmp(line,"#",1))i++;
   }/*count up files*/
 
@@ -443,7 +443,7 @@ char **readInList(int *nFiles,char *inList)
   *nFiles=i;
   namen=chChalloc(*nFiles,"file names",0);
   i=0;
-  while(fgets(line,200,ipoo)!=NULL){
+  while(fgets(line,399,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){
       namen[i]=challoc((uint64_t)strlen(line)+1,"file names",i+1);
       sscanf(line,"%s",namen[i]);
