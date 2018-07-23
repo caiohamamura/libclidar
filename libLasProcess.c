@@ -97,45 +97,39 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   char hardTarget=0;
 
 
+  /*smooth before denoising*/
+  if(decon->psWidth>0.0){   /*Gaussian smoothing*/
+    preSmoothed=smooth(decon->psWidth,waveLen,wave,decon->res);
+  }else if(decon->preMatchF){  /*matched filter*/
+    preSmoothed=matchedFilter(wave,waveLen,decon,decon->res);
+  }else{
+    preSmoothed=falloc(waveLen,"",0);
+    for(i=0;i<waveLen;i++)preSmoothed[i]=wave[i];
+  }
+
   /*determine noise statistics*/
   if(decon->varNoise){
     if(decon->medStats){
       /*convert to a set bit rate*/
-      sampled=digitise(wave,waveLen,decon->bitRate,decon->maxDN);
+      sampled=digitise(preSmoothed,waveLen,decon->bitRate,decon->maxDN);
       medNoiseStats(sampled,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,decon->bitRate);
       TIDY(sampled);
-    }else meanNoiseStats(wave,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res));
+    }else meanNoiseStats(preSmoothed,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res));
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
-  /*convert to a float array for ease*/
-  temp=falloc(waveLen,"presmoothed",0);
-  for(i=0;i<waveLen;i++)temp[i]=wave[i];
-
   /*median filter if needed*/
   if(decon->medLen>0){
-    mediated=medianFloat(temp,decon->medLen,waveLen);
-    TIDY(temp);
+    mediated=medianFloat(preSmoothed,decon->medLen,waveLen);
+    TIDY(preSmoothed);
   }else{
-    mediated=temp;
-    temp=NULL;
-  }
-
-  /*smooth before denoising*/
-  if(decon->psWidth>0.0){   /*Gaussian smoothing*/
-    preSmoothed=smooth(decon->psWidth,waveLen,mediated,decon->res);
-    TIDY(mediated);
-  }else if(decon->preMatchF){  /*matched filter*/
-    preSmoothed=matchedFilter(mediated,waveLen,decon,decon->res);
-    TIDY(mediated);
-  }else{
-    preSmoothed=mediated;
-    mediated=NULL;
+    mediated=preSmoothed;
+    preSmoothed=NULL;
   }
 
   /*correct for detector drift if needed*/
-  temp=correctDrift(preSmoothed,waveLen,(int)(decon->statsLen/decon->res),decon);
-  TIDY(preSmoothed);
+  temp=correctDrift(mediated,waveLen,(int)(decon->statsLen/decon->res),decon);
+  TIDY(mediated);
 
   /*remove background noise*/
   if((decon->meanN>0.0)||(decon->thresh>0.0)){
