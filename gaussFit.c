@@ -140,7 +140,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   /*copy Gaussian parameters to end of fitted array*/
   if((*totGauss)>0){
     if(!(fitted=(float *)realloc(fitted,(nBins+3*(*totGauss))*sizeof(float)))){
-      fprintf(stderr,"Balls\n");
+      fprintf(stderr,"Error in fitted Gaussian realoocation %d\n"(nBins+3*(*totGauss))*sizeof(float));
       exit(1);
     }
     k=0;

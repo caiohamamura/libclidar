@@ -139,7 +139,7 @@ void mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double 
     }else{  /*this is the lowest level, allocate map space*/
       if(octree->mapFile){
         if(!(octree->mapFile=(int **)realloc(octree->mapFile,(octree->nMaps+1)*sizeof(int *)))){
-          fprintf(stderr,"Balls\n");
+          fprintf(stderr,"Error in octree reallocation, %d\n"(octree->nMaps+1)*sizeof(int *));
           exit(1);
         }
       }else octree->mapFile=iIalloc(octree->nMaps+1,"mapFile",0);
