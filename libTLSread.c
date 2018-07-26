@@ -385,6 +385,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             scan->point[scan->nPoints].hitN=k;
             scan->point[scan->nPoints].nHits=tempTLS->beam[j].nHits;
             /*map to voxels*/
+fprintf(stdout,"nIn %d in %d\n",map->nIn[vPlace],vPlace);
             map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),fInd);
             map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scan->nPoints);
             map->nIn[vPlace]++;
@@ -573,6 +574,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
               scans[i].point[scans[i].nPoints].nHits=tempTLS->beam[j].nHits;
 
               /*map to voxels*/
+fprintf(stdout,"Mapping number %d %d\n",map->nIn[vPlace],vPlace);
               map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),i);
               map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scans[i].nPoints);
               map->nIn[vPlace]++;
