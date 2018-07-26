@@ -400,7 +400,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*reallocate*/
     if((scan->nPoints>0)&&(scan->nPoints<tempTLS->nPoints)){
       if(!(scan->point=(tlsPoint *)realloc(scan->point,scan->nPoints*sizeof(tlsPoint)))){
-        fprintf(stderr,"Error in reallocation, allocating %d\n",scan->nPoints*sizeof(tlsPoint));
+        fprintf(stderr,"Error in reallocation, allocating %lu\n",scan->nPoints*sizeof(tlsPoint));
         exit(1);
       }
     }else if(scan->nPoints==0)TIDY(scan->point);
@@ -588,7 +588,7 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
       /*reallocate*/
       if((scans[i].nPoints>0)&&(scans[i].nPoints<tempTLS->nPoints)){
         if(!(scans[i].point=(tlsPoint *)realloc(scans[i].point,scans[i].nPoints*sizeof(tlsPoint)))){
-          fprintf(stderr,"Error in reallocation, allocating %d\n",scans[i].nPoints*sizeof(tlsPoint));
+          fprintf(stderr,"Error in reallocation, allocating %lu\n",scans[i].nPoints*sizeof(tlsPoint));
           exit(1);
         }
       }else if(scans[i].nPoints==0)TIDY(scans[i].point);
