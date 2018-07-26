@@ -338,6 +338,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
           }
         }/*final list loop*/
         if(foundNew==1){  /*if new, mark it*/
+//fprintf(stdout,"new pixel 2 %d\n",*nPix);
           pixList=markInt(*nPix,pixList,tempList[j]);
           rangeList[0]=markDo(*nPix,rangeList[0],tempRange[j]);
           (*nPix)++;
@@ -352,7 +353,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
   }/*sub step loop*/
 
   return(pixList);
-}/*beamPixels*/
+}/*beamVoxels*/
 
 
 /*###########################################################################*/
@@ -455,6 +456,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     }
     /*mark results*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){ /*bounds check*/
+//fprintf(stdout,"new pixel 1 %d\n",*nPix);
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
       if(rangeList)rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coords[0]-xCent)*\
         (coords[0]-xCent)+(coords[1]-yCent)*(coords[1]-yCent)+(coords[2]-zCent)*(coords[2]-zCent)));
