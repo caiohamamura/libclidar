@@ -34,6 +34,7 @@ typedef struct{
   float meanN;       /*mean noise level*/
   float tailThresh;  /*trailing edge threshold, meanN by default*/
   float sWidth;      /*smoothing length*/
+  float msWidth;     /*middle smoothing width (after stats, before denoising*/
   float psWidth;     /*pre-smoothing width*/
   int minWidth;      /*min width above noise to accept*/
   int medLen;        /*median filter width*/

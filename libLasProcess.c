@@ -76,6 +76,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   float *temp=NULL;
   float *mediated=NULL;
   float *preSmoothed=NULL;
+  float *mSmoothed=NULL;
   float *denoised=NULL;
   float *smoothed=NULL;
   float *processed=NULL;
@@ -118,13 +119,22 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
-  /*median filter if needed*/
-  if(decon->medLen>0){
-    mediated=medianFloat(preSmoothed,decon->medLen,waveLen);
+  /*smooth again if needed*/
+  if(decon->msWidth>0.0){   /*Gaussian smoothing after noise stats*/
+    mSmoothed=smooth(decon->msWidth,waveLen,preSmoothed,decon->res);
     TIDY(preSmoothed);
   }else{
-    mediated=preSmoothed;
+    mSmoothed=preSmoothed;
     preSmoothed=NULL;
+  }
+
+  /*median filter if needed*/
+  if(decon->medLen>0){
+    mediated=medianFloat(mSmoothed,decon->medLen,waveLen);
+    TIDY(mSmoothed);
+  }else{
+    mediated=mSmoothed;
+    mSmoothed=NULL;
   }
 
   /*correct for detector drift if needed*/
@@ -618,7 +628,7 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
     fprintf(stderr,"Not enough bins for this statistics length %d %d\n",statBins,(int)waveLen);
     exit(1);
   }else if((statBins-start)<=0){
-    fprintf(stderr,"What are you doing!?!\n");
+    fprintf(stderr,"What are you doing? Start too soon %d %d\n",statBins,start);
     exit(1);
   }
 
@@ -1277,6 +1287,7 @@ void setDenoiseDefault(denPar *denoise)
   denoise->thresh=15.0;
   denoise->minWidth=6;
   denoise->sWidth=0.0;
+  denoise->msWidth=0.0;
   denoise->psWidth=0.0;
   denoise->medLen=0;
   denoise->varNoise=0;
