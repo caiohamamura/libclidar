@@ -39,6 +39,8 @@ typedef struct{
   float **miss;      /*beams blocked before voxel, per scan location*/
   float **inHit;     /*hits within voxel, per scan location*/
   float **inMiss;    /*missed within voxel, per scan location*/
+  float **sampVol;   /*volume of voxel sampled, per scan location*/
+  float **totVol;    /*volume of voxel passed through, per scan location*/
   float *rmse;       /*rmse of signal going in*/
   int *contN;        /*for normalising ALS*/
   int nVox;          /*total number of voxels*/
@@ -47,6 +49,7 @@ typedef struct{
   int nZ;            /*number of voxels*/
   double res[3];     /*voxel resolution*/
   double bounds[6];  /*voxel bounds minX minY minZ maxX maxY maxZ*/
+  float volume;      /*volume of the voxel*/
   /*switches*/
   char useRMSE;      /*switch to save RAM in voxelate*/
   char savePts;      /*save points switch*/
