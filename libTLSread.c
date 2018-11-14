@@ -342,6 +342,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
           if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
         }else minR=0.0;
 
+        /*add up total length of beams passing through*/
+        vox->totVol[fInd][voxList[k]]+=rangeList[k]-minR;
+
         /*if not beyond, is it a hit or a miss in this voxel*/
         if(doIt){
           hasHit=0;
@@ -351,8 +354,12 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
               break;
             }
           }
+          /*count up number of hits and misses within voxel*/
           if(hasHit)vox->inHit[fInd][voxList[k]]+=1.0;
           else      vox->inMiss[fInd][voxList[k]]+=1.0;
+          /*count up volume sampled*/
+          if(tempTLS->beam[j].r[n]<=lastHitR)vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;  /*not last return*/
+          else                               vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-minR;  /*last return*/
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/
@@ -414,7 +421,7 @@ fprintf(stdout,"nIn %d in %d\n",map->nIn[vPlace],vPlace);
           scan->point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
         }else scan->point[pInd].gap=1.0;
       }
-    }
+    }/*gap fraction loop*/
   }/*voxel bound check*/
 
   /*tidy temporary space*/
@@ -529,6 +536,9 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
             if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
           }else minR=0.0;
 
+          /*add up total length of beams passing through*/
+          vox->totVol[i][voxList[k]]+=rangeList[k]-minR;
+
           /*if not beyond, is it a hit or a miss in this voxel*/
           if(doIt){
             hasHit=0;
@@ -538,8 +548,12 @@ tlsScan *readTLSwithinVox(char **inList,int nScans,voxStruct *vox,char useFracGa
                 break;
               }
             }
+            /*count up hits and misses within voxel*/
             if(hasHit)vox->inHit[i][voxList[k]]+=1.0;
             else      vox->inMiss[i][voxList[k]]+=1.0;
+            /*count up volume sampled*/
+            if(tempTLS->beam[j].r[n]<=lastHitR)vox->sampVol[i][voxList[k]]+=rangeList[k]-minR;  /*not last return*/
+            else                               vox->sampVol[i][voxList[k]]+=tempTLS->beam[j].r[n]-minR;  /*last return*/
           }/*hits within voxel*/
         }/*voxel intersection loop*/
 
