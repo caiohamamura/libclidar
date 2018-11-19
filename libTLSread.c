@@ -355,11 +355,15 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             }
           }
           /*count up number of hits and misses within voxel*/
-          if(hasHit)vox->inHit[fInd][voxList[k]]+=1.0;
-          else      vox->inMiss[fInd][voxList[k]]+=1.0;
-          /*count up volume sampled*/
-          if(tempTLS->beam[j].r[n]<=lastHitR)vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;  /*not last return*/
-          else                               vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-minR;  /*last return*/
+          if(hasHit){
+            vox->inHit[fInd][voxList[k]]+=1.0;
+            /*count up volume sampled*/
+            if(tempTLS->beam[j].r[n]<=lastHitR)vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;  /*not last return*/
+            else                               vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-minR;  /*last return*/
+          }else{
+            vox->inMiss[fInd][voxList[k]]+=1.0;
+            vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;
+          }
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/
