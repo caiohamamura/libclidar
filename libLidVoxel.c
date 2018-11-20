@@ -456,7 +456,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     }
     /*mark results*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){ /*bounds check*/
-//fprintf(stdout,"new pixel 1 %d\n",*nPix);
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
       if(rangeList)rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coords[0]-xCent)*\
         (coords[0]-xCent)+(coords[1]-yCent)*(coords[1]-yCent)+(coords[2]-zCent)*(coords[2]-zCent)));
