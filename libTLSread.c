@@ -257,7 +257,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   int *markInt(int,int *,int);
   uint32_t *markUint32(int,uint32_t *,uint32_t);
   uint32_t j=0;
-  float minR=0,maxR=0,lastHitR=0;
+  float maxR=0,lastHitR=0;
   double grad[3],*rangeList=NULL;
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
@@ -321,35 +321,33 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       if(nIntersect==0)continue;   /*if no voxels intersected*/
 
       /*gap fraction*/
-      if(tempTLS->beam[j].nHits>0)lastHitR=tempTLS->beam[j].r[tempTLS->beam[j].nHits-1];
-      else                        lastHitR=100000.0;
+      if(tempTLS->beam[j].nHits>0)lastHitR=(tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]<maxR)?tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]:maxR;
+      else                        lastHitR=maxR;
 
+      /*loop over intersected voxels*/
       for(k=0;k<nIntersect;k++){
         /*hits before voxel*/
         if(!useFracGap){  /*simple method. All hit until last return*/
-          if(rangeList[k]<=lastHitR)vox->hits[fInd][voxList[k]]+=1.0;
-          else                      vox->miss[fInd][voxList[k]]+=1.0;
+          if(rangeList[k]<=lastHitR){  /*entry point is before last return*/
+            vox->hits[fInd][voxList[k]]+=1.0;
+            doIt=1;
+          }else{                       /*entry point is after last return*/
+            vox->miss[fInd][voxList[k]]+=1.0;
+            doIt=0;
+          }/*hit to voxel check*/
         }else{            /*John's fractional method*/
           fprintf(stderr,"John's folly method not implemented yet\n");
           exit(1);
         }/*hits before voxel*/
 
-        /*hits within voxel*/
-        /*are we beyond the last return?*/
-        doIt=1;
-        if(k>0){
-          minR=rangeList[k-1];
-          if(rangeList[k-1]>lastHitR)doIt=0;  /*no information after this*/
-        }else minR=0.0;
-
         /*add up total length of beams passing through*/
-        vox->totVol[fInd][voxList[k]]+=rangeList[k]-minR;
+        vox->totVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
 
-        /*if not beyond, is it a hit or a miss in this voxel*/
-        if(doIt){
+        /*hits within voxel*/
+        if(doIt){  /*only if the beam has made it this far*/
           hasHit=0;
           for(n=0;n<tempTLS->beam[j].nHits;n++){
-            if((tempTLS->beam[j].r[n]>=minR)&&(tempTLS->beam[j].r[n]<=rangeList[k])){
+            if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1])){
               hasHit=1;
               break;
             }
@@ -358,14 +356,14 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
           if(hasHit){
             vox->inHit[fInd][voxList[k]]+=1.0;
             /*count up volume sampled*/
-            if(tempTLS->beam[j].r[n]<=lastHitR){
-              vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;  /*not last return*/
+            if(n<(tempTLS->beam[j].nHits-1)){
+              vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];  /*not last return*/
             }else{
-              vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-minR;  /*last return*/
+              vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-rangeList[k];  /*last return*/
             }
           }else{
             vox->inMiss[fInd][voxList[k]]+=1.0;
-            vox->sampVol[fInd][voxList[k]]+=rangeList[k]-minR;
+            vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
           }
         }/*hits within voxel*/
       }/*voxel intersection loop*/
