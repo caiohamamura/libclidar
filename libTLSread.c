@@ -365,6 +365,11 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             vox->inMiss[fInd][voxList[k]]+=1.0;
             vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
           }
+          /*count up area of points within voxel*/
+          //tempTLS->beam[j].refl[k];
+          //rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap);
+
+
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/
