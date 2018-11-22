@@ -247,7 +247,7 @@ tlsScan *readTLSpolarBinary(char *namen)
 /*##################################################################*/
 /*read a single TLS scan within a voxel*/
 
-tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,int fInd)
+tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,int fInd,lidVoxPar *lidPar)
 {
   int k=0,n=0;
   int pInd=0;
@@ -366,10 +366,10 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
           }
           /*count up area of points within voxel*/
+          if(lidPar){
           //tempTLS->beam[j].refl[k];
-          //rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap);
-
-
+          //rad=pointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[k],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap);
+          }/*count up area of points within voxel*/
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/
