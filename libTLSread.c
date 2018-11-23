@@ -258,6 +258,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   uint32_t *markUint32(int,uint32_t *,uint32_t);
   uint32_t j=0;
   float maxR=0,lastHitR=0;
+  float rad=0;
   double grad[3],*rangeList=NULL;
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
@@ -361,15 +362,15 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             }else{
               vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-rangeList[k];  /*last return*/
             }
+            /*count up area of points within voxel*/
+            if(lidPar){
+              rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[k],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
+              vox->sumRsq[fInd][voxList[k]]+=rad*rad;
+            }/*count up area of points within voxel*/
           }else{
             vox->inMiss[fInd][voxList[k]]+=1.0;
             vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
           }
-          /*count up area of points within voxel*/
-          if(lidPar){
-          //tempTLS->beam[j].refl[k];
-          //rad=pointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[k],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap);
-          }/*count up area of points within voxel*/
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/

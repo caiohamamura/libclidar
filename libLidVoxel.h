@@ -41,6 +41,7 @@ typedef struct{
   float **inMiss;    /*missed within voxel, per scan location*/
   float **sampVol;   /*volume of voxel sampled, per scan location*/
   float **totVol;    /*volume of voxel passed through, per scan location*/
+  float **sumRsq;    /*sum of radius squared, for point area*/
   float *rmse;       /*rmse of signal going in*/
   int *contN;        /*for normalising ALS*/
   int nVox;          /*total number of voxels*/
@@ -160,15 +161,16 @@ tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
 tlsScan *readOneTLS(char *,voxStruct *,char,tlsVoxMap *,int,lidVoxPar *);
 tlsScan *readTLSpolarBinary(char *);
 rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
-int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
-int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **,float);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
+int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
+int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **,float);
+float tlsPointSize(double,uint16_t,float,float,float,float,float,float);
+double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
 void tidyVoxelMap(tlsVoxMap *,int);
 void silhouetteImage(int,pCloudStruct **,tlsScan *,rImageStruct *,lidVoxPar *,int *,int,tlsVoxMap *);
 void waveFromImage(rImageStruct *,float **,char,float);
 void fillInRimageGround(rImageStruct *);
-double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
 void setWaveformRange(float *,double,float *,int,float);
 void rotateX(double *,double);
 void rotateZ(double *,double);
