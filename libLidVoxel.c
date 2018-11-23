@@ -126,12 +126,11 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
   int xStart=0,xEnd=0;
   int yStart=0,yEnd=0;
   int xIcent=0,yIcent=0;
-  float pointSize(double,uint16_t,float,float,float,float,float,float);
   float rad=0;
   float maxRsepSq=0,rSepSq=0;
 
   if(gap<lidPar->minGap)gap=lidPar->minGap;
-  rad=pointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap); //)*lidPar->appRefl/gap;
+  rad=tlsPointSize(r,refl,lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,gap); //)*lidPar->appRefl/gap;
 
   /*range image*/
   xIcent=(int)((coord[0]/(double)rImage->iRes)+0.5*(double)rImage->nX);
@@ -177,7 +176,7 @@ void markPointSilhouette(double *coord,rImageStruct *rImage,int bin,lidVoxPar *l
 /*############################################*/
 /*determine hit size*/
 
-float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,float max,float rhoApp,float gap)
+float tlsPointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,float max,float rhoApp,float gap)
 {
   float d=0;
   float appRefl=0;
@@ -193,7 +192,7 @@ float pointSize(double range,uint16_t refl,float tanDiv,float beamRad,float min,
   if(gap>TOLERANCE)d*=sqrt(reflScale*rhoApp/gap);   /*take optics into account*/
   else             d*=sqrt(reflScale*rhoApp/TOLERANCE);
   return(d);
-}/*pointSize*/
+}/*tlsPointSize*/
 
 
 /*#############################################*/
@@ -757,6 +756,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->inMiss=fFalloc(vox->nScans,"voxel point miss",0);
   vox->sampVol=fFalloc(vox->nScans,"voxel volume sampled",0);
   vox->totVol=fFalloc(vox->nScans,"voxel volume total",0);
+  vox->sumRsq=fFalloc(vox->nScans,"sum of radius of TLS points, squared",0);
   vox->contN=ialloc(vox->nVox,"voxel contribution",0);
   for(j=0;j<vox->nVox;j++)vox->contN[j]=0;
 
@@ -773,8 +773,9 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
     vox->inMiss[i]=falloc(vox->nVox,"voxel miss",i+1);
     vox->sampVol[i]=falloc(vox->nVox,"voxel volume sampled",i+1);
     vox->totVol[i]=falloc(vox->nVox,"voxel volume total",i+1);
+    vox->sumRsq[i]=falloc(vox->nVox,"sum of radius of TLS points, squared",i+1);
     for(j=0;j<vox->nVox;j++){
-      vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=vox->sampVol[i][j]=vox->totVol[i][j]=0.0;
+      vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=vox->sampVol[i][j]=vox->totVol[i][j]=vox->sumRsq[i][j]=0.0;
     }
   }/*file loop*/
 
@@ -795,6 +796,7 @@ voxStruct *tidyVox(voxStruct *vox)
     TTIDY((void **)vox->inMiss,vox->nScans);
     TTIDY((void **)vox->sampVol,vox->nScans);
     TTIDY((void **)vox->totVol,vox->nScans);
+    TTIDY((void **)vox->sumRsq,vox->nScans);
     TIDY(vox->rmse);
     TIDY(vox->contN);
     TIDY(vox);
