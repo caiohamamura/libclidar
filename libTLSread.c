@@ -364,7 +364,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             }
             /*count up area of points within voxel*/
             if(lidPar){
-              rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[k],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
+              rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[n],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
               vox->sumRsq[fInd][voxList[k]]+=rad*rad;
             }/*count up area of points within voxel*/
           }else{
