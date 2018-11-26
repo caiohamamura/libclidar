@@ -258,7 +258,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   uint32_t *markUint32(int,uint32_t *,uint32_t);
   uint32_t j=0;
   float maxR=0,lastHitR=0;
-  float rad=0;
+  float rad=0,appRefl=0;
   double grad[3],*rangeList=NULL;
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
@@ -367,10 +367,18 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
               rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[n],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
               vox->sumRsq[fInd][voxList[k]]+=rad*rad;
             }/*count up area of points within voxel*/
+            /*add up reflectance*/
+            if(lidPar){
+              appRefl=(float)tempTLS->beam[j].refl[n]*(float)tempTLS->beam[j].nHits/(float)(lidPar->maxRefl-lidPar->minRefl);
+              if(lidPar->correctR)appRefl*=pow((float)tempTLS->beam[j].r[n],2.0);
+              vox->meanRefl[fInd][voxList[k]]+=appRefl;
+            }
           }else{
             vox->inMiss[fInd][voxList[k]]+=1.0;
             vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
           }
+          /*keep track of mean zenith*/
+          vox->meanZen[fInd][voxList[k]]+=tempTLS->beam[j].zen;
         }/*hits within voxel*/
       }/*voxel intersection loop*/
       /*record and map useful points*/
@@ -424,15 +432,22 @@ fprintf(stdout,"nIn %d in %d\n",map->nIn[vPlace],vPlace);
       }
     }else if(scan->nPoints==0)TIDY(scan->point);
 
-    /*determine gap fraction*/
+    /*determine gap fraction and normalise parameters*/
     for(vPlace=0;vPlace<vox->nVox;vPlace++){
       for(k=0;k<map->nIn[vPlace];k++){
         pInd=map->mapPoint[vPlace][k];
         if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
           scan->point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
         }else scan->point[pInd].gap=1.0;
-      }
-    }/*gap fraction loop*/
+      }/*point within voxel loop*/
+      /*normalise mean properties*/
+      if(vox->hits[fInd][vPlace]>0.0){
+        vox->meanRefl[fInd][vPlace]/=vox->hits[fInd][vPlace];
+        vox->meanZen[fInd][vPlace]/=vox->hits[fInd][vPlace];
+      }else{
+        vox->meanRefl[fInd][vPlace]=vox->meanZen[fInd][vPlace]=-1.0;
+      }/*mean property normalisation*/
+    }/*voxel loop*/
   }/*voxel bound check*/
 
   /*tidy temporary space*/

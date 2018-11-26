@@ -757,6 +757,8 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->sampVol=fFalloc(vox->nScans,"voxel volume sampled",0);
   vox->totVol=fFalloc(vox->nScans,"voxel volume total",0);
   vox->sumRsq=fFalloc(vox->nScans,"sum of radius of TLS points, squared",0);
+  vox->meanRefl=fFalloc(vox->nScans,"mean reflectance of intersecting beams",0);
+  vox->meanZen=fFalloc(vox->nScans,"mean zenith angle of intersecting beams",0);
   vox->contN=ialloc(vox->nVox,"voxel contribution",0);
   for(j=0;j<vox->nVox;j++)vox->contN[j]=0;
 
@@ -773,9 +775,13 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
     vox->inMiss[i]=falloc(vox->nVox,"voxel miss",i+1);
     vox->sampVol[i]=falloc(vox->nVox,"voxel volume sampled",i+1);
     vox->totVol[i]=falloc(vox->nVox,"voxel volume total",i+1);
+    vox->meanRefl[i]=falloc(vox->nVox,"mean reflectance of intersecting beams",i+1);
+    vox->meanZen[i]=falloc(vox->nVox,"mean zenith angle of intersecting beams",i+1);
     vox->sumRsq[i]=falloc(vox->nVox,"sum of radius of TLS points, squared",i+1);
     for(j=0;j<vox->nVox;j++){
-      vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=vox->sampVol[i][j]=vox->totVol[i][j]=vox->sumRsq[i][j]=0.0;
+      vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=0.0;
+      vox->sampVol[i][j]=vox->totVol[i][j]=vox->sumRsq[i][j]=0.0;
+      vox->meanRefl[i][j]=vox->meanZen[i][j]=0.0;
     }
   }/*file loop*/
 
@@ -796,6 +802,8 @@ voxStruct *tidyVox(voxStruct *vox)
     TTIDY((void **)vox->inMiss,vox->nScans);
     TTIDY((void **)vox->sampVol,vox->nScans);
     TTIDY((void **)vox->totVol,vox->nScans);
+    TTIDY((void **)vox->meanRefl,vox->nScans);
+    TTIDY((void **)vox->meanZen,vox->nScans);
     TTIDY((void **)vox->sumRsq,vox->nScans);
     TIDY(vox->rmse);
     TIDY(vox->contN);

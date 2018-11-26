@@ -42,6 +42,8 @@ typedef struct{
   float **sampVol;   /*volume of voxel sampled, per scan location*/
   float **totVol;    /*volume of voxel passed through, per scan location*/
   float **sumRsq;    /*sum of radius squared, for point area*/
+  float **meanRefl;  /*mean reflectances from all returns*/
+  float **meanZen;   /*mean zenith angle of all beams intersecting*/
   float *rmse;       /*rmse of signal going in*/
   int *contN;        /*for normalising ALS*/
   int nVox;          /*total number of voxels*/
@@ -62,12 +64,13 @@ typedef struct{
 /*lidar radiometric parameters for voxels*/
 
 typedef struct{
-  float minRefl;   /*minimum refletance value to scale between 0 and 1*/
-  float maxRefl;   /*maximum refletance value to scale between 0 and 1*/
-  float appRefl;   /*scale between TLS reflectance and size*/
+  float minRefl;    /*minimum refletance value to scale between 0 and 1*/
+  float maxRefl;    /*maximum refletance value to scale between 0 and 1*/
+  float appRefl;    /*scale between TLS reflectance and size*/
   float beamTanDiv; /*tan of tls beam divergence*/
   float beamRad;    /*TLS start radius*/
-  float minGap;    /*minimum gap fraction correction to apply*/
+  float minGap;     /*minimum gap fraction correction to apply*/
+  char correctR;    /*correct reflectance for range to get gap fractions*/
 }lidVoxPar;
 
 
