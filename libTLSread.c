@@ -347,11 +347,11 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
         /*hits within voxel*/
         if(doIt){  /*only if the beam has made it this far*/
           hasHit=0;
+          appRefl=0.0;
           for(n=0;n<tempTLS->beam[j].nHits;n++){
-            if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1])){
-              hasHit=1;
-              break;
-            }
+            appRefl+=(float)tempTLS->beam[j].refl[n];   /*total reflectance to account for occlusion*/
+            if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1]))hasHit=1;
+            else if(tempTLS->beam[j].r[n]>=rangeList[k+1])break;  /*left the voxel*/
           }
           /*count up number of hits and misses within voxel*/
           if(hasHit){
@@ -369,7 +369,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             }/*count up area of points within voxel*/
             /*add up reflectance*/
             if(lidPar){
-              appRefl=(float)tempTLS->beam[j].refl[n]*(float)tempTLS->beam[j].nHits/(float)(lidPar->maxRefl-lidPar->minRefl);
+              appRefl/=(float)(lidPar->maxRefl-lidPar->minRefl);
               if(lidPar->correctR)appRefl*=pow((float)tempTLS->beam[j].r[n],2.0);
               vox->meanRefl[fInd][voxList[k]]+=appRefl;
             }
