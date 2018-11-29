@@ -346,10 +346,12 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
         /*hits within voxel*/
         if(doIt){  /*only if the beam has made it this far*/
+          /*loop over all hits along beam to see which are within voxel*/
           hasHit=0;
           appRefl=0.0;
-          for(n=0;n<tempTLS->beam[j].nHits;n++){
-            appRefl+=(float)tempTLS->beam[j].refl[n];   /*total reflectance to account for occlusion*/
+          for(n=0;n<tempTLS->beam[j].nHits;n++){/*hit along beam loop*/
+            if(!lidPar->correctR)appRefl+=(float)tempTLS->beam[j].refl[n];   /*total reflectance to account for occlusion*/
+            else                 appRefl+=(float)tempTLS->beam[j].refl[n]*pow((float)tempTLS->beam[j].r[n],2.0);
             if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1])){
               hasHit=1;
               /*count up area of points within voxel*/
@@ -359,7 +361,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
                 vox->sumRsq[fInd][voxList[k]]+=rad*rad;
               }/*count up area of points within voxel*/
             }else if(tempTLS->beam[j].r[n]>=rangeList[k+1])break;  /*left the voxel*/
-          }
+          }/*hit along beam loop*/
           /*count up number of hits and misses within voxel*/
           if(hasHit){
             vox->inHit[fInd][voxList[k]]+=1.0;
@@ -367,23 +369,23 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             if(n<(tempTLS->beam[j].nHits-1)){
               vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];  /*not last return*/
             }else{
-              vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-rangeList[k];  /*last return*/
+              vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]-rangeList[k];  /*last return*/
             }
-            /*add up reflectance for waveform based PAI*/
+            /*normalise mean refl for waveform gap fraction*/
             if(lidPar){
               appRefl/=(float)(lidPar->maxRefl-lidPar->minRefl);
-              if(lidPar->correctR)appRefl*=pow((float)tempTLS->beam[j].r[n],2.0);
               vox->meanRefl[fInd][voxList[k]]+=appRefl;
             }
-          }else{
+          }else{ /*no hits in this voxel*/
             vox->inMiss[fInd][voxList[k]]+=1.0;
             vox->sampVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
-          }
+          }/*hit within voxel check*/
           /*keep track of mean zenith*/
           vox->meanZen[fInd][voxList[k]]+=tempTLS->beam[j].zen;
-        }/*hits within voxel*/
+        }/*beam made it to voxel check*/
       }/*voxel intersection loop*/
-      /*record and map useful points*/
+
+      /*record and map useful points if needed*/
       if(vox->savePts){
         for(k=0;k<tempTLS->beam[j].nHits;k++){
           x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
