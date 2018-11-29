@@ -350,8 +350,15 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
           appRefl=0.0;
           for(n=0;n<tempTLS->beam[j].nHits;n++){
             appRefl+=(float)tempTLS->beam[j].refl[n];   /*total reflectance to account for occlusion*/
-            if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1]))hasHit=1;
-            else if(tempTLS->beam[j].r[n]>=rangeList[k+1])break;  /*left the voxel*/
+            if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1])){
+              hasHit=1;
+              /*count up area of points within voxel*/
+              if(lidPar){
+                rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[n],lidPar->beamTanDiv,\
+                                    lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
+                vox->sumRsq[fInd][voxList[k]]+=rad*rad;
+              }/*count up area of points within voxel*/
+            }else if(tempTLS->beam[j].r[n]>=rangeList[k+1])break;  /*left the voxel*/
           }
           /*count up number of hits and misses within voxel*/
           if(hasHit){
@@ -362,12 +369,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
             }else{
               vox->sampVol[fInd][voxList[k]]+=tempTLS->beam[j].r[n]-rangeList[k];  /*last return*/
             }
-            /*count up area of points within voxel*/
-            if(lidPar){
-              rad=tlsPointSize((double)tempTLS->beam[j].r[n],tempTLS->beam[j].refl[n],lidPar->beamTanDiv,lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
-              vox->sumRsq[fInd][voxList[k]]+=rad*rad;
-            }/*count up area of points within voxel*/
-            /*add up reflectance*/
+            /*add up reflectance for waveform based PAI*/
             if(lidPar){
               appRefl/=(float)(lidPar->maxRefl-lidPar->minRefl);
               if(lidPar->correctR)appRefl*=pow((float)tempTLS->beam[j].r[n],2.0);
