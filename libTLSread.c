@@ -270,7 +270,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
   /*allocate space*/
   if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
-    fprintf(stderr,"error tls allocation.\n");
+    fprintf(stderr,"error in tls structure allocation.\n");
     exit(1);
   }
   if(map->mapFile==NULL){
@@ -285,10 +285,13 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   /*read all data into RAM*/
   tempTLS=readTLSpolarBinary(namen);
 
-  nBuff=4*tempTLS->nBeams;
-  if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
-    fprintf(stderr,"error tls allocation.\n");
-    exit(1);
+  /*if we are saving points, allocate a buffer*/
+  if(vox->savePts){
+    nBuff=4*tempTLS->nBeams;
+    if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
+      fprintf(stderr,"error in tls point allocation. Allocating %lu\n",nBuff*sizeof(tlsPoint));
+      exit(1);
+    }
   }
   scan->nPoints=scan->nBeams=0;
   scan->beam=NULL;
