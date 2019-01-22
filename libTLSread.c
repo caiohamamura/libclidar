@@ -196,12 +196,14 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
     return(scan);  /*if not, pass straight back to avoid reading data*/
   }else scan->pOffset+=scan->nRead; /*increment the position*/
 
+
   /*allocate buffer space and read*/
-  nRead=((scan->nBeams-scan->pOffset)>scan->nRead)?scan->nRead:scan->nBeams-scan->pOffset;
+  nRead=((scan->nRead+scan->pOffset)<=scan->nBeams)?scan->nRead:scan->nBeams-scan->pOffset;
   buffSize=(uint64_t)sizeof(tlsBeam)*(uint64_t)nRead;  /*amout to read in bytes*/
   buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
+fprintf(stdout,"buffer %d %d %d this %d\n",scan->nRead,scan->pOffset,scan->nBeams,nRead);
   if(fread(&buffer[0],sizeof(char),buffSize,scan->ipoo)!=buffSize){  /*read beams*/
-    fprintf(stderr,"Error reading point data for buffer of size %lu\n",buffSize);
+    fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
     exit(1);
   }
 
