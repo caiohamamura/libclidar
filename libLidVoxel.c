@@ -905,7 +905,7 @@ void setWaveformRange(float *range,double z0,float *grad,int nBins,float res)
 void readBoundsFromTLS(double *bounds,char **inList,int nScans)
 {
   int i=0,k=0;
-  uint32_t j=0;
+  uint32_t j=0,tInd=0;
   double x=0,y=0,z=0;
   double xCent=0,yCent=0,zCent=0;
   tlsScan *tempTLS=NULL;
@@ -914,18 +914,21 @@ void readBoundsFromTLS(double *bounds,char **inList,int nScans)
   bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
 
   for(i=0;i<nScans;i++){  /*file loop*/
-    tempTLS=readTLSpolarBinary(inList[i]);
+    tempTLS=readTLSpolarBinary(inList[i],0,NULL);
     for(j=0;j<tempTLS->nBeams;j++){/*point loop*/
+      /*update TLS beams if needed*/
+      tempTLS=readTLSpolarBinary(inList[i],j,tempTLS);
+      tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
       /*beam origin*/
-      xCent=(double)tempTLS->beam[j].x+tempTLS->xOff;
-      yCent=(double)tempTLS->beam[j].y+tempTLS->yOff;
-      zCent=(double)tempTLS->beam[j].z+tempTLS->zOff;
+      xCent=(double)tempTLS->beam[tInd].x+tempTLS->xOff;
+      yCent=(double)tempTLS->beam[tInd].y+tempTLS->yOff;
+      zCent=(double)tempTLS->beam[tInd].z+tempTLS->zOff;
 
-      for(k=0;k<tempTLS->beam[j].nHits;k++){  /*hit loop*/
+      for(k=0;k<tempTLS->beam[tInd].nHits;k++){  /*hit loop*/
         /*point coordinate*/
-        x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-        y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-        z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
+        x=xCent+tempTLS->beam[tInd].r[k]*sin(tempTLS->beam[tInd].az)*sin(tempTLS->beam[tInd].zen);
+        y=yCent+tempTLS->beam[tInd].r[k]*cos(tempTLS->beam[tInd].az)*sin(tempTLS->beam[tInd].zen);
+        z=zCent+tempTLS->beam[tInd].r[k]*cos(tempTLS->beam[tInd].zen);
 
         /*determine bounds*/
         if(x<bounds[0])bounds[0]=x;

@@ -152,6 +152,9 @@ typedef struct{
   double zOff;       /*offset to allow coords to be floats*/
   uint32_t nBeams;   /*number of beams in this scan*/
   uint32_t nPoints;  /*number of points in this scan*/
+  FILE *ipoo;        /*file pointer*/
+  uint32_t pOffset;  /*current point position for buffering*/
+  uint32_t nRead;    /*number of beams to read at once*/
 }tlsScan;
 
 
@@ -162,7 +165,7 @@ tlsScan *tidyTLScan(tlsScan *);
 tlsScan *tidyTLScans(tlsScan *,int);
 tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
 tlsScan *readOneTLS(char *,voxStruct *,char,tlsVoxMap *,int,lidVoxPar *);
-tlsScan *readTLSpolarBinary(char *);
+tlsScan *readTLSpolarBinary(char *,uint32_t,tlsScan *);
 rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
