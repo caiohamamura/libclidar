@@ -141,7 +141,8 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 
 tlsScan *readTLSpolarBinary(char *namen)
 {
-  int i=0,offset=0;
+  int i=0;
+  uint64_t offset=0;
   unsigned char j=0;
   uint64_t buffSize=0;   /*buffer size*/
   tlsScan *scan=NULL;
