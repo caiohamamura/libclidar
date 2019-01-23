@@ -155,6 +155,8 @@ typedef struct{
   FILE *ipoo;        /*file pointer*/
   uint32_t pOffset;  /*current point position for buffering*/
   uint32_t nRead;    /*number of beams to read at once*/
+  uint64_t totSize;  /*total file size*/
+  uint64_t totRead;  /*amount of file read so far*/
 }tlsScan;
 
 

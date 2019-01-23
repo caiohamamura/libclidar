@@ -173,6 +173,8 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
       fprintf(stderr,"fseek error from end\n");
       exit(1);
     }
+    scan->nRead=(uint32_t)(500000000/sizeof(tlsBeam));
+    scan->totSize=(uint64_t)ftell(scan->ipoo);
     if(fread(&scan->nBeams,sizeof(uint32_t),1,scan->ipoo)!=1){
       fprintf(stderr,"Error reading number of points\n");
       exit(1);
@@ -184,7 +186,7 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
       fprintf(stderr,"fseek error to start\n");
       exit(1);
     }
-    scan->nRead=(uint32_t)(500000000/sizeof(tlsBeam));
+    scan->totRead=0;
     if(scan->nRead>scan->nBeams)scan->nRead=scan->nBeams;
     scan->pOffset=0;
     /*allocate space for beams*/
@@ -197,15 +199,16 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
   }else scan->pOffset+=scan->nRead; /*increment the position*/
 
 
-  /*allocate buffer space and read*/
-  nRead=((scan->nRead+scan->pOffset)<=scan->nBeams)?scan->nRead:scan->nBeams-scan->pOffset;
-  buffSize=(uint64_t)sizeof(tlsBeam)*(uint64_t)nRead;  /*amout to read in bytes*/
+  /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
+  buffSize=(uint64_t)sizeof(tlsBeam)*(uint64_t)scan->nRead;  /*amout to read in bytes*/
+  if((buffSize+scan->totRead)>scan->totSize)buffSize=scan->totSize-scan->totRead;  /*adjust if at file end*/
+  nRead=(uint32_t)(buffSize/(uint64_t)sizeof(tlsBeam));      /*number of beams to read this time*/
   buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
-fprintf(stdout,"buffer %d %d %d this %d\n",scan->nRead,scan->pOffset,scan->nBeams,nRead);
   if(fread(&buffer[0],sizeof(char),buffSize,scan->ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
     exit(1);
   }
+  scan->totRead+=buffSize;
 
 
   /*if this is the last call, close file*/
@@ -218,8 +221,8 @@ fprintf(stdout,"buffer %d %d %d this %d\n",scan->nRead,scan->pOffset,scan->nBeam
 
   /*load buffer into structure*/
   offset=0;
-  scan->xOff=scan->yOff=scan->zOff=-1.0;
-  for(i=0;i<scan->nRead;i++){
+  if(place==0)scan->xOff=scan->yOff=scan->zOff=-10000000.0;  /*only reset once*/
+  for(i=0;i<nRead;i++){
     /*free up past allocations*/
     TIDY(scan->beam[i].r);
     TIDY(scan->beam[i].refl);
@@ -242,7 +245,7 @@ fprintf(stdout,"buffer %d %d %d this %d\n",scan->nRead,scan->pOffset,scan->nBeam
     offset+=1;
 
     /*apply offset to coords*/
-    if(scan->yOff<0.0){
+    if(scan->yOff<-1000000.0){
       scan->xOff=tempX;
       scan->yOff=tempY;
       scan->zOff=tempZ;
@@ -252,6 +255,7 @@ fprintf(stdout,"buffer %d %d %d this %d\n",scan->nRead,scan->pOffset,scan->nBeam
     scan->beam[i].y=(float)(tempY-scan->yOff);
     scan->beam[i].z=(float)(tempZ-scan->zOff);
 
+    /*copy hit information, multiple per beam*/
     if(scan->beam[i].nHits>0){
       scan->beam[i].r=falloc((int)scan->beam[i].nHits,"range",i);
       scan->beam[i].refl=falloc((int)scan->beam[i].nHits,"refl",i);
@@ -449,7 +453,6 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   scan->xOff=tempTLS->xOff;
   scan->yOff=tempTLS->yOff;
   scan->zOff=tempTLS->zOff;
-  /*fprintf(stdout,"Scan centre %f %f %f\n",scan->xOff,scan->yOff,scan->zOff);*/
 
   /*is the scan within maxR of the bounds?*/
   if(((vox->bounds[0]-tempTLS->xOff)<=maxR)&&((vox->bounds[1]-tempTLS->yOff)<=maxR)&&\
@@ -478,7 +481,6 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
                   &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList);
       if(nIntersect==0)continue;   /*if no voxels intersected*/
 
-
       /*add up gap fraction for intersected voxels*/
       noteVoxelGaps(voxList,nIntersect,rangeList,vox,tempTLS,tInd,maxR,useFracGap,lidPar,fInd);
 
@@ -500,6 +502,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
     /*determine gap fraction and normalise parameters*/
     for(vPlace=0;vPlace<vox->nVox;vPlace++){
+      /*gap fraction for scaling point size. Only used when points are saved*/
       for(k=0;k<map->nIn[vPlace];k++){
         pInd=map->mapPoint[vPlace][k];
         if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
@@ -556,7 +559,7 @@ tlsScan *tidyTLScan(tlsScan *scan)
 
   if(scan){
     if(scan->beam){
-      for(i=0;i<scan->nBeams;i++){
+      for(i=0;i<scan->nRead;i++){
         TIDY(scan->beam[i].refl);
         TIDY(scan->beam[i].r);
       }
