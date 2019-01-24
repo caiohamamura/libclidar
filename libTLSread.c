@@ -139,7 +139,7 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 /*##################################################################*/
 /*read single TLS scan, all data*/
 
-tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
+void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 {
   int i=0;
   uint32_t nRead=0;      /*number to read on this pass*/
@@ -150,88 +150,85 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
   char *buffer=NULL;
 
   /*is this the first call?*/
-  if(scan==NULL){  /*if so, read size and allocate space*/
+  if((*scan)==NULL){  /*if so, read size and allocate space*/
     fprintf(stdout,"Reading %s ",namen);
-    /*make sure the scan is free*/
-    if(scan){
-      TIDY(scan);
-      scan=NULL;
-    }
 
     /*allocate structure and open*/
-    if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
+    if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
       fprintf(stderr,"error scan allocation.\n");
       exit(1);
     }
-    if((scan->ipoo=fopen(namen,"rb"))==NULL){
+    if(((*scan)->ipoo=fopen(namen,"rb"))==NULL){
       fprintf(stderr,"Error opening input file %s\n",namen);
       exit(1);
     }
   
     /*last 4 bytes state number of beams*/
-    if(fseek(scan->ipoo,(long)-4,SEEK_END)){ /*skip to 4 bytes from the end*/
+    if(fseek((*scan)->ipoo,(long)-4,SEEK_END)){ /*skip to 4 bytes from the end*/
       fprintf(stderr,"fseek error from end\n");
       exit(1);
     }
-    scan->nRead=(uint32_t)(500000000/sizeof(tlsBeam));
-    scan->totSize=(uint64_t)ftell(scan->ipoo);
-    if(fread(&scan->nBeams,sizeof(uint32_t),1,scan->ipoo)!=1){
+    (*scan)->nRead=(uint32_t)(500000000/sizeof(tlsBeam));
+    (*scan)->totSize=(uint64_t)ftell((*scan)->ipoo);
+    if(fread(&((*scan)->nBeams),sizeof(uint32_t),1,(*scan)->ipoo)!=1){
       fprintf(stderr,"Error reading number of points\n");
       exit(1);
     }
-    fprintf(stdout,"There are %d TLS beams\n",scan->nBeams);
+    fprintf(stdout,"There are %d TLS beams\n",(*scan)->nBeams);
 
     /*seek back to start of file and set buffer sizes*/
-    if(fseek(scan->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
+    if(fseek((*scan)->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
       fprintf(stderr,"fseek error to start\n");
       exit(1);
     }
-    scan->totRead=0;
-    if(scan->nRead>scan->nBeams)scan->nRead=scan->nBeams;
-    scan->pOffset=0;
+    (*scan)->totRead=0;
+    if((*scan)->nRead>(*scan)->nBeams)(*scan)->nRead=(*scan)->nBeams;
+    (*scan)->pOffset=0;
     /*allocate space for beams*/
-    if(!(scan->beam=(tlsBeam *)calloc((long)scan->nRead,sizeof(tlsBeam)))){
-      fprintf(stderr,"error beam allocation. Allocating %d\n",scan->nRead);
+    if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->nRead,sizeof(tlsBeam)))){
+      fprintf(stderr,"error beam allocation. Allocating %d\n",(*scan)->nRead);
       exit(1);
     }
-  }else if(((place%scan->nRead)>0)||(place==0)){  /*do we need to read anymore?*/
-    return(scan);  /*if not, pass straight back to avoid reading data*/
-  }else scan->pOffset+=scan->nRead; /*increment the position*/
+  }else if(((place%(*scan)->nRead)>0)||(place==0)){  /*do we need to read anymore?*/
+    return;  /*if not, pass straight back to avoid reading data*/
+  }else (*scan)->pOffset+=(*scan)->nRead; /*increment the position*/
 
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
-  buffSize=(uint64_t)sizeof(tlsBeam)*(uint64_t)scan->nRead;  /*amout to read in bytes*/
-  if((buffSize+scan->totRead)>scan->totSize)buffSize=scan->totSize-scan->totRead;  /*adjust if at file end*/
+  buffSize=(uint64_t)sizeof(tlsBeam)*(uint64_t)(*scan)->nRead;  /*amout to read in bytes*/
+  if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
   nRead=(uint32_t)(buffSize/(uint64_t)sizeof(tlsBeam));      /*number of beams to read this time*/
   buffer=challoc(buffSize,"buffer",0);   /*allocate spave*/
-  if(fread(&buffer[0],sizeof(char),buffSize,scan->ipoo)!=buffSize){  /*read beams*/
+  if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
     exit(1);
   }
-  scan->totRead+=buffSize;
+  (*scan)->totRead+=buffSize;
 
+  fprintf(stdout,"%u Reading data chunk %lu\n",place,buffSize);
 
   /*if this is the last call, close file*/
-  if((scan->pOffset+scan->nRead)>=scan->nBeams){
-    if(scan->ipoo){
-      fclose(scan->ipoo);
-      scan->ipoo=NULL;
+  if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
+    fprintf(stdout,"Closing file\n");
+    if((*scan)->ipoo){
+      fclose((*scan)->ipoo);
+      (*scan)->ipoo=NULL;
     }
   }/*file closing check*/
 
   /*load buffer into structure*/
   offset=0;
-  if(place==0)scan->xOff=scan->yOff=scan->zOff=-10000000.0;  /*only reset once*/
+  if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
   for(i=0;i<nRead;i++){
     /*free up past allocations*/
-    TIDY(scan->beam[i].r);
-    TIDY(scan->beam[i].refl);
+    TIDY((*scan)->beam[i].r);
+    TIDY((*scan)->beam[i].refl);
     /*copy over new beams*/
-    memcpy(&(scan->beam[i].zen),&buffer[offset],8);
-    scan->beam[i].zen*=M_PI/180.0; /*convert to radians*/
+    memcpy(&((*scan)->beam[i].zen),&buffer[offset],8);
+    (*scan)->beam[i].zen*=M_PI/180.0; /*convert to radians*/
     offset+=8;
-    memcpy(&(scan->beam[i].az),&buffer[offset],8);
-    scan->beam[i].az*=M_PI/180.0; /*convert to radians*/
+    memcpy(&((*scan)->beam[i].az),&buffer[offset],8);
+    (*scan)->beam[i].az*=M_PI/180.0; /*convert to radians*/
     offset+=8;
     memcpy(&tempX,&buffer[offset],8);
     offset+=8;
@@ -239,37 +236,36 @@ tlsScan *readTLSpolarBinary(char *namen,uint32_t place,tlsScan *scan)
     offset+=8;
     memcpy(&tempZ,&buffer[offset],8);
     offset+=8;
-    memcpy(&(scan->beam[i].shotN),&buffer[offset],4);
+    memcpy(&((*scan)->beam[i].shotN),&buffer[offset],4);
     offset+=4;
-    memcpy(&(scan->beam[i].nHits),&buffer[offset],1);
+    memcpy(&((*scan)->beam[i].nHits),&buffer[offset],1);
     offset+=1;
 
     /*apply offset to coords*/
-    if(scan->yOff<-1000000.0){
-      scan->xOff=tempX;
-      scan->yOff=tempY;
-      scan->zOff=tempZ;
+    if((*scan)->yOff<-1000000.0){
+      (*scan)->xOff=tempX;
+      (*scan)->yOff=tempY;
+      (*scan)->zOff=tempZ;
     }
-
-    scan->beam[i].x=(float)(tempX-scan->xOff);
-    scan->beam[i].y=(float)(tempY-scan->yOff);
-    scan->beam[i].z=(float)(tempZ-scan->zOff);
+    (*scan)->beam[i].x=(float)(tempX-(*scan)->xOff);
+    (*scan)->beam[i].y=(float)(tempY-(*scan)->yOff);
+    (*scan)->beam[i].z=(float)(tempZ-(*scan)->zOff);
 
     /*copy hit information, multiple per beam*/
-    if(scan->beam[i].nHits>0){
-      scan->beam[i].r=falloc((int)scan->beam[i].nHits,"range",i);
-      scan->beam[i].refl=falloc((int)scan->beam[i].nHits,"refl",i);
-      for(j=0;j<scan->beam[i].nHits;j++){
-        memcpy(&(scan->beam[i].r[j]),&buffer[offset],4);
+    if((*scan)->beam[i].nHits>0){
+      (*scan)->beam[i].r=falloc((int)(*scan)->beam[i].nHits,"range",i);
+      (*scan)->beam[i].refl=falloc((int)(*scan)->beam[i].nHits,"refl",i);
+      for(j=0;j<(*scan)->beam[i].nHits;j++){
+        memcpy(&((*scan)->beam[i].r[j]),&buffer[offset],4);
         offset+=4;
-        memcpy(&(scan->beam[i].refl[j]),&buffer[offset],4);
+        memcpy(&((*scan)->beam[i].refl[j]),&buffer[offset],4);
         offset+=4;
       }/*hit loop*/
     }/*hit check*/
   }/*load into array loop*/
 
   TIDY(buffer);
-  return(scan);
+  return;
 }/*readTLSpolarBinary*/
 
 
@@ -420,7 +416,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   void saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
 
 
-  /*max range of Riegl: OTHERS ARE SHORTER. COULD BE ADJUSTABLE*/
+  /*max range of Riegl: OTHERS ARE SHORTER or longer. COULD BE ADJUSTABLE*/
   maxR=300.0;
 
   /*allocate space*/
@@ -428,24 +424,25 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     fprintf(stderr,"error in tls structure allocation.\n");
     exit(1);
   }
-  if(map->mapFile==NULL){
-    map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
-    if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
-      fprintf(stderr,"error in voxel point map allocation.\n");
-      exit(1);
-    }
-    map->nIn=ialloc(vox->nVox,"voxel map number",0);        /*file per voxel*/
-  }
 
   /*read all data into RAM*/
-  tempTLS=readTLSpolarBinary(namen,0,NULL);
+  readTLSpolarBinary(namen,0,&tempTLS);
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
+    fprintf(stdout,"We will be saving points\n");
     nBuff=4*tempTLS->nBeams;
     if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
       fprintf(stderr,"error in tls point allocation. Allocating %lu\n",nBuff*sizeof(tlsPoint));
       exit(1);
+    }
+    if(map->mapFile==NULL){
+      map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
+      if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
+        fprintf(stderr,"error in voxel point map allocation.\n");
+        exit(1);
+      }
+      map->nIn=ialloc(vox->nVox,"voxel map number",0);        /*file per voxel*/
     }
   }
   scan->nPoints=scan->nBeams=0;
@@ -462,7 +459,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*loop over beams in scan*/
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
-      tempTLS=readTLSpolarBinary(namen,j,tempTLS);
+      readTLSpolarBinary(namen,j,&tempTLS);
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/
@@ -502,13 +499,17 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
     /*determine gap fraction and normalise parameters*/
     for(vPlace=0;vPlace<vox->nVox;vPlace++){
-      /*gap fraction for scaling point size. Only used when points are saved*/
-      for(k=0;k<map->nIn[vPlace];k++){
-        pInd=map->mapPoint[vPlace][k];
-        if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
-          scan->point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
-        }else scan->point[pInd].gap=1.0;
-      }/*point within voxel loop*/
+
+      if(vox->savePts){
+        /*gap fraction for scaling point size. Only used when points are saved*/
+        for(k=0;k<map->nIn[vPlace];k++){
+          pInd=map->mapPoint[vPlace][k];
+          if((vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace])>0.0){
+            scan->point[pInd].gap=vox->hits[fInd][vPlace]/(vox->hits[fInd][vPlace]+vox->miss[fInd][vPlace]);
+          }else scan->point[pInd].gap=1.0;
+        }/*point within voxel loop*/
+      }/*if we are saving points*/
+
       /*normalise mean properties*/
       if(vox->hits[fInd][vPlace]>0.0){
         vox->meanRefl[fInd][vPlace]/=vox->hits[fInd][vPlace];
