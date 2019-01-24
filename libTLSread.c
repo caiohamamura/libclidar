@@ -148,6 +148,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   unsigned char j=0;
   double tempX=0,tempY=0,tempZ=0;
   char *buffer=NULL;
+uint64_t totHits=0;
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
@@ -205,7 +206,8 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   }
   (*scan)->totRead+=buffSize;
 
-  fprintf(stdout,"%u Reading data chunk %lu\n",place,buffSize);
+  fprintf(stdout,"%u of %d Reading data chunk %lu\n",place,(*scan)->nBeams,buffSize);
+  fflush(stdout);
 
   /*if this is the last call, close file*/
   if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
@@ -216,13 +218,16 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     }
   }/*file closing check*/
 
+  /*free up past allocations*/
+  for(i=0;i<(*scan)->nRead;i++){
+    TIDY((*scan)->beam[i].r);
+    TIDY((*scan)->beam[i].refl);
+  }
+
   /*load buffer into structure*/
   offset=0;
   if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
   for(i=0;i<nRead;i++){
-    /*free up past allocations*/
-    TIDY((*scan)->beam[i].r);
-    TIDY((*scan)->beam[i].refl);
     /*copy over new beams*/
     memcpy(&((*scan)->beam[i].zen),&buffer[offset],8);
     (*scan)->beam[i].zen*=M_PI/180.0; /*convert to radians*/
@@ -253,6 +258,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
     /*copy hit information, multiple per beam*/
     if((*scan)->beam[i].nHits>0){
+totHits+=(uint64_t)(*scan)->beam[i].nHits;
       (*scan)->beam[i].r=falloc((int)(*scan)->beam[i].nHits,"range",i);
       (*scan)->beam[i].refl=falloc((int)(*scan)->beam[i].nHits,"refl",i);
       for(j=0;j<(*scan)->beam[i].nHits;j++){
@@ -263,6 +269,9 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
       }/*hit loop*/
     }/*hit check*/
   }/*load into array loop*/
+
+  fprintf(stdout,"Read chunk %lu hits\n",totHits);
+  fflush(stdout);
 
   TIDY(buffer);
   return;
@@ -479,15 +488,23 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       if(nIntersect==0)continue;   /*if no voxels intersected*/
 
       /*add up gap fraction for intersected voxels*/
+//fprintf(stdout,"Noting gaps\n");fflush(stdout);
       noteVoxelGaps(voxList,nIntersect,rangeList,vox,tempTLS,tInd,maxR,useFracGap,lidPar,fInd);
+//fprintf(stdout,"Noted gaps\n");fflush(stdout);
 
       /*record and map useful points if needed*/
-      if(vox->savePts)saveTLSpoints(tempTLS,tInd,vox,scan,xCent,yCent,zCent,map,fInd);
+      if(vox->savePts){
+fprintf(stdout,"Saving points\n");fflush(stdout);
+        saveTLSpoints(tempTLS,tInd,vox,scan,xCent,yCent,zCent,map,fInd);
+fprintf(stdout,"Saved points\n");fflush(stdout);
+      }
 
       /*clear voxel intersection arrays*/
       TIDY(rangeList);
       TIDY(voxList);
     }/*beam loop*/
+
+fprintf(stdout,"Read all beams\n");fflush(stdout);
 
     /*reallocate*/
     if((scan->nPoints>0)&&(scan->nPoints<tempTLS->nPoints)){
