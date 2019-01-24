@@ -366,13 +366,13 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   double zen=0,az=0;
   double vCorn[6];
   double x=0,y=0;
-  double *coords=NULL,*iCoords=NULL,vThis[6];
+  double *coords=NULL,iCoords[3],vThis[6];
   char angUp(double);
   char angRight(double,double);
   char angForward(double,double);
   char onEdge(double *,double *,double *,int);
-  double *sideTest(double,double,double *,double *,double *);
   double *markDo(int,double *,double);
+  void sideTest(double,double,double *,double *,double *,double *);
   void findClosestFacet(double *,double *,double,double);
 
   if(grad[2]>-9999.0){   /*grad is a Cartesian vector*/
@@ -427,30 +427,28 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     vThis[5]=vThis[2]+vRes[2];
 
     if((zen==(M_PI/2.0))||(zen==(-M_PI/2.0))){  /*a side*/
-      iCoords=sideTest(zen,az,coords,vThis,vRes);
+      sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
     }else if(angUp(zen)){  /*top plate intercept*/
       x=(vThis[5]-coords[2])*tanZen*sinAz+coords[0];
       y=(vThis[5]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through top*/
-        iCoords=dalloc(3,"intersect coords",0);
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[5];
       }else{   /*through a side*/
-        iCoords=sideTest(zen,az,coords,vThis,vRes);
+        sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }else{                 /*bottom plate intercept*/
       x=(vThis[2]-coords[2])*tanZen*sinAz+coords[0];
       y=(vThis[2]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through bottom*/
-        iCoords=dalloc(3,"intersect coords",0);
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[2];
       }else{         /*through a side*/
-        iCoords=sideTest(zen,az,coords,vThis,vRes);
+        sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }
     /*mark results*/
@@ -461,9 +459,9 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
       (*nPix)++;
     }/*bounds check*/
 
-    TIDY(coords);    /*update coordinates*/
-    coords=iCoords;
-    iCoords=NULL;
+    coords[0]=iCoords[0];
+    coords[1]=iCoords[1];
+    coords[2]=iCoords[2];
   }/*voxel while loop*/
 
   /*mark the exit range too*/
@@ -471,7 +469,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
      (coords[0]-xCent)+(coords[1]-yCent)*(coords[1]-yCent)+(coords[2]-zCent)*(coords[2]-zCent)));
 
   /*tidy arrays*/
-  TIDY(iCoords);
   TIDY(coords);
   return(pixList);
 }/*findVoxels*/
@@ -480,14 +477,11 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
 /*#######################################*/
 /*test for side intersection*/
 
-double *sideTest(double zen,double az,double *coords,double *vThis,double *vRes)
+void sideTest(double zen,double az,double *coords,double *vThis,double *vRes,double *iCoords)
 {
-  double *iCoords=NULL;
   double d=0,xSep=0;
   double r=0;
   char angRight(double,double);
-
-  iCoords=dalloc(3,"intersect coordinates",0);
 
   if(angRight(zen,az))xSep=vRes[0]-(coords[0]-vThis[0]);
   else                xSep=vThis[0]-coords[0];
@@ -513,7 +507,7 @@ double *sideTest(double zen,double az,double *coords,double *vThis,double *vRes)
     iCoords[1]=r*sinZen*cosAz+coords[1];
     iCoords[2]=r*cosZen+coords[2];
   }
-  return(iCoords);
+  return;
 }/*sideTest*/
 
 
