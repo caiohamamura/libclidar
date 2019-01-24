@@ -451,6 +451,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }
+if((*nPix)>30)fprintf(stdout,"nPix %d %f %f\n",*nPix,zen*180.0/M_PI,az*180.0/M_PI);
     /*mark results*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){ /*bounds check*/
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
