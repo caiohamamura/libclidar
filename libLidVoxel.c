@@ -914,10 +914,10 @@ void readBoundsFromTLS(double *bounds,char **inList,int nScans)
   bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
 
   for(i=0;i<nScans;i++){  /*file loop*/
-    tempTLS=readTLSpolarBinary(inList[i],0,NULL);
+    readTLSpolarBinary(inList[i],0,&tempTLS);
     for(j=0;j<tempTLS->nBeams;j++){/*point loop*/
       /*update TLS beams if needed*/
-      tempTLS=readTLSpolarBinary(inList[i],j,tempTLS);
+      readTLSpolarBinary(inList[i],j,&tempTLS);
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
       /*beam origin*/
       xCent=(double)tempTLS->beam[tInd].x+tempTLS->xOff;
