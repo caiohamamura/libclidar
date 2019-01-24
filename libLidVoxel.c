@@ -382,6 +382,15 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     zen=grad[0];
     az=grad[1];
   }
+
+  (*nPix)=0;
+
+  /*to prevent nonesense values*/
+  if((az<(-2.0*M_PI-TOLERANCE))||(az>(2.0*M_PI+TOLERANCE))||(zen<(-2.0*M_PI))||(zen>(2.0*M_PI))){
+    fprintf(stderr,"Angle error %f\n",az*180.0/M_PI);
+    return(NULL);
+  }
+
   sinZen=sin(zen);
   cosZen=cos(zen);
   tanZen=tan(zen);
@@ -400,7 +409,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   vCorn[3]=bounds[3];  /*maxX*/
   vCorn[4]=bounds[4];  /*maxY*/
   vCorn[5]=bounds[5];  /*maxZ*/
-  (*nPix)=0;
 
 
   /*if we are outside test for intersection and move point*/
