@@ -386,7 +386,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   (*nPix)=0;
 
   /*to prevent nonesense values*/
-  if((az<(-2.0*M_PI-TOLERANCE))||(az>(2.0*M_PI+TOLERANCE))||(zen<(-2.0*M_PI))||(zen>(2.0*M_PI))){
+  if((az<(-2.1*M_PI))||(az>(2.1*M_PI))||(zen<(-2.1*M_PI))||(zen>(2.1*M_PI))){
     fprintf(stderr,"Angle error %f\n",az*180.0/M_PI);
     return(NULL);
   }
@@ -459,7 +459,17 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }
-if((*nPix)>100)fprintf(stdout,"nPix %d %f %f\n",*nPix,zen*180.0/M_PI,az*180.0/M_PI);
+
+    /*catch rare cases of beams getting stuck between voxels. Needs resolving in a nicer way*/
+    if((*nPix)>1000){
+      fprintf(stdout,"nPix %d %f %f\n",*nPix,zen*180.0/M_PI,az*180.0/M_PI);
+      (*nPix)=0;
+      TIDY(coords);
+      TIDY(pixList);
+      TIDY(rangeList[0]);    
+      return(pixList);
+    }
+
     /*mark results*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){ /*bounds check*/
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
