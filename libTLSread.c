@@ -141,23 +141,23 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 
 void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 {
-  int i=0;
-  uint32_t nRead=0;      /*number to read on this pass*/
+  uint32_t i=0;
+  uint32_t nRead=0;
   uint64_t offset=0;
   uint64_t buffSize=0;   /*buffer size*/
-  uint64_t meanSize=0;   /*mean size of a beam element*/
+  uint64_t buffEnd=0;    /*end of file reading buffer*/
   unsigned char j=0;
   double tempX=0,tempY=0,tempZ=0;
   char *buffer=NULL;
 
-  /*calculate *mean size of a beam element*/
-  meanSize=sizeof(tlsBeam)+4*sizeof(float);  /*assume 2 hits per beam average*/
+  /*file reading buffer size. Hardwired to 500 Mbytes for now*/
+  buffSize=500000000;
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
     fprintf(stdout,"Reading %s ",namen);
 
-    /*allocate structure and open*/
+    /*allocate structure and open file*/
     if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
       fprintf(stderr,"error scan allocation.\n");
       exit(1);
@@ -172,13 +172,13 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
       fprintf(stderr,"fseek error from end\n");
       exit(1);
     }
-    (*scan)->nRead=(uint32_t)(500000000/meanSize);
     (*scan)->totSize=(uint64_t)ftell((*scan)->ipoo);
     if(fread(&((*scan)->nBeams),sizeof(uint32_t),1,(*scan)->ipoo)!=1){
       fprintf(stderr,"Error reading number of points\n");
       exit(1);
     }
     fprintf(stdout,"There are %d TLS beams\n",(*scan)->nBeams);
+    if(buffSize>(*scan)->totSize)buffSize=(*scan)->totSize;  /*reset buffer if it is too big*/
 
     /*seek back to start of file and set buffer sizes*/
     if(fseek((*scan)->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
@@ -186,47 +186,41 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
       exit(1);
     }
     (*scan)->totRead=0;
-    if((*scan)->nRead>(*scan)->nBeams)(*scan)->nRead=(*scan)->nBeams;
     (*scan)->pOffset=0;
+    (*scan)->nRead=0;
     /*allocate space for beams*/
-    if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->nRead,sizeof(tlsBeam)))){
-      fprintf(stderr,"error beam allocation. Allocating %d\n",(*scan)->nRead);
+    if(!((*scan)->beam=(tlsBeam *)calloc((long)(buffSize/sizeof(tlsBeam)),sizeof(tlsBeam)))){
+      fprintf(stderr,"error beam allocation. Allocating %lu\n",buffSize);
       exit(1);
     }
-  }else if(((place%(*scan)->nRead)>0)||(place==0)){  /*do we need to read anymore?*/
+  }else if((place==0)||((place-(*scan)->pOffset)<(*scan)->nRead)){  /*do we need to read anymore?*/
     return;  /*if not, pass straight back to avoid reading data*/
-  }else (*scan)->pOffset+=(*scan)->nRead; /*increment the position*/
+  }
 
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
-  buffSize=meanSize*(uint64_t)(*scan)->nRead;  /*amout to read in bytes*/
-
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
-  nRead=(uint32_t)(buffSize/meanSize);      /*number of beams to read this time*/
   buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
   if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
     exit(1);
   }
 
-  /*if this is the last call, close file*/
-  if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
-    if((*scan)->ipoo){
-      fclose((*scan)->ipoo);
-      (*scan)->ipoo=NULL;
-    }
-  }/*file closing check*/
-
   /*free up old space*/
+  nRead=(uint32_t)(buffSize/sizeof(tlsBeam));
   for(i=0;i<nRead;i++){
     TIDY((*scan)->beam[i].r);
     TIDY((*scan)->beam[i].refl);
   }
 
+fprintf(stdout,"Reading %lu %lu %u %u\n",offset,buffSize,i,nRead);
+
   /*load buffer into structure*/
-  offset=0;
   if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
-  for(i=0;i<nRead;i++){
+  i=0;
+  offset=0;
+  buffEnd=buffSize-(5*8+4+1); /*the longest buffer for a zero hit shot*/
+  while((offset<buffEnd)&&(i<nRead)){
     /*copy over new beams*/
     memcpy(&((*scan)->beam[i].zen),&buffer[offset],8);
     (*scan)->beam[i].zen*=M_PI/180.0; /*convert to radians*/
@@ -244,6 +238,13 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     offset+=4;
     memcpy(&((*scan)->beam[i].nHits),&buffer[offset],1);
     offset+=1;
+
+    /*make sure we don't go off the end of the buffer for shots with hits*/
+    if((offset+(*scan)->beam[i].nHits*4)>=buffSize){
+      offset-=5*8+4+1; /*rewind a little*/
+      i--;
+      break;
+    }
 
     /*apply offset to coords*/
     if((*scan)->yOff<-1000000.0){
@@ -266,12 +267,25 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
         offset+=4;
       }/*hit loop*/
     }/*hit check*/
+
+    i++;  /*increment beam counter*/
   }/*load into array loop*/
 
+  /*increment position*/
+  (*scan)->nRead=i;               /*number of points read this time*/
+  if(place>0)(*scan)->pOffset+=i; /*offset to first point in RAM*/
+  (*scan)->totRead+=offset;       /*file positrion in bytes*/
+
+  /*if this is the last call, close file*/
+  if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
+    if((*scan)->ipoo){
+      fclose((*scan)->ipoo);
+      (*scan)->ipoo=NULL;
+    }
+  }/*file closing check*/
 
   /*We will not have read a whole number of beams,*/
   /*as each can have a variable number of hits*/
-  (*scan)->totRead+=offset;
   if((*scan)->ipoo){
     if(fseek((*scan)->ipoo,(long)((*scan)->totRead),SEEK_SET)){ /*rewind to whole number of beams*/
       fprintf(stderr,"fseek error to start\n");
