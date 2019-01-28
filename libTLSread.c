@@ -485,7 +485,6 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       voxList=findVoxels(&(grad[0]),xCent,yCent,zCent,vox->bounds,\
                   &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList);
       if(nIntersect==0)continue;   /*if no voxels intersected*/
-if(nIntersect>50)fprintf(stdout,"Worryingly high %d\n",nIntersect);
 
       /*add up gap fraction for intersected voxels*/
       noteVoxelGaps(voxList,nIntersect,rangeList,vox,tempTLS,tInd,maxR,useFracGap,lidPar,fInd);
