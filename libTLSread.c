@@ -200,6 +200,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
   buffSize=meanSize*(uint64_t)(*scan)->nRead;  /*amout to read in bytes*/
+
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
   nRead=(uint32_t)(buffSize/meanSize);      /*number of beams to read this time*/
   buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
