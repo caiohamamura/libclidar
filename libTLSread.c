@@ -217,6 +217,12 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     }
   }/*file closing check*/
 
+  /*free up old space*/
+  for(i=0;i<nRead;i++){
+    TIDY((*scan)->beam[i].r);
+    TIDY((*scan)->beam[i].refl);
+  }
+
   /*load buffer into structure*/
   offset=0;
   if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
