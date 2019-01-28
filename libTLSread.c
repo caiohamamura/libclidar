@@ -142,7 +142,6 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 {
   uint32_t i=0;
-  uint32_t nRead=0;
   uint64_t offset=0;
   uint64_t buffSize=0;   /*buffer size*/
   uint64_t buffEnd=0;    /*end of file reading buffer*/
@@ -151,7 +150,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   char *buffer=NULL;
 
   /*file reading buffer size. Hardwired to 500 Mbytes for now*/
-  buffSize=500000000;
+  buffSize=500000;
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
@@ -188,15 +187,15 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     (*scan)->totRead=0;
     (*scan)->pOffset=0;
     (*scan)->nRead=0;
+    (*scan)->maxRead=(uint32_t)(buffSize/(sizeof(tlsBeam)-2*4));  /*if all beams had hits, there would be fewer bytes per beam*/
     /*allocate space for beams*/
-    if(!((*scan)->beam=(tlsBeam *)calloc((long)(buffSize/sizeof(tlsBeam)),sizeof(tlsBeam)))){
+    if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
       fprintf(stderr,"error beam allocation. Allocating %lu\n",buffSize);
       exit(1);
     }
-  }else if((place==0)||((place-(*scan)->pOffset)<(*scan)->nRead)){  /*do we need to read anymore?*/
+  }else if((place==0)||(((uint64_t)place-(uint64_t)(*scan)->pOffset)<(uint64_t)(*scan)->nRead)){  /*do we need to read anymore?*/
     return;  /*if not, pass straight back to avoid reading data*/
   }
-
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
@@ -206,20 +205,20 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     exit(1);
   }
 
-  /*free up old space*/
-  nRead=(uint32_t)(buffSize/sizeof(tlsBeam));
-  for(i=0;i<nRead;i++){
+  /*free up old space to prevent it being reallocated and wasting RAM*/
+  for(i=0;i<(*scan)->maxRead;i++){
     TIDY((*scan)->beam[i].r);
     TIDY((*scan)->beam[i].refl);
+    (*scan)->beam[i].nHits=0;
   }
 
   /*load buffer into structure*/
   if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
   i=0;
   offset=0;
-  buffEnd=buffSize-(5*8+4+1); /*the longest buffer for a zero hit shot*/
-  while((offset<buffEnd)&&(i<nRead)){
-    /*copy over new beams*/
+  buffEnd=buffSize-(5*8+4+1); /*the longest buffer for a beam with 20 hits*/
+  while((offset<buffEnd)&&(i<(*scan)->maxRead)){
+    /*copy over a beam*/
     memcpy(&((*scan)->beam[i].zen),&buffer[offset],8);
     (*scan)->beam[i].zen*=M_PI/180.0; /*convert to radians*/
     offset+=8;
@@ -236,13 +235,6 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     offset+=4;
     memcpy(&((*scan)->beam[i].nHits),&buffer[offset],1);
     offset+=1;
-
-    /*make sure we don't go off the end of the buffer for shots with hits*/
-    if((offset+(*scan)->beam[i].nHits*4)>=buffSize){
-      offset-=5*8+4+1; /*rewind a little*/
-      i--;
-      break;
-    }
 
     /*apply offset to coords*/
     if((*scan)->yOff<-1000000.0){
@@ -270,8 +262,8 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   }/*load into array loop*/
 
   /*increment position*/
+  (*scan)->pOffset+=(*scan)->nRead; /*offset to first point in RAM*/
   (*scan)->nRead=i;               /*number of points read this time*/
-  if(place>0)(*scan)->pOffset+=i; /*offset to first point in RAM*/
   (*scan)->totRead+=offset;       /*file positrion in bytes*/
 
   /*if this is the last call, close file*/
@@ -305,6 +297,7 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
   float lastHitR=0;
   float appRefl=0,rad=0;
   char doIt=0,hasHit=0;
+
 
   /*find the range to the last hit*/
   if(tempTLS->beam[j].nHits>0)lastHitR=(tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]<maxR)?tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]:maxR;
