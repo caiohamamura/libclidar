@@ -337,7 +337,6 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
           }
         }/*final list loop*/
         if(foundNew==1){  /*if new, mark it*/
-//fprintf(stdout,"new pixel 2 %d\n",*nPix);
           pixList=markInt(*nPix,pixList,tempList[j]);
           rangeList[0]=markDo(*nPix,rangeList[0],tempRange[j]);
           (*nPix)++;
@@ -384,12 +383,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   }
 
   (*nPix)=0;
-
-  /*to prevent nonesense values*/
-  if((az<(-2.1*M_PI))||(az>(2.1*M_PI))||(zen<(-2.1*M_PI))||(zen>(2.1*M_PI))){
-    fprintf(stderr,"Angle error %f\n",az*180.0/M_PI);
-    return(NULL);
-  }
 
   sinZen=sin(zen);
   cosZen=cos(zen);

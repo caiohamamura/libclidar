@@ -113,11 +113,7 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     memcpy(&nHits,&buffer[offset],1);
     offset+=1;
 
-if((nHits<0)||(nHits>10000)){
-  fprintf(stderr,"Odd hit value %d\n",nHits);
-  exit(1);
-}
-
+    /*loop over hits in this beam*/
     for(j=0;j<nHits;j++){
       memcpy(&r,&buffer[offset],4);
       offset+=4;
