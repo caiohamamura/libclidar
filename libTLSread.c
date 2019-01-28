@@ -150,7 +150,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   char *buffer=NULL;
 
   /*file reading buffer size. Hardwired to 500 Mbytes for now*/
-  buffSize=500000;
+  buffSize=500000000;
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
