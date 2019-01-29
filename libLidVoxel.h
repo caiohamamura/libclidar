@@ -145,7 +145,7 @@ typedef struct{
 /*TLS scan*/
 
 typedef struct{
-  tlsBeam *beam;     /*array of beams*/
+  tlsBeam *beam;     /*array of beams from a riegl*/
   tlsPoint *point;   /*array of points*/
   double xOff;       /*offset to allow coords to be floats*/
   double yOff;       /*offset to allow coords to be floats*/
