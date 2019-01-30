@@ -170,6 +170,7 @@ tlsScan *tidyTLScans(tlsScan *,int);
 tlsScan *readTLSwithinVox(char **,int,voxStruct *,char,tlsVoxMap *);
 tlsScan *readOneTLS(char *,voxStruct *,char,tlsVoxMap *,int,lidVoxPar *);
 void readTLSpolarBinary(char *,uint32_t,tlsScan **);
+void readPTXscan(char *,uint32_t,tlsScan **);
 rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
