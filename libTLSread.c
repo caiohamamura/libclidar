@@ -298,13 +298,16 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 /*###################################*/
 /*read a PTX file*/
 
+/*###################################*/
+/*read a PTX file*/
+
 void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 {
   int j=0;
-  uint32_t i=0,newBeam=0;
+  uint32_t i=0;
   uint32_t xInd=0,yInd=0;
   uint32_t contN=0;
-  uint64_t fStart=0,dPlace=0;
+  uint64_t fStart=0;
   double x=0,y=0,z=0;
   float zen=0,az=0,diff=0;
   float lastZen=-400.0,lastAz=-400.0;
@@ -313,16 +316,11 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
   char temp3[25],temp4[25];
   void translateLeica(double *,double *,double *,float **);
   /*keep a list of done beams, only in here*/
-  static uint32_t nCol,nRow;
-  static char *doneList;
+  static uint32_t nRow;
   static double res;
-  static uint32_t nSkip;
-
 
   /*read header if first time*/
   if((*scan)==NULL){
-    doneList=NULL;
-    nSkip=0;
     res=0.0;
     contN=0;
     /*allocate space*/
@@ -339,14 +337,13 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       exit(1);
     }
 
-
     /*read header and determine file length*/
     i=0;
     while(fgets(line,100,(*scan)->ipoo)!=NULL){
       /*read the header*/
-      if(i<10){
-        if(i==0)nCol=atoi(line);
-        else if(i==1)nRow=atoi(line);
+     if(i<10){
+        /*if(i==0)nCol=atoi(line);*/
+        if(i==1)nRow=atoi(line);
         else{
           if(sscanf(line,"%s %s %s %s",temp1,temp2,temp3,temp4)==4){  /*translation matrix*/
             (*scan)->matrix[0][j]=atof(temp1);
@@ -384,7 +381,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 
           }else lastZen=lastAz=-400.0;
         }
-                  }
+      }
       i++;
     }
     res/=(double)contN;
@@ -394,10 +391,6 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     (*scan)->totRead=0;
     (*scan)->pOffset=0;
     fprintf(stdout,"Scan contains %u beams\n",(*scan)->nBeams);
-
-    /*set up donelist*/
-    doneList=challoc(nCol*nRow,"done list",0);
-    for(dPlace=0;dPlace<(uint64_t)nCol*(uint64_t)nRow;dPlace++)doneList[dPlace]=0;
 
     /*allocate space*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
@@ -409,9 +402,10 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       fprintf(stderr,"fseek error to start\n");
       exit(1);
     }
-  }else if(((place-(*scan)->pOffset)<(*scan)->nRead)||((nSkip+(*scan)->pOffset+(*scan)->nRead+1)>=(*scan)->nBeams)){  /*if still within block, return*/
+  }else if((place-(*scan)->pOffset)<(*scan)->nRead){  /*if still within block, return*/
     return;
   }/*header reading*/
+
 
   /*update offset*/
   if(place>0)(*scan)->pOffset+=(*scan)->nRead;
@@ -430,83 +424,57 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       y=atof(temp2);
       z=atof(temp3);
 
+      (*scan)->beam[i].x=0.0;  /*origin is always 0 for a Leica*/
+      (*scan)->beam[i].y=0.0;
+      (*scan)->beam[i].z=0.0;
+      (*scan)->beam[i].shotN=i;
+
       /*contains hits?*/
       if((fabs(x)+fabs(y)+fabs(z))>0.0){
-        /*translate it*/
-        translateLeica(&x,&y,&z,(*scan)->matrix);
-        (*scan)->beam[i].x=0.0;  /*origin is always 0 for a Leica*/
-        (*scan)->beam[i].y=0.0;
-        (*scan)->beam[i].z=0.0;
         /*get angles*/
+        translateLeica(&x,&y,&z,(*scan)->matrix);
         (*scan)->beam[i].zen=atan2(sqrt(x*x+y*y),z)*180.0/M_PI;
         (*scan)->beam[i].az=atan2(x,y)*180.0/M_PI;
         /*mark hit*/
         (*scan)->beam[i].nHits=1;
-        (*scan)->beam[i].shotN=i;
         (*scan)->beam[i].r=falloc(1,"range",i+1);
         (*scan)->beam[i].refl=falloc(1,"refl",i+1);
         (*scan)->beam[i].r[0]=sqrt(x*x+y*y+z*z);
         (*scan)->beam[i].refl[0]=atof(temp4);
 
-        /*mark which pixels have been done, for gap tracking*/
+        /*mark which pixels have been done for gap tracking*/
         xInd=(int)(((*scan)->beam[i].az+180.0)/(float)res+0.5);
         yInd=(int)((*scan)->beam[i].zen/(float)res+0.5);
-        dPlace=(uint64_t)xInd+(uint64_t)yInd*(uint64_t)nCol;
-        if((dPlace>=0)&&(dPlace<((uint64_t)nCol*(uint64_t)nRow)))doneList[dPlace]=1;
-
-        i++;
-        /*if we have read the whole chunk, break*/
-        if(i>=(*scan)->maxRead){
-          (*scan)->totRead=ftell((*scan)->ipoo);
-          break;
+      }else{  /*otherwise gap. NOTE that this should be diaganol across x*/
+        if(yInd>0)yInd--;
+        else{
+          yInd=nRow;
+          xInd++;
         }
-      }else nSkip++;
+        (*scan)->beam[i].zen=(float)res*(float)yInd;
+        (*scan)->beam[i].az=(float)res*(float)xInd-180.0;
+        (*scan)->beam[i].nHits=0;
+        (*scan)->beam[i].shotN=i;
+        (*scan)->beam[i].r=NULL;
+        (*scan)->beam[i].refl=NULL;
+      }
+
+      i++;
+      /*if we have read the whole chunk, break*/
+      if(i>=(*scan)->maxRead){
+        (*scan)->totRead=ftell((*scan)->ipoo);
+        break;
+      }
     }
   }/*data reading loop*/
   (*scan)->nRead=i;
-
   /*if this is the last call, close file*/
-  if(((*scan)->pOffset+(*scan)->nRead+nSkip+1)>=(*scan)->nBeams){
+  if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
     if((*scan)->ipoo){
       fclose((*scan)->ipoo);
       (*scan)->ipoo=NULL;
     }
     TTIDY((void **)(*scan)->matrix,4);
-
-    /*add all the empty hits*/
-    newBeam=0;
-    for(dPlace=(uint64_t)nCol*(uint64_t)nRow-1;dPlace>=0;dPlace--){
-      if(doneList[dPlace]==0)newBeam++;  /*blank shot*/
-    }
-    /*allocate more space*/
-    if(!((*scan)->beam=(tlsBeam *)realloc((*scan)->beam,(newBeam+(*scan)->nRead)*sizeof(tlsBeam)))){
-      fprintf(stderr,"Error in realoocation %lu\n",(newBeam+(*scan)->nRead)*sizeof(tlsBeam));
-      exit(1);
-    }
-    /*add missing shots*/
-    newBeam=0;
-    for(dPlace=(uint64_t)nCol*(uint64_t)nRow-1;dPlace>=0;dPlace--){
-      if(doneList[dPlace]==0){  /*blank shot*/
-        xInd=(uint32_t)(dPlace%(uint64_t)nCol);
-        yInd=(uint32_t)(dPlace/(uint64_t)nCol);
-
-        (*scan)->beam[newBeam+(*scan)->nRead].x=0.0;  /*origin is always 0*/
-        (*scan)->beam[newBeam+(*scan)->nRead].y=0.0;
-        (*scan)->beam[newBeam+(*scan)->nRead].z=0.0;
-        /*get angles*/
-        (*scan)->beam[newBeam+(*scan)->nRead].zen=(float)res*(float)yInd;
-        (*scan)->beam[newBeam+(*scan)->nRead].az=(float)res*(float)xInd-180.0;
-        /*mark hit*/
-        (*scan)->beam[newBeam+(*scan)->nRead].nHits=0;
-        (*scan)->beam[newBeam+(*scan)->nRead].shotN=newBeam+(*scan)->nRead;
-        (*scan)->beam[newBeam+(*scan)->nRead].r=NULL;
-        (*scan)->beam[newBeam+(*scan)->nRead].refl=NULL;
-
-        newBeam++;
-      }
-    }
-
-    TIDY(doneList);
   }/*file closing check*/
 
   return;
