@@ -318,6 +318,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
   /*keep a list of done beams, only in here*/
   static uint32_t nRow;
   static double res;
+  static float minZen,minAz;
 
   /*read header if first time*/
   if((*scan)==NULL){
@@ -339,6 +340,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 
     /*read header and determine file length*/
     i=0;
+    minAz=minZen=1000.0;
     while(fgets(line,100,(*scan)->ipoo)!=NULL){
       /*read the header*/
      if(i<10){
@@ -367,18 +369,20 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
           y=atof(temp2);
           z=atof(temp3);
           if((fabs(x)+fabs(y)+fabs(z))>0.0001){
-            zen=atan2(sqrt(x*x+y*y),z)*180.0/M_PI;
-            az=atan2(x,y)*180.0/M_PI;
-            if(lastZen>=-180.0){
+            zen=atan2(sqrt(x*x+y*y),z);
+            az=atan2(x,y);
+            if(lastZen>=-M_PI){
               diff=sqrt(pow(lastZen-zen,2)+pow(lastAz-az,2));
-              if(diff<1.0){  /*avoid ends of scan lines*/
+              if(diff<0.01){  /*avoid ends of scan lines*/
                 res+=(double)diff;
                 contN++;
               }
             }
             lastZen=zen;
             lastAz=az;
-
+            /*keep track of min angles*/
+            if(zen<minZen)minZen=zen;
+            if(az<minAz)minAz=az;
           }else lastZen=lastAz=-400.0;
         }
       }
@@ -433,8 +437,8 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       if((fabs(x)+fabs(y)+fabs(z))>0.0){
         /*get angles*/
         translateLeica(&x,&y,&z,(*scan)->matrix);
-        (*scan)->beam[i].zen=atan2(sqrt(x*x+y*y),z)*180.0/M_PI;
-        (*scan)->beam[i].az=atan2(x,y)*180.0/M_PI;
+        (*scan)->beam[i].zen=atan2(sqrt(x*x+y*y),z);
+        (*scan)->beam[i].az=atan2(x,y);
         /*mark hit*/
         (*scan)->beam[i].nHits=1;
         (*scan)->beam[i].r=falloc(1,"range",i+1);
@@ -443,16 +447,16 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
         (*scan)->beam[i].refl[0]=atof(temp4);
 
         /*mark which pixels have been done for gap tracking*/
-        xInd=(int)(((*scan)->beam[i].az+180.0)/(float)res+0.5);
-        yInd=(int)((*scan)->beam[i].zen/(float)res+0.5);
+        xInd=(int)(((*scan)->beam[i].az-minAz)/(float)res+0.5);
+        yInd=(int)(((*scan)->beam[i].zen-minZen)/(float)res+0.5);
       }else{  /*otherwise gap. NOTE that this should be diaganol across x*/
         if(yInd>0)yInd--;
         else{
           yInd=nRow;
           xInd++;
         }
-        (*scan)->beam[i].zen=(float)res*(float)yInd;
-        (*scan)->beam[i].az=(float)res*(float)xInd-180.0;
+        (*scan)->beam[i].zen=(float)res*(float)yInd+minZen;
+        (*scan)->beam[i].az=(float)res*(float)xInd+minAz;
         (*scan)->beam[i].nHits=0;
         (*scan)->beam[i].shotN=i;
         (*scan)->beam[i].r=NULL;
@@ -707,6 +711,10 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       xCent=(double)tempTLS->beam[tInd].x+tempTLS->xOff;
       yCent=(double)tempTLS->beam[tInd].y+tempTLS->yOff;
       zCent=(double)tempTLS->beam[tInd].z+tempTLS->zOff;
+
+      /*check angles are sensible*/
+      if((tempTLS->beam[tInd].zen<-400.0)||(tempTLS->beam[tInd].zen>400.0)||\
+              (tempTLS->beam[tInd].az<-400.0)||(tempTLS->beam[tInd].az>400.0))continue;
 
       /*find intersecting voxels*/
       grad[0]=tempTLS->beam[tInd].zen;
