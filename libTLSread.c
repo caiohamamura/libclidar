@@ -236,6 +236,13 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     memcpy(&((*scan)->beam[i].nHits),&buffer[offset],1);
     offset+=1;
 
+    /*check we're not going to run off the end*/
+    if((offset+8*(uint64_t)(*scan)->beam[i].nHits)>=(*scan)->totSize){
+      offset-=5*8+4+1;  /*rewind counters*/
+      i--;
+      break;
+    }
+
     /*apply offset to coords*/
     if((*scan)->yOff<-1000000.0){
       (*scan)->xOff=tempX;
