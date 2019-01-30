@@ -510,7 +510,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
   }/*file closing check*/
 
   return;
-}/*readPTX*/
+}/*readPTXleica*/
 
 
 /*###################################*/
@@ -678,7 +678,11 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   tlsScan *scan=NULL,*tempTLS=NULL;
   void noteVoxelGaps(int *,int,double *,voxStruct *,tlsScan *,uint32_t,float,char,lidVoxPar *,int);
   void saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
+  char checkIfPtx(char *);
+  char isPtx=0;  /*ptx file flag*/
 
+  /*is this a ptx file?*/
+  isPtx=checkIfPtx(namen);
 
   /*max range of Riegl: OTHERS ARE SHORTER or longer. COULD BE ADJUSTABLE*/
   maxR=300.0;
@@ -690,7 +694,8 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   }
 
   /*read all data into RAM*/
-  readTLSpolarBinary(namen,0,&tempTLS);
+  if(isPtx==0)readTLSpolarBinary(namen,0,&tempTLS);
+  else        readPTXleica(namen,0,&tempTLS);
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
@@ -723,7 +728,8 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*loop over beams in scan*/
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
-      readTLSpolarBinary(namen,j,&tempTLS);
+      if(isPtx==0)readTLSpolarBinary(namen,j,&tempTLS);
+      else        readPTXleica(namen,j,&tempTLS);
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/
@@ -790,6 +796,17 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   tempTLS=tidyTLScan(tempTLS);
   return(scan);
 }/*readOneTLS*/
+
+
+/*##################################################################*/
+/*see if a file is aptx file*/
+
+char checkIfPtx(char *namen)
+{
+  /*check last three characters*/
+  if(!strncasecmp(&namen[strlen(namen)-4],".ptx",4))return(1);
+  else                                              return(0);
+}/*checkIfPtx*/
 
 
 /*##################################################################*/
