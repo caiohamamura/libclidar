@@ -713,8 +713,8 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       zCent=(double)tempTLS->beam[tInd].z+tempTLS->zOff;
 
       /*check angles are sensible*/
-      if((tempTLS->beam[tInd].zen<-400.0)||(tempTLS->beam[tInd].zen>400.0)||\
-              (tempTLS->beam[tInd].az<-400.0)||(tempTLS->beam[tInd].az>400.0))continue;
+      /*if((tempTLS->beam[tInd].zen<-400.0)||(tempTLS->beam[tInd].zen>400.0)||\
+              (tempTLS->beam[tInd].az<-400.0)||(tempTLS->beam[tInd].az>400.0))continue;*/
 
       /*find intersecting voxels*/
       grad[0]=tempTLS->beam[tInd].zen;
