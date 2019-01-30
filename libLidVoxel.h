@@ -158,6 +158,7 @@ typedef struct{
   uint32_t maxRead;  /*maximum number of beams we could have in a region*/
   uint64_t totSize;  /*total file size*/
   uint64_t totRead;  /*amount of file read so far*/
+  float **matrix;    /*matrix needed for ptx files*/
 }tlsScan;
 
 
