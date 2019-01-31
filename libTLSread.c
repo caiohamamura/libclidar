@@ -305,7 +305,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 {
   int j=0;
   uint32_t i=0;
-  uint32_t xInd=0,yInd=0;
+  int64_t xInd=0,yInd=0;
   uint32_t contN=0;
   uint64_t fStart=0;
   double x=0,y=0,z=0;
@@ -316,7 +316,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
   char temp3[25],temp4[25];
   void translateLeica(double *,double *,double *,float **);
   /*keep a list of done beams, only in here*/
-  static uint32_t nRow;
+  static uint32_t nCol,nRow;
   static double res;
   static float minZen,minAz;
 
@@ -344,8 +344,8 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     while(fgets(line,100,(*scan)->ipoo)!=NULL){
       /*read the header*/
      if(i<10){
-        /*if(i==0)nCol=atoi(line);*/
-        if(i==1)nRow=atoi(line);
+        if(i==0)nCol=atoi(line);
+        else if(i==1)nRow=atoi(line);
         else{
           if(sscanf(line,"%s %s %s %s",temp1,temp2,temp3,temp4)==4){  /*translation matrix*/
             (*scan)->matrix[0][j]=atof(temp1);
@@ -369,11 +369,12 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
           y=atof(temp2);
           z=atof(temp3);
           if((fabs(x)+fabs(y)+fabs(z))>0.0001){
+            translateLeica(&x,&y,&z,(*scan)->matrix);
             zen=atan2(sqrt(x*x+y*y),z);
             az=atan2(x,y);
-            if(lastZen>=-M_PI){
+            if((lastZen>=-M_PI)&&(lastZen<M_PI)){
               diff=sqrt(pow(lastZen-zen,2)+pow(lastAz-az,2));
-              if(diff<0.01){  /*avoid ends of scan lines*/
+              if(diff<1.0){  /*avoid ends of scan lines*/
                 res+=(double)diff;
                 contN++;
               }
@@ -447,16 +448,17 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
         (*scan)->beam[i].refl[0]=atof(temp4);
 
         /*mark which pixels have been done for gap tracking*/
-        xInd=(int)(((*scan)->beam[i].az-minAz)/(float)res+0.5);
-        yInd=(int)(((*scan)->beam[i].zen-minZen)/(float)res+0.5);
+        xInd=(int64_t)((double)((*scan)->beam[i].az-minAz)/res+0.5);
+        yInd=(int64_t)((double)((*scan)->beam[i].zen-minZen)/res+0.5);
       }else{  /*otherwise gap. NOTE that this should be diaganol across x*/
         if(yInd>0)yInd--;
         else{
-          yInd=nRow;
-          xInd++;
+          yInd=(int64_t)nRow;
+          if(xInd<(int64_t)nCol)xInd++;
+          else                  xInd=0;
         }
-        (*scan)->beam[i].zen=(float)res*(float)yInd+minZen;
-        (*scan)->beam[i].az=(float)res*(float)xInd+minAz;
+        (*scan)->beam[i].zen=(float)(res*(double)yInd+(double)minZen);
+        (*scan)->beam[i].az=(float)(res*(double)xInd+(double)minAz);
         (*scan)->beam[i].nHits=0;
         (*scan)->beam[i].shotN=i;
         (*scan)->beam[i].r=NULL;
