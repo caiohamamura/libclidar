@@ -390,7 +390,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       i++;
     }
     res/=(double)contN;
-    (*scan)->nBeams=i-10; /*ignore header*/
+    (*scan)->nBeams=i-(10+1); /*ignore header*/  /*NOTE: I am not sure why it is -11 rather than -10, but 10 causes a seg fault*/
     (*scan)->maxRead=500000000/((uint64_t)sizeof(tlsBeam)+8);
     (*scan)->nRead=0;
     (*scan)->totRead=0;
@@ -413,12 +413,13 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 
 
   /*update offset*/
-  if(place>0)(*scan)->pOffset+=(*scan)->nRead;
+  (*scan)->pOffset+=(*scan)->nRead;
 
   /*clear out old memory*/
   for(i=0;i<(*scan)->maxRead;i++){
     TIDY((*scan)->beam[i].refl);
     TIDY((*scan)->beam[i].r);
+    (*scan)->beam[i].nHits=0;
   }
 
   /*read block of data*/
@@ -480,6 +481,10 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     }
   }/*data reading loop*/
   (*scan)->nRead=i;
+
+  fprintf(stdout,"read %u of %u beams\n",(*scan)->pOffset,(*scan)->nBeams);
+
+
   /*if this is the last call, close file*/
   if(((*scan)->pOffset+(*scan)->nRead)>=(*scan)->nBeams){
     if((*scan)->ipoo){
@@ -487,6 +492,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       (*scan)->ipoo=NULL;
     }
     TTIDY((void **)(*scan)->matrix,4);
+    (*scan)->matrix=NULL;
   }/*file closing check*/
 
   return;
@@ -711,6 +717,10 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       if(isPtx==0)readTLSpolarBinary(namen,j,&tempTLS);
       else        readPTXleica(namen,j,&tempTLS);
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
+if((tInd<0)||(tInd>=tempTLS->maxRead)){
+  fprintf(stderr,"tInd error %u\n",tInd);
+  exit(1);
+}
 
       /*avoid tilt mount if needed*/
       if(fabs(tempTLS->beam[tInd].zen)>=vox->maxZen)continue;  /*skip if zenith too high*/
@@ -810,6 +820,7 @@ tlsScan *tidyTLScans(tlsScan *scans,int nScans)
         TIDY(scans[i].beam);
       }
       TIDY(scans[i].point);
+      TTIDY((void **)scans[i].matrix,4);
     }
     TIDY(scans);
   }
@@ -833,6 +844,7 @@ tlsScan *tidyTLScan(tlsScan *scan)
       }
       TIDY(scan->beam);
     }
+    TTIDY((void **)scan->matrix,4);
     TIDY(scan->point);
     TIDY(scan);
   }
