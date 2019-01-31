@@ -482,7 +482,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
   }/*data reading loop*/
   (*scan)->nRead=i;
 
-  fprintf(stdout,"read %u of %u beams\n",(*scan)->pOffset,(*scan)->nBeams);
+  fprintf(stdout,"Read %u of %u beams\n",(*scan)->pOffset,(*scan)->nBeams);
 
 
   /*if this is the last call, close file*/
@@ -821,6 +821,10 @@ tlsScan *tidyTLScans(tlsScan *scans,int nScans)
       }
       TIDY(scans[i].point);
       TTIDY((void **)scans[i].matrix,4);
+      if(scans[i].ipoo){
+        fclose(scans[i].ipoo);
+        scans[i].ipoo=NULL;
+      }
     }
     TIDY(scans);
   }
@@ -846,6 +850,10 @@ tlsScan *tidyTLScan(tlsScan *scan)
     }
     TTIDY((void **)scan->matrix,4);
     TIDY(scan->point);
+    if(scan->ipoo){
+      fclose(scan->ipoo);
+      scan->ipoo=NULL;
+    }
     TIDY(scan);
   }
   return(scan);
