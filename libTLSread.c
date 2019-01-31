@@ -465,6 +465,12 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
         (*scan)->beam[i].refl=NULL;
       }
 
+      /*the Leica can have angles greater than 180. Wrap around to avoid breaking functions*/
+      if((*scan)->beam[i].az<M_PI)(*scan)->beam[i].az+=2.0*M_PI;
+      if((*scan)->beam[i].az>M_PI)(*scan)->beam[i].az-=2.0*M_PI;
+      if((*scan)->beam[i].zen<M_PI)(*scan)->beam[i].zen+=2.0*M_PI;
+      if((*scan)->beam[i].zen>M_PI)(*scan)->beam[i].zen-=2.0*M_PI;
+
       i++;
       /*if we have read the whole chunk, break*/
       if(i>=(*scan)->maxRead){
