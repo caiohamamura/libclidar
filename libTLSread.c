@@ -49,7 +49,7 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   uint32_t i=0,nBeams=0;
   uint64_t buffSize=0;   /*buffer size*/
   uint64_t offset=0;
-  double zen=0,az=0;
+  float zen=0,az=0;
   double xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
   uint32_t shotN=0;     /*shot number within this scan*/
@@ -96,12 +96,12 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   /*loop along buffer and output*/
   offset=0;
   for(i=0;i<nBeams;i++){
-    memcpy(&zen,&buffer[offset],8);
+    memcpy(&zen,&buffer[offset],4);
     zen*=M_PI/180.0; /*convert to radians*/
-    offset+=8;
-    memcpy(&az,&buffer[offset],8);
+    offset+=4;
+    memcpy(&az,&buffer[offset],4);
     az*=M_PI/180.0; /*convert to radians*/
-    offset+=8;
+    offset+=4;
     memcpy(&xCent,&buffer[offset],8);
     offset+=8;
     memcpy(&yCent,&buffer[offset],8);
@@ -120,9 +120,9 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
       memcpy(&refl,&buffer[offset],4);
       offset+=4;
 
-      x=(double)r*sin(zen)*cos(az)+xCent;
-      y=(double)r*sin(zen)*sin(az)+yCent;
-      z=(double)r*cos(zen)+zCent;
+      x=(double)r*sin((double)zen)*cos((double)az)+xCent;
+      y=(double)r*sin((double)zen)*sin((double)az)+yCent;
+      z=(double)r*cos((double)zen)+zCent;
 
       /*check bounds*/
       if((x>=bounds[0])&&(y>=bounds[1])&&(z>=bounds[2])&&(x<=bounds[3])&&(y<=bounds[4])&&(z<=bounds[5])){
@@ -219,12 +219,12 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   buffEnd=buffSize-(5*8+4+1); /*the longest buffer for a beam with 20 hits*/
   while((offset<buffEnd)&&(i<(*scan)->maxRead)){
     /*copy over a beam*/
-    memcpy(&((*scan)->beam[i].zen),&buffer[offset],8);
+    memcpy(&((*scan)->beam[i].zen),&buffer[offset],4);
     (*scan)->beam[i].zen*=M_PI/180.0; /*convert to radians*/
-    offset+=8;
-    memcpy(&((*scan)->beam[i].az),&buffer[offset],8);
+    offset+=4;
+    memcpy(&((*scan)->beam[i].az),&buffer[offset],4);
     (*scan)->beam[i].az*=M_PI/180.0; /*convert to radians*/
-    offset+=8;
+    offset+=4;
     memcpy(&tempX,&buffer[offset],8);
     offset+=8;
     memcpy(&tempY,&buffer[offset],8);
@@ -439,8 +439,8 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       if((fabs(x)+fabs(y)+fabs(z))>0.0){
         /*get angles*/
         translateLeica(&x,&y,&z,(*scan)->matrix);
-        (*scan)->beam[i].zen=atan2(sqrt(x*x+y*y),z);
-        (*scan)->beam[i].az=atan2(x,y);
+        (*scan)->beam[i].zen=(float)atan2(sqrt(x*x+y*y),z);
+        (*scan)->beam[i].az=(float)atan2(x,y);
         /*mark hit*/
         (*scan)->beam[i].nHits=1;
         (*scan)->beam[i].r=falloc(1,"range",i+1);
@@ -610,9 +610,9 @@ void saveTLSpoints(tlsScan *tempTLS,uint32_t j,voxStruct *vox,tlsScan *scan,doub
 
   /*loop over hits in this beam*/
   for(k=0;k<tempTLS->beam[j].nHits;k++){
-    x=xCent+tempTLS->beam[j].r[k]*sin(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-    y=yCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].az)*sin(tempTLS->beam[j].zen);
-    z=zCent+tempTLS->beam[j].r[k]*cos(tempTLS->beam[j].zen);
+    x=xCent+tempTLS->beam[j].r[k]*sin((double)tempTLS->beam[j].az)*sin((double)tempTLS->beam[j].zen);
+    y=yCent+tempTLS->beam[j].r[k]*cos((double)tempTLS->beam[j].az)*sin((double)tempTLS->beam[j].zen);
+    z=zCent+tempTLS->beam[j].r[k]*cos((double)tempTLS->beam[j].zen);
 
     /*check bounds and copy point if within*/
     if((x>=vox->bounds[0])&&(y>=vox->bounds[1])&&(z>=vox->bounds[2])&&\
