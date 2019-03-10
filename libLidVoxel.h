@@ -56,7 +56,7 @@ typedef struct{
   /*switches*/
   char useRMSE;      /*switch to save RAM in voxelate*/
   char savePts;      /*save points switch*/
-  double maxZen;     /*maximum absolute zenith to allow. To filter tilt mount*/
+  float maxZen;      /*maximum absolute zenith to allow. To filter tilt mount*/
 }voxStruct;
 
 
@@ -113,8 +113,8 @@ typedef struct{
 /*TLS beams, polar coords*/
 
 typedef struct{
-  double zen;     /*zenith*/
-  double az;      /*azimuth*/
+  float zen;     /*zenith*/
+  float az;      /*azimuth*/
   float x;        /*beam origin*/
   float y;        /*beam origin*/
   float z;        /*beam origin*/
