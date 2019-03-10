@@ -50,8 +50,9 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   uint64_t buffSize=0;   /*buffer size*/
   uint64_t offset=0;
   float zen=0,az=0;
-  double xCent=0,yCent=0,zCent=0;
+  float xCent=0,yCent=0,zCent=0;
   double x=0,y=0,z=0;
+  double xOff=0,yOff=0,zOff=0;
   uint32_t shotN=0;     /*shot number within this scan*/
   uint8_t nHits=0,j=0;  /*number of hits of this beam*/
   float r=0;            /*range*/
@@ -75,6 +76,21 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     exit(1);
   }
   buffSize=ftell(ipoo);
+  /*24 bytes before this are the offset*/
+  if(fseek(ipoo,(long)-(4+3*8),SEEK_END)){ /*skip to 4 bytes from the end*/
+    fprintf(stderr,"fseek error from end\n");
+    exit(1);
+  }
+  buffer=challoc(3*8,"buffer",0);
+  if(fread(buffer,8,3,ipoo)!=8*3){
+    fprintf(stderr,"Error reading offsets\n");
+    exit(1);
+  }
+  memcpy(&xOff,&buffer[0],8);
+  memcpy(&yOff,&buffer[8],8);
+  memcpy(&zOff,&buffer[16],8);
+  TIDY(buffer);
+
 
   /*read data into buffer*/
   if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
@@ -102,12 +118,12 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     memcpy(&az,&buffer[offset],4);
     az*=M_PI/180.0; /*convert to radians*/
     offset+=4;
-    memcpy(&xCent,&buffer[offset],8);
-    offset+=8;
-    memcpy(&yCent,&buffer[offset],8);
-    offset+=8;
-    memcpy(&zCent,&buffer[offset],8);
-    offset+=8;
+    memcpy(&xCent,&buffer[offset],4);
+    offset+=4;
+    memcpy(&yCent,&buffer[offset],4);
+    offset+=4;
+    memcpy(&zCent,&buffer[offset],4);
+    offset+=4;
     memcpy(&shotN,&buffer[offset],4);
     offset+=4;
     memcpy(&nHits,&buffer[offset],1);
@@ -120,9 +136,9 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
       memcpy(&refl,&buffer[offset],4);
       offset+=4;
 
-      x=(double)r*sin((double)zen)*cos((double)az)+xCent;
-      y=(double)r*sin((double)zen)*sin((double)az)+yCent;
-      z=(double)r*cos((double)zen)+zCent;
+      x=(double)r*sin((double)zen)*cos((double)az)+(double)xCent+xOff;
+      y=(double)r*sin((double)zen)*sin((double)az)+(double)yCent+yOff;
+      z=(double)r*cos((double)zen)+(double)zCent+zOff;
 
       /*check bounds*/
       if((x>=bounds[0])&&(y>=bounds[1])&&(z>=bounds[2])&&(x<=bounds[3])&&(y<=bounds[4])&&(z<=bounds[5])){
@@ -146,7 +162,6 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   uint64_t buffSize=0;   /*buffer size*/
   uint64_t buffEnd=0;    /*end of file reading buffer*/
   unsigned char j=0;
-  double tempX=0,tempY=0,tempZ=0;
   char *buffer=NULL;
 
   /*file reading buffer size. Hardwired to 500 Mbytes for now*/
@@ -178,6 +193,20 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     }
     fprintf(stdout,"There are %d TLS beams\n",(*scan)->nBeams);
     if(buffSize>(*scan)->totSize)buffSize=(*scan)->totSize;  /*reset buffer if it is too big*/
+    /*24 bytes before this are the offset*/
+    if(fseek((*scan)->ipoo,(long)-(4+3*8),SEEK_END)){ /*skip to 4 bytes from the end*/
+      fprintf(stderr,"fseek error from end\n");
+      exit(1);
+    }
+    buffer=challoc(3*8,"buffer",0);
+    if(fread(buffer,8,3,(*scan)->ipoo)!=8*3){
+      fprintf(stderr,"Error reading offsets\n");
+      exit(1);
+    }
+    memcpy(&((*scan)->xOff),&buffer[0],8);
+    memcpy(&((*scan)->yOff),&buffer[8],8);
+    memcpy(&((*scan)->zOff),&buffer[16],8);
+    TIDY(buffer);
 
     /*seek back to start of file and set buffer sizes*/
     if(fseek((*scan)->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
@@ -213,10 +242,9 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   }
 
   /*load buffer into structure*/
-  if(place==0)(*scan)->xOff=(*scan)->yOff=(*scan)->zOff=-10000000.0;  /*only reset once*/
   i=0;
   offset=0;
-  buffEnd=buffSize-(5*8+4+1); /*the longest buffer for a beam with 20 hits*/
+  buffEnd=buffSize-(2*4+3*8+4+1); /*the longest buffer for a beam with 20 hits*/
   while((offset<buffEnd)&&(i<(*scan)->maxRead)){
     /*copy over a beam*/
     memcpy(&((*scan)->beam[i].zen),&buffer[offset],4);
@@ -225,12 +253,12 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     memcpy(&((*scan)->beam[i].az),&buffer[offset],4);
     (*scan)->beam[i].az*=M_PI/180.0; /*convert to radians*/
     offset+=4;
-    memcpy(&tempX,&buffer[offset],8);
-    offset+=8;
-    memcpy(&tempY,&buffer[offset],8);
-    offset+=8;
-    memcpy(&tempZ,&buffer[offset],8);
-    offset+=8;
+    memcpy(&(*scan)->beam[i].x,&buffer[offset],4);
+    offset+=4;
+    memcpy(&(*scan)->beam[i].y,&buffer[offset],4);
+    offset+=4;
+    memcpy(&(*scan)->beam[i].z,&buffer[offset],4);
+    offset+=4;
     memcpy(&((*scan)->beam[i].shotN),&buffer[offset],4);
     offset+=4;
     memcpy(&((*scan)->beam[i].nHits),&buffer[offset],1);
@@ -238,20 +266,10 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
     /*check we're not going to run off the end*/
     if((offset+8*(uint64_t)(*scan)->beam[i].nHits)>=(*scan)->totSize){
-      offset-=5*8+4+1;  /*rewind counters*/
+      offset-=2*4+3*8+4+1;  /*rewind counters*/
       i--;
       break;
     }
-
-    /*apply offset to coords*/
-    if((*scan)->yOff<-1000000.0){
-      (*scan)->xOff=tempX;
-      (*scan)->yOff=tempY;
-      (*scan)->zOff=tempZ;
-    }
-    (*scan)->beam[i].x=(float)(tempX-(*scan)->xOff);
-    (*scan)->beam[i].y=(float)(tempY-(*scan)->yOff);
-    (*scan)->beam[i].z=(float)(tempZ-(*scan)->zOff);
 
     /*copy hit information, multiple per beam*/
     if((*scan)->beam[i].nHits>0){
