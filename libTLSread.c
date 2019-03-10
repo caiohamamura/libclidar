@@ -77,13 +77,13 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   }
   buffSize=ftell(ipoo);
   /*24 bytes before this are the offset*/
-  if(fseek(ipoo,(long)-(4+3*8),SEEK_END)){ /*skip to 4 bytes from the end*/
+  if(fseek(ipoo,(long)(-1*(4+3*8)),SEEK_END)){ /*skip to 4 bytes from the end*/
     fprintf(stderr,"fseek error from end\n");
     exit(1);
   }
-  buffer=challoc(3*8,"buffer",0);
-  if(fread(buffer,8,3,ipoo)!=8*3){
-    fprintf(stderr,"Error reading offsets\n");
+  buffer=challoc(3*sizeof(double),"buffer",0);
+  if(fread(&(buffer[0]),sizeof(double),3,ipoo)!=3){
+    fprintf(stderr,"Error reading 3 offsets\n");
     exit(1);
   }
   memcpy(&xOff,&buffer[0],8);
@@ -194,13 +194,13 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     fprintf(stdout,"There are %d TLS beams\n",(*scan)->nBeams);
     if(buffSize>(*scan)->totSize)buffSize=(*scan)->totSize;  /*reset buffer if it is too big*/
     /*24 bytes before this are the offset*/
-    if(fseek((*scan)->ipoo,(long)-(4+3*8),SEEK_END)){ /*skip to 4 bytes from the end*/
+    if(fseek((*scan)->ipoo,(long)(-1*(4+3*8)),SEEK_END)){ /*skip to 4 bytes from the end*/
       fprintf(stderr,"fseek error from end\n");
       exit(1);
     }
     buffer=challoc(3*8,"buffer",0);
-    if(fread(buffer,8,3,(*scan)->ipoo)!=8*3){
-      fprintf(stderr,"Error reading offsets\n");
+    if(fread(buffer,8,3,(*scan)->ipoo)!=3){
+      fprintf(stderr,"Error reading 3 offsets\n");
       exit(1);
     }
     memcpy(&((*scan)->xOff),&buffer[0],8);
