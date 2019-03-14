@@ -455,7 +455,8 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
 
     /*catch rare cases of beams getting stuck between voxels. Needs resolving in a nicer way*/
     if((*nPix)>1000){
-      fprintf(stderr,"Possibly too many voxels. nPix %d %f %f\n",*nPix,zen*180.0/M_PI,az*180.0/M_PI);
+      fprintf(stderr,"Possibly too many voxels. nPix %d %f %f coord %f %f %f from %f %f %f\n",\
+              *nPix,zen*180.0/M_PI,az*180.0/M_PI,iCoords[0],iCoords[1],iCoords[2],xCent,yCent,zCent);
       fprintf(stderr,"This may need resolving at the code level if it prevents tasks\n");
       (*nPix)=0;
       TIDY(coords);
