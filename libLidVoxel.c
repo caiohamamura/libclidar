@@ -364,7 +364,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   int xBin=0,yBin=0,zBin=0;
   double zen=0,az=0;
   double vCorn[6];
-  double x=0,y=0;
+  double x=0,y=0,z=0;
   double *coords=NULL,iCoords[3],vThis[6];
   char angUp(double);
   char angRight(double,double);
@@ -373,6 +373,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   double *markDo(int,double *,double);
   void sideTest(double,double,double *,double *,double *,double *);
   void findClosestFacet(double *,double *,double,double);
+int i=0;
 
   if(grad[2]>-9999.0){   /*grad is a Cartesian vector*/
     zen=atan2(sqrt(grad[0]*grad[0]+grad[1]*grad[1]),grad[2]);
@@ -429,15 +430,18 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
 
     if((zen==(M_PI/2.0))||(zen==(-M_PI/2.0))){  /*a side*/
       sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
+fprintf(stdout,"Side\n");
     }else if(angUp(zen)){  /*top plate intercept*/
       x=(vThis[5]-coords[2])*tanZen*sinAz+coords[0];
       y=(vThis[5]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through top*/
+fprintf(stdout,"Top\n");
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[5];
       }else{   /*through a side*/
+fprintf(stdout,"Top side\n");
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }else{                 /*bottom plate intercept*/
@@ -445,19 +449,29 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
       y=(vThis[2]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through bottom*/
+fprintf(stdout,"Bottom\n");
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[2];
       }else{         /*through a side*/
+fprintf(stdout,"Bottom side\n");
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }
 
     /*catch rare cases of beams getting stuck between voxels. Needs resolving in a nicer way*/
     if((*nPix)>1000){
-      fprintf(stderr,"Possibly too many voxels. nPix %d %f %f coord %f %f %f from %f %f %f\n",\
-              *nPix,zen*180.0/M_PI,az*180.0/M_PI,iCoords[0],iCoords[1],iCoords[2],xCent,yCent,zCent);
-      fprintf(stderr,"This may need resolving at the code level if it prevents tasks\n");
+      //fprintf(stderr,"Possibly too many voxels. nPix %d %f %f coord %f %f %f from %f %f %f\n",\
+      //        *nPix,zen*180.0/M_PI,az*180.0/M_PI,iCoords[0],iCoords[1],iCoords[2],xCent,yCent,zCent);
+      //fprintf(stderr,"This may need resolving at the code level if it prevents tasks\n");
+/*print out all the intersections*/
+for(i=0;i<(*nPix);i++){
+  x=rangeList[0][i]*sinZen*sinAz+xCent;
+  y=rangeList[0][i]*sinZen*cosAz+yCent;
+  z=rangeList[0][i]*cosZen+zCent;
+  fprintf(stdout,"int %d %f %f %f range %f x %f %f y %f %f z %f %f\n",i,x,y,z,rangeList[0][i],vCorn[0],vCorn[3],vCorn[1],vCorn[4],vCorn[2],vCorn[5]);
+}
+exit(1);
       (*nPix)=0;
       TIDY(coords);
       TIDY(pixList);
@@ -501,21 +515,27 @@ void sideTest(double zen,double az,double *coords,double *vThis,double *vRes,dou
   else                xSep=vThis[0]-coords[0];
   d=xSep/tanAz;
   if((d+coords[1])>vThis[4]){        /*max Y*/
+fprintf(stdout,"max Y\n");
     iCoords[1]=vThis[4];
     r=(iCoords[1]-coords[1])/(sinZen*cosAz);
     iCoords[0]=r*sinZen*sinAz+coords[0];
     iCoords[2]=r*cosZen+coords[2];
   }else if((d+coords[1])<vThis[1]){  /*min Y*/
+fprintf(stdout,"min Y\n");
     iCoords[1]=vThis[1];
     r=(iCoords[1]-coords[1])/(sinZen*cosAz);
     iCoords[0]=r*sinZen*sinAz+coords[0];
     iCoords[2]=r*cosZen+coords[2];
   }else if(angRight(zen,az)){        /*max X*/
+fprintf(stdout,"max X\n");
+
     iCoords[0]=vThis[3];
     r=(iCoords[0]-coords[0])/(sinZen*sinAz);
     iCoords[1]=r*sinZen*cosAz+coords[1];
     iCoords[2]=r*cosZen+coords[2];
   }else{                                /*min X*/
+fprintf(stdout,"min X\n");
+
     iCoords[0]=vThis[0];
     r=(iCoords[0]-coords[0])/(sinZen*sinAz);
     iCoords[1]=r*sinZen*cosAz+coords[1];
