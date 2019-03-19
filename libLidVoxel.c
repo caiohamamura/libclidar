@@ -355,16 +355,16 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
 
 /*###########################################################################*/
-/*find intersecting voxels*/
+/*OLD. replaced now. find intersecting voxels*/
 
-int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *bounds,double *vRes,int *nPix,int vX,int vY,int vZ,double **rangeList)
+int *oldfindVoxels(double *grad,double xCent,double yCent,double zCent,double *bounds,double *vRes,int *nPix,int vX,int vY,int vZ,double **rangeList)
 {
   int *pixList=NULL;
   int *markInt(int,int *,int);
   int xBin=0,yBin=0,zBin=0;
   double zen=0,az=0;
   double vCorn[6];
-  double x=0,y=0,z=0;
+  double x=0,y=0;
   double *coords=NULL,iCoords[3],vThis[6];
   char angUp(double);
   char angRight(double,double);
@@ -373,7 +373,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   double *markDo(int,double *,double);
   void sideTest(double,double,double *,double *,double *,double *);
   void findClosestFacet(double *,double *,double,double);
-int i=0;
 
   if(grad[2]>-9999.0){   /*grad is a Cartesian vector*/
     zen=atan2(sqrt(grad[0]*grad[0]+grad[1]*grad[1]),grad[2]);
@@ -430,18 +429,15 @@ int i=0;
 
     if((zen==(M_PI/2.0))||(zen==(-M_PI/2.0))){  /*a side*/
       sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
-fprintf(stdout,"Side\n");
     }else if(angUp(zen)){  /*top plate intercept*/
       x=(vThis[5]-coords[2])*tanZen*sinAz+coords[0];
       y=(vThis[5]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through top*/
-fprintf(stdout,"Top\n");
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[5];
       }else{   /*through a side*/
-fprintf(stdout,"Top side\n");
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }else{                 /*bottom plate intercept*/
@@ -449,29 +445,19 @@ fprintf(stdout,"Top side\n");
       y=(vThis[2]-coords[2])*tanZen*cosAz+coords[1];
 
       if((x>=vThis[0])&&(x<=vThis[3])&&(y>=vThis[1])&&(y<=vThis[4])){  /*through bottom*/
-fprintf(stdout,"Bottom\n");
         iCoords[0]=x;
         iCoords[1]=y;
         iCoords[2]=vThis[2];
       }else{         /*through a side*/
-fprintf(stdout,"Bottom side\n");
         sideTest(zen,az,coords,vThis,vRes,&(iCoords[0]));
       }
     }
 
     /*catch rare cases of beams getting stuck between voxels. Needs resolving in a nicer way*/
     if((*nPix)>1000){
-      //fprintf(stderr,"Possibly too many voxels. nPix %d %f %f coord %f %f %f from %f %f %f\n",\
-      //        *nPix,zen*180.0/M_PI,az*180.0/M_PI,iCoords[0],iCoords[1],iCoords[2],xCent,yCent,zCent);
-      //fprintf(stderr,"This may need resolving at the code level if it prevents tasks\n");
-/*print out all the intersections*/
-for(i=0;i<(*nPix);i++){
-  x=rangeList[0][i]*sinZen*sinAz+xCent;
-  y=rangeList[0][i]*sinZen*cosAz+yCent;
-  z=rangeList[0][i]*cosZen+zCent;
-  fprintf(stdout,"int %d %f %f %f range %f x %f %f y %f %f z %f %f\n",i,x,y,z,rangeList[0][i],vCorn[0],vCorn[3],vCorn[1],vCorn[4],vCorn[2],vCorn[5]);
-}
-exit(1);
+      fprintf(stderr,"Possibly too many voxels. nPix %d %f %f coord %f %f %f from %f %f %f\n",\
+              *nPix,zen*180.0/M_PI,az*180.0/M_PI,iCoords[0],iCoords[1],iCoords[2],xCent,yCent,zCent);
+      fprintf(stderr,"This may need resolving at the code level if it prevents tasks\n");
       (*nPix)=0;
       TIDY(coords);
       TIDY(pixList);
@@ -499,7 +485,7 @@ exit(1);
   /*tidy arrays*/
   TIDY(coords);
   return(pixList);
-}/*findVoxels*/
+}/*oldfindVoxels*/
 
 
 /*#######################################*/
@@ -515,27 +501,22 @@ void sideTest(double zen,double az,double *coords,double *vThis,double *vRes,dou
   else                xSep=vThis[0]-coords[0];
   d=xSep/tanAz;
   if((d+coords[1])>vThis[4]){        /*max Y*/
-fprintf(stdout,"max Y\n");
     iCoords[1]=vThis[4];
     r=(iCoords[1]-coords[1])/(sinZen*cosAz);
     iCoords[0]=r*sinZen*sinAz+coords[0];
     iCoords[2]=r*cosZen+coords[2];
   }else if((d+coords[1])<vThis[1]){  /*min Y*/
-fprintf(stdout,"min Y\n");
     iCoords[1]=vThis[1];
     r=(iCoords[1]-coords[1])/(sinZen*cosAz);
     iCoords[0]=r*sinZen*sinAz+coords[0];
     iCoords[2]=r*cosZen+coords[2];
   }else if(angRight(zen,az)){        /*max X*/
-fprintf(stdout,"max X\n");
 
     iCoords[0]=vThis[3];
     r=(iCoords[0]-coords[0])/(sinZen*sinAz);
     iCoords[1]=r*sinZen*cosAz+coords[1];
     iCoords[2]=r*cosZen+coords[2];
   }else{                                /*min X*/
-fprintf(stdout,"min X\n");
-
     iCoords[0]=vThis[0];
     r=(iCoords[0]-coords[0])/(sinZen*sinAz);
     iCoords[1]=r*sinZen*cosAz+coords[1];
@@ -853,6 +834,129 @@ void tidyVoxelMap(tlsVoxMap *map,int nVox)
 
   return;
 }/*tidyVoxelMap*/
+
+
+/*###########################################################################*/
+/*find intersecting voxels*/
+
+int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *bounds,double *vRes,int *nPix,int vX,int vY,int vZ,double **rangeList)
+{
+  int xBin=0,yBin=0,zBin=0;
+  int xDir=0,yDir=0,zDir=0;
+  int nextXbin=0,nextYbin=0,nextZbin=0;
+  int *pixList=NULL;
+  int *markInt(int,int *,int);
+  float vectX=0,vectY=0,vectZ=0;
+  double *markDo(int,double *,double);
+  double nextX=0,nextY=0,nextZ=0;
+  double rX=0,rY=0,rZ=0;
+  double zen=0,az=0;
+  double coord[3];
+  void findClosestFacet(double *,double *,double,double);
+
+  /*set vector*/
+  if(grad[2]<-10.0){   /*grad is a polar vector*/
+    zen=grad[0];
+    az=grad[1];
+    vectX=(float)(sin(zen)*sin(az));
+    vectY=(float)(sin(zen)*cos(az));
+    vectZ=(float)cos(zen);
+  }else{  /*grad is a cartesian vector*/
+    vectX=(float)grad[0];
+    vectY=(float)grad[1];
+    vectZ=(float)grad[2];
+    zen=atan2(sqrt(grad[0]*grad[0]+grad[1]*grad[1]),grad[2]);
+    az=atan2(grad[0],grad[1]);
+  }
+
+  /*set origin*/
+  coord[0]=xCent;
+  coord[1]=yCent;
+  coord[2]=zCent;
+
+  /*if we are outside test for intersection and move point to start of voxels*/
+  if((coord[0]>bounds[3])||(coord[1]>bounds[4])||(coord[0]<bounds[0])||\
+     (coord[1]<bounds[1])||(coord[2]>bounds[5])||(coord[2]<bounds[2])){
+    /*for each voxel bound facet determine the range to. Reset coord as bound intersection*/
+    findClosestFacet(&(coord[0]),&(bounds[0]),zen,az);
+  }/*outside but heading towards voxel space check*/
+
+  /*determine vector directions*/
+  if(vectX!=0.0)xDir=(vectX>0.0)?1:-1;
+  else          xDir=0;
+  if(vectY!=0.0)yDir=(vectY>0.0)?1:-1;
+  else          yDir=0;
+  if(vectZ!=0.0)zDir=(vectZ>0.0)?1:-1;
+  else          zDir=0;
+
+  /*mark first voxel*/
+  xBin=(int)((coord[0]-bounds[0])/vRes[0]);
+  yBin=(int)((coord[1]-bounds[1])/vRes[1]);
+  zBin=(int)((coord[2]-bounds[2])/vRes[2]);
+  *nPix=0;
+  if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){
+    pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
+    rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
+        (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+    (*nPix)++;
+  }
+
+  /*loop along intersections*/
+  while((coord[0]>=bounds[0])&&(coord[0]<=bounds[3])&&(coord[1]>=bounds[1])&&(coord[1]<=bounds[4])&&(coord[2]>=bounds[2])&&(coord[2]<=bounds[5])){
+    /*where would it go next*/
+    nextXbin=xBin+xDir;
+    nextYbin=yBin+yDir;
+    nextZbin=zBin+zDir;
+    nextX=(double)nextXbin*vRes[0]+bounds[0];
+    nextY=(double)nextYbin*vRes[1]+bounds[1];
+    nextZ=(double)nextZbin*vRes[2]+bounds[2];
+
+    /*range to next hit*/
+    if(vectX!=0.0)rX=(nextX-coord[0])/vectX;
+    else          rX=0.0;
+    if(vectY!=0.0)rY=(nextY-coord[1])/vectY;
+    else          rY=0.0;
+    if(vectZ!=0.0)rZ=(nextZ-coord[2])/vectZ;
+    else          rZ=0.0;
+
+    /*if nothing has changed*/
+    if(rX==0.0)rX=vRes[0]*100.0;
+    if(rY==0.0)rY=vRes[1]*100.0;
+    if(rZ==0.0)rZ=vRes[2]*100.0;
+
+    if((rX<rY)&&(rX<rZ)){  /*x change*/
+      coord[0]=nextX;
+      coord[1]+=rX*vectY;
+      coord[2]+=rX*vectZ;
+    }else if(rY<rZ){       /*y change*/
+      coord[0]+=rY*vectX;
+      coord[1]=nextY;
+      coord[2]+=rY*vectZ;
+    }else{                 /*z change*/
+      coord[0]+=rZ*vectX;
+      coord[1]+=rZ*vectY;
+      coord[2]=nextZ;
+    }
+
+    /*record the hit*/
+    xBin=(int)((coord[0]-bounds[0])/vRes[0]);
+    yBin=(int)((coord[1]-bounds[1])/vRes[1]);
+    zBin=(int)((coord[2]-bounds[2])/vRes[2]);
+    /*is it within bounds*/
+    if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){
+      pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
+      rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
+          (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+      (*nPix)++;
+    }
+  }/*intersection loop*/
+
+  /*record the range to the very end*/
+  rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
+      (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+
+  return(pixList);
+}/*findVoxels*/
 
 
 /*###########################################################################*/
