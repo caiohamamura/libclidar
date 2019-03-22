@@ -620,7 +620,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
     exit(1);
   }
   *nBins=dims[0];
-  jimlad=falloc(dims[0],"",0);
+  jimlad=falloc(dims[0],varName,0);
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     fprintf(stderr,"Data reading error %d\n",status);
