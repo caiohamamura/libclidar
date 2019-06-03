@@ -533,7 +533,7 @@ char *read15dCharHDF5(hid_t file,char *label,int *nWaves,int *nBins)
 }/*read15dCharHDF5*/
 
 
-/*#####################################*/
+/*####################################*/
 /*read 1D uint32 array from HDF5*/
 
 uint32_t *read1dUint32HDF5(hid_t file,char *varName,int *nBins)
@@ -566,6 +566,41 @@ uint32_t *read1dUint32HDF5(hid_t file,char *varName,int *nBins)
   status=H5Sclose(space);
   return(jimlad);
 }/*read1dUint32HDF5*/
+
+
+/*####################################*/
+/*read 1D uint64 array from HDF5*/
+
+uint64_t *read1dUint64HDF5(hid_t file,char *varName,int *nBins)
+{
+  int ndims=0;
+  hid_t dset,space,filetype;         /* Handles */
+  herr_t status;
+  hsize_t dims[1];
+  uint64_t *jimlad=NULL;
+
+  dset=H5Dopen2(file,varName,H5P_DEFAULT);
+  filetype=H5Dget_type(dset);
+  space=H5Dget_space(dset);
+  ndims=H5Sget_simple_extent_dims(space,dims,NULL);
+  if(ndims>1){
+    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    exit(1);
+  }
+  *nBins=dims[0];
+  if(!(jimlad=(uint64_t *)calloc(*nBins,sizeof(uint64_t)))){
+    fprintf(stderr,"error in float buffer allocation.\n");
+    exit(1);
+  }
+  status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
+  if(status){
+    fprintf(stderr,"Data reading error %d\n",status);
+    exit(1);
+  }
+  status=H5Dclose(dset);
+  status=H5Sclose(space);
+  return(jimlad);
+}/*read1dUint64HDF5*/
 
 
 /*#####################################*/
