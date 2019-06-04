@@ -1837,7 +1837,7 @@ float foliageHeightDiversity(float *wave,int nBins)
 float foliageHeightDiversityHist(float *wave,int nBins,float res)
 {
   int i=0,histBins=0;
-  int bin=0,maxBins=1000;
+  int bin=0,maxBins=200;
   float FHD=0,thresh=0;
   float max=0,min=0;
   float p=0,total=0;
@@ -1875,10 +1875,11 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
   for(i=0;i<nBins;i++){
     if(wave[i]>thresh){
       bin=(int)((wave[i]-min)/res);
+      if(bin<0)bin=0;
+      if(bin>=histBins)bin=histBins-1;
       hist[bin]+=1.0;
     }
   }
-
 
   FHD=0.0;
   for(i=0;i<histBins;i++){
@@ -1889,7 +1890,6 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
   TIDY(hist);
   return(FHD);
 }/*foliageHeightDiversityHist*/
-
 
 
 /*####################################################*/
