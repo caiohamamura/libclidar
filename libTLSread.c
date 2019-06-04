@@ -219,7 +219,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     (*scan)->maxRead=(uint32_t)(buffSize/(sizeof(tlsBeam)-2*4));  /*if all beams had hits, there would be fewer bytes per beam*/
     /*allocate space for beams*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
-      fprintf(stderr,"error beam allocation. Allocating %llu\n",buffSize);
+      fprintf(stderr,"error beam allocation. Allocating %lu\n",buffSize);
       exit(1);
     }
   }else if((place==0)||(((uint64_t)place-(uint64_t)(*scan)->pOffset)<(uint64_t)(*scan)->nRead)){  /*do we need to read anymore?*/
@@ -230,7 +230,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
   buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
   if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
-    fprintf(stderr,"Error reading beam data for buffer of size %llu\n",buffSize);
+    fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
     exit(1);
   }
 
