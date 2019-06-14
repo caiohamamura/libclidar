@@ -43,7 +43,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
   TIFFGetField(tiffIn,TIFFTAG_TILEWIDTH,&tileWidth);
   if(tileWidth>0){
     TIFFGetField(tiffIn,TIFFTAG_TILELENGTH,&tileLength);
-    buff=falloc(tileWidth*tileLength,"buffer",0);
+    buff=falloc((uint64_t)tileWidth*(uint64_t)tileLength,"buffer",0);
   }
 
 
@@ -65,7 +65,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
       }
     }else if(type==3){ /*float*/
       if(((int)TIFFScanlineSize(tiffIn)/geotiff->nX)==4){
-        geotiff->fImage=falloc(geotiff->nX*geotiff->nY,namen,0);
+        geotiff->fImage=falloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0);
 
         if(tileWidth==0){   /*read scan lines*/
           for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/

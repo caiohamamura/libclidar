@@ -456,7 +456,7 @@ float *read15dFloatHDF5(hid_t file,char *label,int *nWaves,int *nBins)
   (*nBins)=(int)dims[1];
 
   /*allocate space*/
-  jimlad=falloc((*nWaves)*(*nBins),"1.5d float array HDF",0);
+  jimlad=falloc((uint64_t)(*nWaves)*(uint64_t)(*nBins),"1.5d float array HDF",0);
 
   /*read data*/
   if(H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad)){
@@ -690,7 +690,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
     exit(1);
   }
   *nBins=dims[0];
-  jimlad=falloc(dims[0],varName,0);
+  jimlad=falloc((uint64_t)dims[0],varName,0);
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     fprintf(stderr,"Data reading error %d\n",status);

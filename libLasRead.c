@@ -543,7 +543,7 @@ void readGBIC(char appGBIC,char balFlights,lasFile **lasIn,listLas *lasList)
 
   for(i=0;i<lasList->nFiles;i++){
     lasIn[i]->gbLen=257;
-    lasIn[i]->gbic=falloc(lasIn[i]->gbLen,"GBIC",i+1);
+    lasIn[i]->gbic=falloc((uint64_t)lasIn[i]->gbLen,"GBIC",i+1);
     if(balFlights==0)lasIn[i]->flightBal=1.0;
     else             lasIn[i]->flightBal=lasList->flightBal[i];
     if(appGBIC){  /*open file if needed*/
@@ -621,7 +621,7 @@ listLas *readLasList(char *namen)
   /*TLS only parameters, left blank for ALS*/
   lasList->scanCent=dDalloc(lasList->nFiles,"scan centre",0);
   lasList->align=dDalloc(lasList->nFiles,"scan alignment",0);
-  lasList->flightBal=falloc(lasList->nFiles,"flight balance",0);
+  lasList->flightBal=falloc((uint64_t)lasList->nFiles,"flight balance",0);
   for(i=0;i<lasList->nFiles;i++){
     lasList->scanCent[i]=dalloc(3,"scan centre",i+1);
     lasList->align[i]=dalloc(3,"alignment",i+1);

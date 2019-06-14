@@ -552,20 +552,20 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
 
   vox->useRMSE=useRMSE;
   if(useRMSE){
-    vox->rmse=falloc(vox->nVox,"voxel error",0);
+    vox->rmse=falloc((uint64_t)vox->nVox,"voxel error",0);
     for(j=0;j<vox->nVox;j++)vox->rmse[j]=0.0;
   }
 
   for(i=0;i<vox->nScans;i++){
-    vox->hits[i]=falloc(vox->nVox,"voxel hits",i+1);
-    vox->miss[i]=falloc(vox->nVox,"voxel miss",i+1);
-    vox->inHit[i]=falloc(vox->nVox,"voxel hits",i+1);
-    vox->inMiss[i]=falloc(vox->nVox,"voxel miss",i+1);
-    vox->sampVol[i]=falloc(vox->nVox,"voxel volume sampled",i+1);
-    vox->totVol[i]=falloc(vox->nVox,"voxel volume total",i+1);
-    vox->meanRefl[i]=falloc(vox->nVox,"mean reflectance of intersecting beams",i+1);
-    vox->meanZen[i]=falloc(vox->nVox,"mean zenith angle of intersecting beams",i+1);
-    vox->sumRsq[i]=falloc(vox->nVox,"sum of radius of TLS points, squared",i+1);
+    vox->hits[i]=falloc((uint64_t)vox->nVox,"voxel hits",i+1);
+    vox->miss[i]=falloc((uint64_t)vox->nVox,"voxel miss",i+1);
+    vox->inHit[i]=falloc((uint64_t)vox->nVox,"voxel hits",i+1);
+    vox->inMiss[i]=falloc((uint64_t)vox->nVox,"voxel miss",i+1);
+    vox->sampVol[i]=falloc((uint64_t)vox->nVox,"voxel volume sampled",i+1);
+    vox->totVol[i]=falloc((uint64_t)vox->nVox,"voxel volume total",i+1);
+    vox->meanRefl[i]=falloc((uint64_t)vox->nVox,"mean reflectance of intersecting beams",i+1);
+    vox->meanZen[i]=falloc((uint64_t)vox->nVox,"mean zenith angle of intersecting beams",i+1);
+    vox->sumRsq[i]=falloc((uint64_t)vox->nVox,"sum of radius of TLS points, squared",i+1);
     for(j=0;j<vox->nVox;j++){
       vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=0.0;
       vox->sampVol[i][j]=vox->totVol[i][j]=vox->sumRsq[i][j]=0.0;

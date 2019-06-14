@@ -56,7 +56,7 @@ float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
   float *processFloWave(float *,int,denPar *,float);
 
   /*convert to a float array for ease*/
-  temp=falloc(waveLen,"presmoothed",0);
+  temp=falloc((uint64_t)waveLen,"presmoothed",0);
   for(i=0;i<waveLen;i++)temp[i]=(float)wave[i];
   decon->maxDN=255.0;
   decon->bitRate=8;
@@ -104,7 +104,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }else if(decon->preMatchF){  /*matched filter*/
     preSmoothed=matchedFilter(wave,waveLen,decon,decon->res);
   }else{
-    preSmoothed=falloc(waveLen,"",0);
+    preSmoothed=falloc((uint64_t)waveLen,"",0);
     for(i=0;i<waveLen;i++)preSmoothed[i]=wave[i];
   }
 
@@ -225,7 +225,7 @@ float *CofGhard(float *denoised,uint32_t waveLen)
   float *wave=NULL;
   float CofG=0,contN=0;
 
-  wave=falloc(waveLen,"CofG wave",0);
+  wave=falloc((uint64_t)waveLen,"CofG wave",0);
   for(i=0;i<waveLen;i++)wave[i]=0.0;
 
   CofG=contN=0.0;
@@ -397,7 +397,7 @@ float *digitise(float *wave,int nBins,char bitRate,float maxDN)
   float resDN=0,max=0;
   float tot=0,newTot=0;
 
-  sampled=falloc(nBins,"sampled wave",0);
+  sampled=falloc((uint64_t)nBins,"sampled wave",0);
 
   /*number of bins*/
   nDN=1;
@@ -477,7 +477,7 @@ float *hardHitWave(denPar *decon,int numb)
   float *hardWave=NULL;
 
   /*set to 0*/
-  hardWave=falloc(numb,"hard waveform",0);
+  hardWave=falloc((uint64_t)numb,"hard waveform",0);
   for(i=0;i<numb;i++)hardWave[i]=0.0;
 
   /*the single return*/
@@ -507,7 +507,7 @@ float *correctAttenuation(float *denoised,int numb)
   for(i=0;i<numb;i++)tot+=denoised[i];
 
   /*count up gap and apply correction*/
-  trueArea=falloc(numb,"",0);
+  trueArea=falloc((uint64_t)numb,"",0);
   gap=1.0;
   for(i=0;i<numb;i++){
     if(gap>0.0)trueArea[i]=denoised[i]/gap;
@@ -535,14 +535,14 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
   float *x=NULL;
 
   /*fit Gaussians. Parameters are packed at array end */
-  x=falloc(waveLen,"x",0);
+  x=falloc((uint64_t)waveLen,"x",0);
   for(i=0;i<waveLen;i++)x[i]=(float)i*decon->res;  /*Gaussian fitting is base 1*/
   decon->nGauss=0;
   gaussWave=fitMultiGauss(x,wave,waveLen,decon->gWidth,&(decon->nGauss),decon->minGsig);
   TIDY(x);
 
   /*transfer Gaussians parameters*/
-  decon->gPar=falloc(3*decon->nGauss,"Gaussian parameters",0);
+  decon->gPar=falloc(3*(uint64_t)decon->nGauss,"Gaussian parameters",0);
   for(i=3*decon->nGauss-1;i>=0;i--)decon->gPar[i]=gaussWave[i+waveLen];
 
   /*trim the fitted wave*/
@@ -698,7 +698,7 @@ float *matchedFilter(float *wave,int nBins,denPar *denoise,float res)
   float energy=0;
 
   /*allocate space*/
-  smoothed=falloc(nBins,"matched filtered wave",0);
+  smoothed=falloc((uint64_t)nBins,"matched filtered wave",0);
 
   /*smooth wave*/
   for(i=0;i<nBins;i++){
@@ -739,7 +739,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
   newRes=res/3.0;
 
   /*smooth as required*/
-  smoothed=falloc(nBins,"",0);
+  smoothed=falloc((uint64_t)nBins,"",0);
   if(sWidth<TOL)memcpy(smoothed,data,sizeof(float)*nBins);
   else{
     /*test to see if a new pulse array is needed*/
@@ -821,7 +821,7 @@ float *setPulse(float sWidth,int *nPulse,float res)
   }
 
   (*nPulse)=i;
-  pulse=falloc(*nPulse,"smoothing pulse",0);
+  pulse=falloc((uint64_t)(*nPulse),"smoothing pulse",0);
   for(i=0;i<(*nPulse);i++){
     x=(float)i*res;
     pulse[i]=(float)gaussian((double)x,(double)sWidth,0.0);
@@ -871,7 +871,7 @@ float *deconvolve(float *data,int nBins,float **pulse,int pBins,float res,int ma
   TIDY(dataDo);
 
   /*transfer data*/
-  decon=falloc(nBins,"",0);
+  decon=falloc((uint64_t)nBins,"",0);
   newEn=0;
   for(i=0;i<nBins;i++)newEn+=deconDo[i];
   for(i=0;i<nBins;i++)decon[i]=(float)(deconDo[i]*energy/newEn);
@@ -1055,7 +1055,7 @@ float *denoise(float meanN,float thresh,int minWidth,int nBins,float *data,float
   float thisMean=0;
   char waveStart=0;
 
-  denoised=falloc(nBins,"denoised",0);
+  denoised=falloc((uint64_t)nBins,"denoised",0);
   for(i=0;i<nBins;i++)denoised[i]=0.0;
   waveStart=0;
 
@@ -1174,7 +1174,7 @@ void readPulse(denPar *denoise)
     }
 
     denoise->pulse=fFalloc(2,"",0);
-    for(i=0;i<2;i++)denoise->pulse[i]=falloc(denoise->pBins,"",i+1);
+    for(i=0;i<2;i++)denoise->pulse[i]=falloc((uint64_t)denoise->pBins,"",i+1);
 
     /*read data*/
     i=0;
@@ -1205,7 +1205,7 @@ void readPulse(denPar *denoise)
     pRes=0.01;
     denoise->pulse=fFalloc(2,"",0);
     tempPulse=setPulse(denoise->pSigma*denoise->pScale,&denoise->pBins,pRes);
-    for(i=0;i<2;i++)denoise->pulse[i]=falloc(2*denoise->pBins,"",i+1);
+    for(i=0;i<2;i++)denoise->pulse[i]=falloc(2*(uint64_t)denoise->pBins,"",i+1);
     mu=(float)denoise->pBins*pRes;
     for(i=0;i<2*denoise->pBins;i++){
       denoise->pulse[0][i]=(float)i*pRes-mu;
@@ -1223,7 +1223,7 @@ void readPulse(denPar *denoise)
 
   /*matched filter if we need it*/
   if(denoise->preMatchF||denoise->posMatchF){
-    denoise->matchPulse=falloc(denoise->pBins,"matched pulse",0);
+    denoise->matchPulse=falloc((uint64_t)denoise->pBins,"matched pulse",0);
     for(i=0;i<denoise->pBins;i++)denoise->matchPulse[i]=denoise->pulse[1][i];
   }
 
@@ -1749,7 +1749,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   for(i=0;i<nBins;i++)if(wave[i]>tolerance)totE+=wave[i];
 
   *nRH=(int)(100.0/rhRes+1);
-  rh=falloc(*nRH,"rh metrics",0);
+  rh=falloc((uint64_t)(*nRH),"rh metrics",0);
   done=challoc((uint64_t)(*nRH),"RH done flag",0);
   for(i=0;i<(*nRH);i++){
     done[i]=0;
@@ -1871,7 +1871,7 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
   if((total<TOL)||(histBins<1))return(0.0);
 
   /*make histogram*/
-  hist=falloc(histBins,"FHD histogram",0);
+  hist=falloc((uint64_t)histBins,"FHD histogram",0);
   for(i=0;i<nBins;i++){
     if(wave[i]>thresh){
       bin=(int)((wave[i]-min)/res);
@@ -1902,7 +1902,7 @@ float *subtractGaussFromCan(float *wave,int nBins,float mu,float A,float sig,dou
   float *canWave=NULL;
   float delta=0;
 
-  canWave=falloc(nBins,"canopy only wave",0);
+  canWave=falloc((uint64_t)nBins,"canopy only wave",0);
 
   /*subtract ground*/
   tot=0.0;
@@ -1936,7 +1936,7 @@ float *subtractGroundFromCan(float *wave,float *ground,int nBins)
   float *canWave=NULL;
 
   /*allocate*/
-  canWave=falloc(nBins,"canope wave",0);
+  canWave=falloc((uint64_t)nBins,"canope wave",0);
 
   /*wave integram for attenuation correction*/
   tot=0.0;
@@ -1970,7 +1970,7 @@ float *waveLmoments(float *rh,int nRH,float rhRes,int nLm)
   }
 
   res=rhRes/100.0;
-  Lmoments=falloc(nLm,"L-moments",0);
+  Lmoments=falloc((uint64_t)nLm,"L-moments",0);
   for(i=0;i<nLm;i++)Lmoments[i]=0.0;
 
   for(i=0;i<nRH;i++){
@@ -2038,7 +2038,7 @@ float *correctDrift(float *wave,int nBins,int noiseBins,denPar *den)
 
 
   /*allocate*/
-  drift=falloc(nBins,"drift corrected wave",0);
+  drift=falloc((uint64_t)nBins,"drift corrected wave",0);
 
 
   /*do we fix detector drift?*/

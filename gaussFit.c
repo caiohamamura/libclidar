@@ -96,7 +96,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   returns=filterData(decon,nBins,0.0001);
 
   /*set results blank*/
-  fitted=falloc(nBins,"",0);
+  fitted=falloc((uint64_t)nBins,"",0);
   for(i=0;i<nBins;i++)fitted[i]=0.0;
   params=fFalloc(returns->nFeat,"Gaussian parameters",0);
   nGauss=ialloc(returns->nFeat,"number of Gaussians",0);
@@ -112,7 +112,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
     turnings=findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth,x);
 
     /*make a padded x arrays*/
-    padX=falloc(returns->width[ret],"padded x",0);
+    padX=falloc((uint64_t)returns->width[ret],"padded x",0);
     gRes=fabs(x[2]-x[1]);
     for(i=0;i<returns->width[ret];i++)padX[i]=x[returns->sBin[ret]]+(float)(i-gaussBuffBins)*gRes;
 
@@ -256,11 +256,11 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   data.y=NULL;
 
   /*generate fitted wave*/
-  fitted=falloc(nBins,"Gaussian fit",0);
+  fitted=falloc((uint64_t)nBins,"Gaussian fit",0);
   for(i=0;i<nBins;i++)fitted[i]=params[1]*gauss(x[i],params[2],params[0]);
 
   /*copy parameters*/
-  (*gaussPar)=falloc(nParams,"Gaussian parameters",0);
+  (*gaussPar)=falloc((uint64_t)nParams,"Gaussian parameters",0);
   for(i=0;i<nParams;i++)(*gaussPar)[i]=params[i];
   TIDY(params);
   return(fitted);
@@ -532,7 +532,7 @@ multRet *filterData(float *y,int numb,float offset)
   gaussBuffBins=130;
   returns->temp=fFalloc(returns->nFeat,"temp feature",0);
   for(i=0;i<returns->nFeat;i++){
-    returns->temp[i]=falloc(returns->width[i]+2*gaussBuffBins,"temp feature",i+1);
+    returns->temp[i]=falloc((uint64_t)returns->width[i]+2*(uint64_t)gaussBuffBins,"temp feature",i+1);
     for(j=0;j<gaussBuffBins;j++)returns->temp[i][j]=0.0;
     for(j=0;j<returns->width[i];j++){
       place=j+returns->sBin[i];
@@ -601,7 +601,7 @@ float *initialGuess(float *x,float *y,int numb,int nGauss,int *bound,float minGs
   float contN=0,thisThresh=0;
 
   /*variablaes are 3*j+1 mu, 3*j+2 A, 3*j+3 sig*/
-  params=falloc(3*nGauss,"parameters",0);
+  params=falloc(3*(uint64_t)nGauss,"parameters",0);
 
   for(j=0;j<nGauss;j++){
     if((bound[j+1]-bound[j])>=3){
@@ -658,7 +658,7 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
 
 
   /*determine second derivative*/
-  d2x=falloc(width,"d2x",0);
+  d2x=falloc((uint64_t)width,"d2x",0);
   for(i=1;i<width-1;i++)d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
 
   temp=smooth(preSmooth,width,d2x,0.15);
