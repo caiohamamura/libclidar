@@ -273,8 +273,8 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
     /*copy hit information, multiple per beam*/
     if((*scan)->beam[i].nHits>0){
-      (*scan)->beam[i].r=falloc((int)(*scan)->beam[i].nHits,"range",i);
-      (*scan)->beam[i].refl=falloc((int)(*scan)->beam[i].nHits,"refl",i);
+      (*scan)->beam[i].r=falloc((uint64_t)(*scan)->beam[i].nHits,"range",i);
+      (*scan)->beam[i].refl=falloc((uint64_t)(*scan)->beam[i].nHits,"refl",i);
       for(j=0;j<(*scan)->beam[i].nHits;j++){
         memcpy(&((*scan)->beam[i].r[j]),&buffer[offset],4);
         offset+=4;
