@@ -638,7 +638,7 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
   (*meanN)/=(float)(statBins-start);
   stdev=0.0;
   for(i=start;i<statBins;i++)stdev+=((*meanN)-sampled[i])*((*meanN)-sampled[i]);
-  stdev=sqrt(stdev/(float)(float)(statBins-start));
+  stdev=sqrt(stdev/(float)(statBins-start));
 
 
   (*thresh)=(*meanN)+threshScale*stdev;
