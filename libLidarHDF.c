@@ -547,6 +547,10 @@ uint16_t *read1dUint16HDF5(hid_t file,char *varName,int *nBins)
   dset=H5Dopen2(file,varName,H5P_DEFAULT);
   filetype=H5Dget_type(dset);
   space=H5Dget_space(dset);
+  //if((filetype!=H5T_NATIVE_USHORT)&&(filetype!=H5T_STD_I16BE)&&(filetype!=H5T_STD_I16LE)){
+  //  fprintf(stderr,"Wrong data type\n");
+  //  exit(1);
+  //}
   ndims=H5Sget_simple_extent_dims(space,dims,NULL);
   if(ndims>1){
     fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
