@@ -687,6 +687,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
 
   dset=H5Dopen2(file,varName,H5P_DEFAULT);
   filetype=H5Dget_type(dset);
+
   space=H5Dget_space(dset);
   ndims=H5Sget_simple_extent_dims(space,dims,NULL);
   if(ndims>1){
@@ -700,6 +701,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
     fprintf(stderr,"Data reading error %d\n",status);
     exit(1);
   }
+
   status=H5Dclose(dset);
   status=H5Sclose(space);
   return(jimlad);
