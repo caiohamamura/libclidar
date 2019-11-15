@@ -567,11 +567,11 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
       exit(1);
     }/*hits before voxel*/
 
-    /*add up total length of beams passing through*/
-    vox->totVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
+    /*has the beam reached this voxel unblocked?*/
+    if(doIt){
+      /*add up total length of beams passing through*/
+      vox->totVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
 
-    /*hits within voxel*/
-    if(doIt){  /*only if the beam has made it this far*/
       /*loop over all hits along beam to see which are within voxel*/
       hasHit=0;
       appRefl=0.0;
