@@ -586,8 +586,12 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
                                 lidPar->beamRad,lidPar->minRefl,lidPar->maxRefl,lidPar->appRefl,1.0);
             vox->sumRsq[fInd][voxList[k]]+=rad*rad;
           }/*count up area of points within voxel*/
-        }else if(tempTLS->beam[j].r[n]>=rangeList[k+1])break;  /*left the voxel*/
+        }else if(tempTLS->beam[j].r[n]>=rangeList[k+1]){   /*left the voxel*/
+          n--;   /*take counter back one*/
+          break;
+        }
       }/*hit along beam loop*/
+
       /*count up number of hits and misses within voxel*/
       if(hasHit){
         vox->inHit[fInd][voxList[k]]+=1.0;
