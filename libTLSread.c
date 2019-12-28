@@ -571,6 +571,7 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
     if(doIt){
       /*add up total length of beams passing through. Beland 2011 has this including blocked beams, although I am unsure*/
       vox->totVol[fInd][voxList[k]]+=rangeList[k+1]-rangeList[k];
+//fprintf(stdout,"%f %f %f %d %d beam %d\n",rangeList[k+1]-rangeList[k],rangeList[k+1],rangeList[k],k,nIntersect,j);
 
       /*loop over all hits along beam to see which are within voxel*/
       hasHit=0;
