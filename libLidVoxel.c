@@ -698,34 +698,49 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     if(vectZ!=0.0)rZ=(nextZ-coord[2])/vectZ;
     else          rZ=0.0;
 
+/*if((rX>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rY>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rZ>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))){
+fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f %f ranges %f %f %f of %f dir %d %d %d\n",*nPix,coord[0],coord[1],coord[2],xBin,yBin,zBin,nextXbin,nextYbin,nextZbin,nextX,nextY,nextZ,rX,rY,rZ,sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]),xDir,yDir,zDir);
+}*/
+
     /*if nothing has changed*/
-    if(rX==0.0)rX=vRes[0]*100.0;
-    if(rY==0.0)rY=vRes[1]*100.0;
-    if(rZ==0.0)rZ=vRes[2]*100.0;
+    if(rX==0.0)rX=(bounds[3]-bounds[0])*1000.0;
+    if(rY==0.0)rY=(bounds[4]-bounds[1])*1000.0;
+    if(rZ==0.0)rZ=(bounds[5]-bounds[2])*1000.0;
 
     if((rX<rY)&&(rX<rZ)){  /*x change*/
       coord[0]=nextX;
       coord[1]+=rX*vectY;
       coord[2]+=rX*vectZ;
-    }else if(rY<rZ){       /*y change*/
+      xBin+=xDir;
+    }else if((rY<rZ)&&(rY<rX)){       /*y change*/
       coord[0]+=rY*vectX;
       coord[1]=nextY;
       coord[2]+=rY*vectZ;
-    }else{                 /*z change*/
+      yBin+=yDir;
+    }else if((rZ<rY)&&(rZ<rX)){                 /*z change*/
       coord[0]+=rZ*vectX;
       coord[1]+=rZ*vectY;
       coord[2]=nextZ;
+      zBin+=zDir;
+    }else{
+      fprintf(stderr,"Hit a corner\n");
+      exit(1);
     }
 
-    /*record the hit*/
-    xBin=(int)((coord[0]-bounds[0])/vRes[0]);
-    yBin=(int)((coord[1]-bounds[1])/vRes[1]);
-    zBin=(int)((coord[2]-bounds[2])/vRes[2]);
-    /*is it within bounds*/
+    /*Is it within bounds? If so record the hit*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){
+      /*record*/
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
-      rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
-          (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+      rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*(coord[0]-xCent)+\
+                 (coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+
+/*if(*nPix>0){
+  if((rangeList[0][*nPix]-rangeList[0][(*nPix)-1])>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2])){
+//fprintf(stdout,"error %f %f %f %d bins %d %d %d of %d %d %d dirs %d %d %d ranges %f %f %f vect %f %f %f next %f %f %f\n",rangeList[0][*nPix]-rangeList[0][(*nPix)-1],rangeList[0][*nPix],rangeList[0][(*nPix)-1],*nPix,xBin,yBin,zBin,vX,vY,vZ,xDir,yDir,zDir,rX,rY,rZ,vectX,vectY,vectZ,nextX,nextY,nextZ);
+  }else{
+//fprintf(stdout,"fine %f %f %f %d bins %d %d %d of %d %d %d dirs %d %d %d mode %d ranges %f %f %f\n",rangeList[0][*nPix]-rangeList[0][(*nPix)-1],rangeList[0][*nPix],rangeList[0][(*nPix)-1],*nPix,xBin,yBin,zBin,vX,vY,vZ,xDir,yDir,zDir,mode,rX,rY,rZ);
+  }
+}*/
       (*nPix)++;
     }
   }/*intersection loop*/
