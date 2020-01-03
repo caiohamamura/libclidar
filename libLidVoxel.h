@@ -57,6 +57,9 @@ typedef struct{
   char useRMSE;      /*switch to save RAM in voxelate*/
   char savePts;      /*save points switch*/
   float maxZen;      /*maximum absolute zenith to allow. To filter tilt mount*/
+  /*DTM for removing the ground*/
+  demStruct *dem;    /*DEM structure*/
+  float demTol;      /*tolerance to separate ground and non-ground points*/
 }voxStruct;
 
 

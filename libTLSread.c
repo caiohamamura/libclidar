@@ -5,6 +5,7 @@
 #include "stdint.h"
 #include "tools.h"
 #include "libLasRead.h"
+#include "libDEMhandle.h"
 #include "libLidVoxel.h"
 
 
@@ -543,7 +544,9 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
 {
   int k=0,n=0;
   float lastHitR=0;
+  float groundRange=0;
   float appRefl=0,rad=0;
+  float findGroundRange(tlsBeam *,demStruct *,float,tlsScan *,float);
   char doIt=0,hasHit=0;
 
 
@@ -551,11 +554,17 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
   if(tempTLS->beam[j].nHits>0)lastHitR=(tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]<maxR)?tempTLS->beam[j].r[tempTLS->beam[j].nHits-1]:maxR;
   else                        lastHitR=maxR;
 
+  /*determine the range to the ground, if applicable*/
+  if(nIntersect>0){
+    if(vox->dem)groundRange=findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol);
+    else        groundRange=10.0*maxR;
+  }
+
   /*loop over intersected voxels*/
   for(k=0;k<nIntersect;k++){
     /*hits before voxel*/
     if(!useFracGap){  /*simple method. All hit until last return*/
-      if(rangeList[k]<=lastHitR){  /*entry point is before last return*/
+      if((rangeList[k]<=lastHitR)&&(rangeList[k]<=groundRange)){  /*entry point is before last return*/
         vox->hits[fInd][voxList[k]]+=1.0;
         doIt=1;
       }else{                       /*entry point is after last return*/
@@ -576,7 +585,8 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
       /*loop over all hits along beam to see which are within voxel*/
       hasHit=0;
       appRefl=0.0;
-      for(n=0;n<tempTLS->beam[j].nHits;n++){/*hit along beam loop*/
+      for(n=0;n<tempTLS->beam[j].nHits;n++){       /*hit along beam loop*/
+        if(tempTLS->beam[j].r[n]>=groundRange)break;   /*we are underground*/
         if(!lidPar->correctR)appRefl+=(float)tempTLS->beam[j].refl[n];   /*total reflectance to account for occlusion*/
         else                 appRefl+=(float)tempTLS->beam[j].refl[n]*pow((float)tempTLS->beam[j].r[n],2.0);
         if((tempTLS->beam[j].r[n]>=rangeList[k])&&(tempTLS->beam[j].r[n]<rangeList[k+1])){
@@ -618,6 +628,69 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
 
   return;
 }/*noteVoxelGaps*/
+
+
+/*##################################################################*/
+/*find range at which beam intersects ground*/
+
+float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float demTol)
+{
+  int k=0;
+  int nPix=0,*pixList=NULL;
+  float groundRange=0;
+  float vect[3];
+  double *rangeList=NULL;
+  double x=0,y=0,z=0,tZ=0;
+  double grad[3],vRes[3];
+  double bounds[6];
+  char hasHit=0;
+
+  /*set up vector and origin*/
+  vect[0]=(float)(sin(beam->zen)*cos(beam->az));
+  vect[1]=(float)(sin(beam->zen)*sin(beam->az));
+  vect[2]=(float)cos(beam->zen);
+  x=(double)beam->x+tls->xOff;
+  y=(double)beam->y+tls->yOff;
+  z=(double)beam->z+tls->zOff;
+
+  /*will this beam hit the DEM bounding box?*/
+  if((vect[2]>=0.0)&&(z>=dem->maxZ)){  /*no possibility of a hit*/
+    groundRange=10.0*maxR;
+  }else{  /*might intersect*/
+    grad[0]=(double)vect[0];
+    grad[1]=(double)vect[1];
+    grad[2]=0.0000000000000001;
+    vRes[0]=vRes[1]=vRes[2]=(double)dem->res;
+    bounds[0]=dem->minX;
+    bounds[1]=dem->minY;
+    bounds[2]=-0.5*(double)dem->res;
+    bounds[3]=dem->maxX;
+    bounds[4]=dem->maxY;
+    bounds[5]=0.5*(double)dem->res;
+
+
+    /*use voxel intersection, with z flattened*/
+    pixList=findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList);
+
+
+    /*loop along and see if we hit the DEM*/
+    hasHit=0;
+    for(k=0;k<nPix;k++){
+      tZ=z+vect[2]*rangeList[k+1];
+
+      if(tZ<=dem->z[pixList[k]]){
+        groundRange=rangeList[k];
+        hasHit=1;
+        break;
+      }
+    }
+
+    TIDY(pixList);
+    TIDY(rangeList);
+  }/*might intersect*/
+
+  return(groundRange-demTol);
+}/*findGroundRange*/
 
 
 /*##################################################################*/

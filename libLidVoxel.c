@@ -5,6 +5,7 @@
 #include "stdint.h"
 #include "tools.h"
 #include "libLasRead.h"
+#include "libDEMhandle.h"
 #include "libLidVoxel.h"
 #include "libLasProcess.h"
 
@@ -572,6 +573,9 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
       vox->meanRefl[i][j]=vox->meanZen[i][j]=0.0;
     }
   }/*file loop*/
+
+  /*leave the DTM out for now*/
+  vox->dem=NULL;
 
   return(vox);
 }/*voxAllocate*/
