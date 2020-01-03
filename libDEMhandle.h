@@ -43,10 +43,17 @@ typedef struct{
   double maxZ;     /*maximum dem height*/
   double *z;       /*the dem*/
   int nX;          /*number of x elements*/
-  int nZ;          /*number of y elements*/
+  int nY;          /*number of y elements*/
   float res;       /*dem bounds resolution*/
   double noData;   /*missing data flag*/
 }demStruct;
+
+
+/*#######################################*/
+/*functions*/
+
+demStruct *readTifDEM(char *,double,double,double,double);
+demStruct *tidyDEMstruct(demStruct *);
 
 /*the end*/
 /*#######################################*/
