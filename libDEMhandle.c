@@ -4,6 +4,7 @@
 #include "math.h"
 #include "stdint.h"
 #include "tools.h"
+#include "tiffRead.h"
 #include "libDEMhandle.h"
 
 
@@ -40,7 +41,7 @@
 
 
 
-/*#######################################*/
+/*########################################################################################*/
 /*read an ASCII DEM*/
 
 demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double maxY)
@@ -84,7 +85,7 @@ demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double max
       i=0;
       while(token!=NULL) {
         place=j*dem->nY+i;
-        dem->z[place]atof(token);
+        dem->z[place]=atof(token);
         i++;
       }
       j--;
@@ -102,6 +103,97 @@ demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double max
   }
   return(dem);
 }/*readAscDEM*/
+
+
+/*########################################################################################*/
+/*read a geotiff DEM*/
+
+demStruct *readTifDEM(char *namen,double minX,double minY,double maxX,double maxY)
+{
+  int i=0,j=0,i0=0,j0=0,i1=0,j1=0;
+  uint64_t demPlace=0,tifPlace=0;
+  demStruct *dem=NULL;
+  geot *geotiff=NULL;
+
+  /*allocate space*/
+  if(!(dem=(demStruct *)calloc(1,sizeof(demStruct)))){
+    fprintf(stderr,"error demStruct allocation.\n");
+    exit(1);
+  }
+  if(!(geotiff=(geot *)calloc(1,sizeof(geot)))){
+    fprintf(stderr,"error geotiff allocation.\n");
+    exit(1);
+  }
+
+  /*read the geotiff*/
+  readGeotiff(geotiff,namen,1);
+
+  /*copy header*/
+  dem->minX=minX;
+  dem->minY=minY;
+  dem->maxX=maxX;
+  dem->maxY=maxY;
+  dem->res=geotiff->scale[0];
+  dem->noData=-9999.0;
+  dem->nX=(int)((dem->maxX-dem->minX)/dem->res+1);
+  dem->nY=(int)((dem->maxY-dem->minY)/dem->res+1);
+  dem->z=dalloc(dem->nX*dem->nY,"z array",0);
+
+  /*extract area of interest*/
+  i0=(int)((minX-geotiff->tiepoints[3])/dem->res);
+  i1=(int)((maxX-geotiff->tiepoints[3])/dem->res);
+  j0=(int)((geotiff->tiepoints[4]-minY)/dem->res);
+  j1=(int)((geotiff->tiepoints[4]-maxY)/dem->res);
+  if(i0<0)i0=0;
+  if(i1>=geotiff->nX)i1=geotiff->nX-1;
+  if(j0<0)j0=0;
+  if(j1<0)j1=0;
+  if(j0>=geotiff->nY)j0=geotiff->nY-1;
+  if(j1>=geotiff->nY)j1=geotiff->nY-1;
+
+  dem->maxZ=-1000000.0;
+  dem->minZ=1000000.0;
+  for(i=i0;i<=i1;i++){
+    for(j=j0;j>=j1;j--){
+      demPlace=(uint64_t)(i-i0)+(uint64_t)(j-j1)*(uint64_t)dem->nX;
+      tifPlace=(uint64_t)i+(uint64_t)j*(uint64_t)geotiff->nX;
+
+      if(geotiff->fImage){
+        if(geotiff->fImage[tifPlace]>0.0)dem->z[demPlace]=(double)geotiff->fImage[tifPlace];
+        else                             dem->z[demPlace]=(double)dem->noData;
+      }else if(geotiff->dImage){
+        if(geotiff->dImage[tifPlace]>0.0)dem->z[demPlace]=geotiff->dImage[tifPlace];
+        else                             dem->z[demPlace]=dem->noData;
+      }else{
+        if(geotiff->image[tifPlace]<255)dem->z[demPlace]=(double)geotiff->image[tifPlace]*geotiff->scale[2];
+        else                            dem->z[demPlace]=dem->noData;
+      }
+
+      /*update bounds*/
+      if(dem->z[demPlace]<dem->minZ)dem->minZ=dem->z[demPlace];
+      if(dem->z[demPlace]>dem->maxZ)dem->maxZ=dem->z[demPlace];
+    }/*y loop*/
+  }/*x loop*/
+
+  /*tidy up*/
+  geotiff=tidyTiff(geotiff);
+
+  return(dem);
+}/*readTifDEM*/
+
+
+/*#################################################*/
+/*tidy up a DEM structuire*/
+
+demStruct *tidyDEMstruct(demStruct *dem)
+{
+  if(dem){
+    TIDY(dem->z);
+    TIDY(dem);
+  }
+
+  return(dem);
+}/*tidyDEMstruct*/
 
 /*the end*/
 /*#######################################*/
