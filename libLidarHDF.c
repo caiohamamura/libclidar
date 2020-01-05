@@ -968,6 +968,7 @@ void writeComp2dFloatHDF5(hid_t file,char *varName,float *data,int nWaves,int nB
   hsize_t dims[2];
   hid_t datatype,dataspace;  /*data definitions*/
   hid_t lcpl_id,dcpl_id,dapl_id;     /*creation and access properties*/
+  hsize_t chunk[2];
 
 
   /*define dataspace*/
@@ -977,9 +978,14 @@ void writeComp2dFloatHDF5(hid_t file,char *varName,float *data,int nWaves,int nB
   datatype=H5Tcopy(H5T_NATIVE_FLOAT);
   /*access and creation properties*/
   lcpl_id=H5Pcopy(H5P_DEFAULT);
-  dcpl_id=H5Pcopy(H5P_DEFAULT);
   dapl_id=H5Pcopy(H5P_DEFAULT);
 
+  /*set compression*/
+  chunk[0]=nWaves;
+  chunk[1]=nBins;
+  dcpl_id=H5Pcreate (H5P_DATASET_CREATE);
+  status=H5Pset_deflate (dcpl_id, 9);
+  status=H5Pset_chunk(dcpl_id,2,chunk);
 
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
@@ -987,9 +993,6 @@ void writeComp2dFloatHDF5(hid_t file,char *varName,float *data,int nWaves,int nB
     fprintf(stderr,"Error writing %s\n",varName);
     exit(1);
   }
-
-  /*set compression*/
-  status=H5Pset_deflate(dset,9);
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
