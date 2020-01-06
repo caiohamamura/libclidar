@@ -514,10 +514,17 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   int i=0,j=0;
   voxStruct *vox=NULL;
 
+  /*allocate sctructure*/
   if(!(vox=(voxStruct *)calloc(1,sizeof(voxStruct)))){
     fprintf(stderr,"error voxel structure allocation.\n");
     exit(1);
   }
+
+  /*leave derived values as NULL, as not always needed*/
+  vox->gap=NULL;
+  vox->gapTo=NULL;
+  vox->PAIb=NULL;
+  vox->PAIrad=NULL;
 
   /*note that findVoxels() needs minX maxX etc, different to dimage's minX minY etc*/
   for(i=0;i<3;i++)vox->res[i]=(double)vRes[i];
@@ -597,6 +604,10 @@ voxStruct *tidyVox(voxStruct *vox)
     TTIDY((void **)vox->meanRefl,vox->nScans);
     TTIDY((void **)vox->meanZen,vox->nScans);
     TTIDY((void **)vox->sumRsq,vox->nScans);
+    TTIDY((void **)vox->gap,vox->nScans);
+    TTIDY((void **)vox->gapTo,vox->nScans);
+    TTIDY((void **)vox->PAIb,vox->nScans);
+    TTIDY((void **)vox->PAIrad,vox->nScans);
     TIDY(vox->rmse);
     TIDY(vox->contN);
     TIDY(vox);

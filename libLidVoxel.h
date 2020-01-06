@@ -53,6 +53,11 @@ typedef struct{
   double res[3];     /*voxel resolution*/
   double bounds[6];  /*voxel bounds minX minY minZ maxX maxY maxZ*/
   float volume;      /*volume of the voxel*/
+  /*derived values, not always used*/
+  float **gap;       /*gap fraction within voxel*/
+  float **gapTo;     /*gap fraction to a voxel*/
+  float **PAIb;      /*PAI according to Beland*/
+  float **PAIrad;    /*PAI from adding up spheres*/
   /*switches*/
   char useRMSE;      /*switch to save RAM in voxelate*/
   char savePts;      /*save points switch*/
