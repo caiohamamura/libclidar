@@ -1143,6 +1143,7 @@ double *resamplePulse(int numb,float **pulse,float res,int pBins)
 void readPulse(denPar *denoise)
 {
   int i=0,nGauss=0;
+  int nMax=0;
   char line[200];
   char temp[2][100];
   FILE *ipoo=NULL;
@@ -1179,6 +1180,7 @@ void readPulse(denPar *denoise)
     /*read data*/
     i=0;
     max=-1000.0;
+    nMax=0;
     while(fgets(line,200,ipoo)!=NULL){
       if(strncasecmp(line,"#",1)){
         if(sscanf(line,"%s %s",temp[0],temp[1])==2){
@@ -1191,11 +1193,19 @@ void readPulse(denPar *denoise)
           if(denoise->pulse[1][i]>max){
             max=denoise->pulse[1][i];
             denoise->maxPbin=i;
+            nMax++;
           }
           i++;
         }
       }/*comment check*/
     }/*data reading*/
+
+fprintf(stdout,"nMax %d\n",nMax);
+    /*if it is a pulse compressed chirp, middle is centre*/
+    if(nMax>2){
+      denoise->maxPbin=denoise->pBins/2;
+fprintf(stdout,"Moving middle for odd bins %d\n",denoise->maxPbin);
+    }
 
     if(ipoo){
       fclose(ipoo);
