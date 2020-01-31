@@ -643,7 +643,6 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
   double x=0,y=0,z=0,tZ=0;
   double grad[3],vRes[3];
   double bounds[6];
-  char hasHit=0;
 
   /*set up vector and origin*/
   vect[0]=(float)(sin(beam->zen)*cos(beam->az));
@@ -674,13 +673,11 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
 
 
     /*loop along and see if we hit the DEM*/
-    hasHit=0;
     for(k=0;k<nPix;k++){
       tZ=z+vect[2]*rangeList[k+1];
 
       if(tZ<=dem->z[pixList[k]]){
         groundRange=rangeList[k];
-        hasHit=1;
         break;
       }
     }
