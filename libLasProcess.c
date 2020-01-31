@@ -1200,12 +1200,8 @@ void readPulse(denPar *denoise)
       }/*comment check*/
     }/*data reading*/
 
-fprintf(stdout,"nMax %d\n",nMax);
     /*if it is a pulse compressed chirp, middle is centre*/
-    if(nMax>2){
-      denoise->maxPbin=denoise->pBins/2;
-fprintf(stdout,"Moving middle for odd bins %d\n",denoise->maxPbin);
-    }
+    if(nMax>2)denoise->maxPbin=denoise->pBins/2;
 
     if(ipoo){
       fclose(ipoo);
