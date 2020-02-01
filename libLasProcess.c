@@ -1064,8 +1064,8 @@ float *denoise(float meanN,float thresh,int minWidth,int nBins,float *data,float
   /*threshold*/
   start=-1;
   for(i=0;i<nBins;i++){
-    //if((data[i]>=tailThresh)||((waveStart==0)&&(data[i]>=thresh))){        /*check whether we're within a feature*/
-    if((waveStart==0)&&(data[i]>=thresh)){        /*check whether we're within a feature*/
+    if((data[i]>=tailThresh)||((waveStart==0)&&(data[i]>=thresh))){        /*check whether we're within a feature*/
+    //if((waveStart==0)&&(data[i]>=thresh)){        /*check whether we're within a feature*/
       if(start<0)start=i;       /*mark start*/
       waveStart=1;
     }else if(start>=0){         /*left a feature*/
