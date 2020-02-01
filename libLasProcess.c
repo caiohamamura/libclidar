@@ -96,11 +96,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   char checkHardEnergy(int *,float *,float);
   char testHard(denPar *,float *,int,float);
   char hardTarget=0;
-float totE=0;
 
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=wave[i];
-fprintf(stdout,"Start %f\n",totE);
   /*smooth before denoising*/
   if(decon->psWidth>0.0){   /*Gaussian smoothing*/
     preSmoothed=smooth(decon->psWidth,waveLen,wave,decon->res);
@@ -110,9 +106,6 @@ fprintf(stdout,"Start %f\n",totE);
     preSmoothed=falloc((uint64_t)waveLen,"",0);
     for(i=0;i<waveLen;i++)preSmoothed[i]=wave[i];
   }
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=preSmoothed[i];
-fprintf(stdout,"preSmoothed %f\n",totE);
 
   /*determine noise statistics*/
   if(decon->varNoise){
@@ -133,9 +126,6 @@ fprintf(stdout,"preSmoothed %f\n",totE);
     mSmoothed=preSmoothed;
     preSmoothed=NULL;
   }
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=mSmoothed[i];
-fprintf(stdout,"mSmoothed %f\n",totE);
 
   /*median filter if needed*/
   if(decon->medLen>0){
@@ -149,11 +139,7 @@ fprintf(stdout,"mSmoothed %f\n",totE);
   /*correct for detector drift if needed*/
   temp=correctDrift(mediated,waveLen,(int)(decon->statsLen/decon->res),decon);
   TIDY(mediated);
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=temp[i];
-fprintf(stdout,"driftCorr %f\n",totE);
 
-fprintf(stdout,"Threshes %f %f\n",decon->meanN,decon->thresh);
   /*remove background noise*/
   if((decon->meanN>0.0)||(decon->thresh>0.0)){
     denoised=denoise(decon->meanN,decon->thresh,decon->minWidth,waveLen,temp,thisTail,decon->noiseTrack);
@@ -162,9 +148,6 @@ fprintf(stdout,"Threshes %f %f\n",decon->meanN,decon->thresh);
     denoised=temp;
     temp=NULL;
   }
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=denoised[i];
-fprintf(stdout,"denoised %f\n",totE);
 
   /*see if it a single return*/
   if(decon->matchHard)hardTarget=testHard(decon,denoised,waveLen,decon->res);
@@ -186,9 +169,6 @@ fprintf(stdout,"denoised %f\n",totE);
     smoothed=denoised;
     denoised=NULL;
   }
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=smoothed[i];
-fprintf(stdout,"smoothed %f\n",totE);
 
   /*scale by GBIC*/
   if((gbic>0.0)&&(gbic!=1.0))for(i=0;i<waveLen;i++)smoothed[i]/=gbic;
@@ -220,9 +200,6 @@ fprintf(stdout,"smoothed %f\n",totE);
     smoothed=NULL;
     hardTarget=0;
   }
-totE=0.0;
-for(i=0;i<waveLen;i++)totE+=gaussWave[i];
-fprintf(stdout,"gaussWave %f\n",totE);
 
   /*deconvolve if required*/
   if((decon->deconMeth>=0)&&(hardTarget==0)){
