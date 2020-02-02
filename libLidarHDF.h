@@ -51,8 +51,10 @@ typedef struct{
    double lat431;    /* latitude of the lowest sample of the waveform (degrees north)*/
    float  z431;      /* elevation of the lowest sample of the waveform (m)*/
    float  sigmean;   /* signal mean noise level, calculated in-flight (counts)*/
-   unsigned char *txwave;  /* transmit waveform, recorded in-flight (counts)*/
+   unsigned char *txwave; /* transmit waveform, recorded in-flight (counts)*/
    unsigned char *rxwave; /* return   waveform, recorded in-flight (counts)*/
+   uint16_t *txwave4;     /* transmit waveform, recorded in-flight (counts) version on 1.4+*/
+   uint16_t *rxwave4;     /* return   waveform, recorded in-flight (counts) version 1.4+*/
 }lvisLGWdata;
 
 

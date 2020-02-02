@@ -149,14 +149,31 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
     memcpy(&(data[i].sigmean),&(buffer[offset]),sizeof(float));
     offset+=(uint64_t)sizeof(float);
     if(lvis->nTxBins>0){
-      data[i].txwave=uchalloc(lvis->nTxBins,"txwave",i+1);
-      memcpy(&(data[i].txwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nTxBins);
-      offset+=(uint64_t)sizeof(unsigned char)*80;
+      if(lvis->verMin<4){
+        data[i].txwave=uchalloc(lvis->nTxBins,"txwave",i+1);
+        memcpy(&(data[i].txwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nTxBins);
+        offset+=(uint64_t)sizeof(unsigned char)*(uint64_t)lvis->nTxBins;
+      }else{   /*version 4 is a higher bit rate*/
+        if(!(data[i].txwave4=(uint16_t *)calloc(lvis->nTxBins,sizeof(uint16_t)))){
+          fprintf(stderr,"error in txwave allocation.\n");
+          exit(1);
+        }
+        memcpy(&(data[i].txwave4[0]),&(buffer[offset]),sizeof(uint16_t)*lvis->nTxBins);
+        offset+=(uint64_t)sizeof(uint16_t)*(uint64_t)lvis->nTxBins;
+      }
     }else data[i].txwave=NULL;
-    data[i].rxwave=uchalloc(lvis->nBins,"rxwave",0);
-    memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
-    offset+=(uint64_t)sizeof(unsigned char)*lvis->nBins;
-
+    if(lvis->verMin<4){
+      data[i].rxwave=uchalloc(lvis->nBins,"rxwave",0);
+      memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
+      offset+=(uint64_t)sizeof(unsigned char)*(uint64_t)lvis->nBins;
+    }else{   /*version 4 is a higher bit rate*/
+      if(!(data[i].rxwave4=(uint16_t *)calloc(lvis->nBins,sizeof(uint16_t)))){
+        fprintf(stderr,"error in rxwave allocation.\n");
+        exit(1);
+      }
+      memcpy(&(data[i].rxwave4[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
+      offset+=(uint64_t)sizeof(uint16_t)*(uint64_t)lvis->nBins;
+    }
 
     /*byteswap*/
     data[i].lfid=u32OneSwap(data[i].lfid);
