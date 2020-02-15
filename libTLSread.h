@@ -1,3 +1,4 @@
+#pragma once
 
 /*#######################################*/
 /*# Copyright 2006-2017, Steven Hancock #*/
