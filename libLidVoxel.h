@@ -1,3 +1,4 @@
+#pragma once
 /*########################*/
 /*# structures for voxel #*/
 /*# lidar programs       #*/
