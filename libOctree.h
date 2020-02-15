@@ -1,3 +1,4 @@
+#pragma once
 /*#########################*/
 /*# Structures for octrees #*/
 /*# in lidar programs      #*/
