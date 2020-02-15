@@ -1,4 +1,4 @@
-
+#pragma once
 /*#########################*/
 /*# Functions to handle  #*/
 /*# DEMs to process lidar #*/
