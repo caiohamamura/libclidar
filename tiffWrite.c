@@ -137,12 +137,15 @@ void SetUpGeoKeys(GTIF *gtif,uint16_t epsg)
 void WriteImage(TIFF *tif,int nX,int nY,unsigned char *image)
 {
   int i;
-  char buffer[nX];
+  char* buffer;
+  buffer = malloc(sizeof(char) * nX);
 
   memset(buffer,0,(size_t)nX);
   for(i=0;i<nY;i++){
     if(!TIFFWriteScanline(tif,&(image[i*nX]),i,0))TIFFError("WriteImage","failure in WriteScanline\n");
   }
+
+  free(buffer);
   return;
 }/*WriteImage*/
 
