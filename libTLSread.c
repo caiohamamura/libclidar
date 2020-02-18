@@ -623,6 +623,7 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
       }/*hit within voxel check*/
       /*keep track of mean zenith*/
       vox->meanZen[fInd][voxList[k]]+=tempTLS->beam[j].zen;
+      vox->meanRange[fInd][voxList[k]]+=rangeList[k];
     }/*beam made it to voxel check*/
   }/*voxel intersection loop*/
 
@@ -869,8 +870,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       if(vox->hits[fInd][vPlace]>0.0){
         vox->meanRefl[fInd][vPlace]/=vox->hits[fInd][vPlace];
         vox->meanZen[fInd][vPlace]/=vox->hits[fInd][vPlace];
+        vox->meanRange[fInd][vPlace]/=vox->hits[fInd][vPlace];
       }else{
-        vox->meanRefl[fInd][vPlace]=vox->meanZen[fInd][vPlace]=-1.0;
+        vox->meanRefl[fInd][vPlace]=vox->meanZen[fInd][vPlace]=vox->meanRange[fInd][vPlace]=-1.0;
       }/*mean property normalisation*/
     }/*voxel loop*/
   }/*voxel bound check*/

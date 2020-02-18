@@ -44,6 +44,7 @@ typedef struct{
   float **sumRsq;    /*sum of radius squared, for point area*/
   float **meanRefl;  /*mean reflectances from all returns*/
   float **meanZen;   /*mean zenith angle of all beams intersecting*/
+  float **meanRange; /*mean range of all beams intersecting*/
   float *rmse;       /*rmse of signal going in*/
   int *contN;        /*for normalising ALS*/
   int nVox;          /*total number of voxels*/
