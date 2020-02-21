@@ -69,6 +69,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 {
   uint64_t i=0,len=0;
   uint64_t offset=0;
+  uint16_t *swapUint16Arr(uint16_t *,int);
   float arg=0;
   lvisLGWdata *data=NULL;
   char *buffer=NULL;
@@ -171,7 +172,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
         fprintf(stderr,"error in rxwave allocation.\n");
         exit(1);
       }
-      memcpy(&(data[i].rxwave4[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
+      memcpy(&(data[i].rxwave4[0]),&(buffer[offset]),sizeof(uint16_t)*lvis->nBins);
       offset+=(uint64_t)sizeof(uint16_t)*(uint64_t)lvis->nBins;
     }
 
@@ -193,11 +194,52 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
       arg=fabs(data[i].z0-data[i].z431)/(431.0*0.3);
       if(arg>0.0)data[i].zen=atan2(sqrt(1.0-arg*arg),arg)*180.0/M_PI;
     }
+    if(lvis->verMin==4){   /*v1.4 needs byte swapping*/
+      data[i].rxwave4=swapUint16Arr(data[i].rxwave4,lvis->nBins);
+    }
   }
   TIDY(buffer);
 
   return(data);
 }/*readLVISlgw*/
+
+
+/*#####################################*/
+/*union for byte swapping*/
+
+typedef union{
+  char buff[sizeof(uint16_t)];
+  uint16_t x;
+}uint16Buff;  /*doubles*/
+
+
+/*#####################################*/
+/*byte swap a uint16_t array*/
+
+uint16_t *swapUint16Arr(uint16_t *jimlad,int numb)
+{
+  int i=0,j=0;
+  register int nBytes=sizeof(uint16_t);
+  uint16_t *swap=NULL;
+  uint16Buff ibuff,obuff;
+
+  /*allocate space*/
+  if(!(swap=(uint16_t *)calloc(numb,sizeof(uint16_t)))){
+    fprintf(stderr,"error in uint16 swap array allocation.\n");
+    exit(1);
+  }
+
+  /*loop over array*/
+  for(i=0;i<numb;i++){
+    ibuff.x=jimlad[i];
+    /*sewap the bytes*/
+    for(j=0;j<nBytes;j++)obuff.buff[j]=ibuff.buff[nBytes-1-j];
+    swap[i]=obuff.x;
+  }
+
+  TIDY(jimlad);
+  return(swap);
+}/*swapUint16Arr*/
 
 
 /*#####################################*/
