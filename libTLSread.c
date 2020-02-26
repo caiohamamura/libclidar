@@ -672,15 +672,19 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
     /*use voxel intersection, with z flattened*/
     pixList=findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList);
 
+    /*do we intersect DTM?*/
+    if(nPix>0){
+      /*loop along and see if we hit the DEM*/
+      for(k=0;k<nPix;k++){
+        tZ=z+vect[2]*rangeList[k+1];
 
-    /*loop along and see if we hit the DEM*/
-    for(k=0;k<nPix;k++){
-      tZ=z+vect[2]*rangeList[k+1];
-
-      if(tZ<=dem->z[pixList[k]]){
-        groundRange=rangeList[k];
-        break;
+        if(tZ<=dem->z[pixList[k]]){
+          groundRange=rangeList[k];
+          break;
+        }
       }
+    }else{
+      groundRange=10.0*maxR;
     }
 
     TIDY(pixList);
