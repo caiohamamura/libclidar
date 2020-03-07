@@ -769,7 +769,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   isPtx=checkIfPtx(namen);
 
   /*max range of Riegl: OTHERS ARE SHORTER or longer. COULD BE ADJUSTABLE*/
-  maxR=300.0;
+  maxR=1450.0;
 
   /*allocate space*/
   if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
