@@ -653,9 +653,12 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
   y=(double)beam->y+tls->yOff;
   z=(double)beam->z+tls->zOff;
 
+  /*set long number*/
+  groundRange=10.0*maxR;
+
   /*will this beam hit the DEM bounding box?*/
   if((vect[2]>=0.0)&&(z>=dem->maxZ)){  /*no possibility of a hit*/
-    groundRange=10.0*maxR;
+
   }else{  /*might intersect*/
     grad[0]=(double)vect[0];
     grad[1]=(double)vect[1];
@@ -683,13 +686,12 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
           break;
         }
       }
-    }else{
-      groundRange=10.0*maxR;
     }
 
     TIDY(pixList);
     TIDY(rangeList);
   }/*might intersect*/
+
 
   return(groundRange-demTol);
 }/*findGroundRange*/

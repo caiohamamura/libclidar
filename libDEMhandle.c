@@ -158,7 +158,7 @@ demStruct *readTifDEM(char *namen,double minX,double minY,double maxX,double max
     for(j=j0;j>=j1;j--){
       /*check we are inside the dem*/
       demI=i-i0;
-      demJ=j-j1;
+      demJ=dem->nY-(j-j1);  /*we are flipping the DEM over*/
       if((demI<0)||(demI>=dem->nX)||(demJ<0)||(demJ>=dem->nY))continue;
 
       demPlace=(uint64_t)demI+(uint64_t)demJ*(uint64_t)dem->nX;
