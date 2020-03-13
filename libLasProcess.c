@@ -2,7 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
-#include "stdint.h"
+#include "inttypes.h"
 #include "tools.h"
 #include "gsl/gsl_errno.h"
 #include "gsl/gsl_fft_complex.h"
@@ -546,7 +546,7 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
 
   /*trim the fitted wave*/
   if(!(gaussWave=(float *)realloc(gaussWave,waveLen*sizeof(float)))){
-    fprintf(stderr,"Error reallocating %lu\n",waveLen*sizeof(float));
+    fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)waveLen*sizeof(float));
     exit(1);
   }
 
@@ -754,7 +754,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
     if(newPulse){
       tP=smooPulse.nPulses;
       if(!(smooPulse.pulse=(float **)realloc(smooPulse.pulse,(smooPulse.nPulses+1)*sizeof(float *)))){
-        fprintf(stderr,"Error reallocating %lu\n",(smooPulse.nPulses+1)*sizeof(float *));
+        fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)(smooPulse.nPulses+1)*sizeof(float *));
         exit(1);
       }
       smooPulse.res=markFloat(smooPulse.nPulses,smooPulse.res,newRes);
