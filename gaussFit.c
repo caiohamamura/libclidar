@@ -2,7 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
-#include "stdint.h"
+#include "inttypes.h"
 #include "tools.h"
 #include "mpfit.h"
 #include "libLasProcess.h"
@@ -140,7 +140,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   /*copy Gaussian parameters to end of fitted array*/
   if((*totGauss)>0){
     if(!(fitted=(float *)realloc(fitted,(nBins+3*(*totGauss))*sizeof(float)))){
-      fprintf(stderr,"Error in fitted Gaussian realoocation %lu\n",(nBins+3*(*totGauss))*sizeof(float));
+      fprintf(stderr,"Error in fitted Gaussian realoocation %" PRIu64 "\n",(uint64_t)(nBins+3*(*totGauss))*sizeof(float));
       exit(1);
     }
     k=0;

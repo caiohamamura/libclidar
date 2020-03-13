@@ -2,7 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
-#include "stdint.h"
+#include "inttypes.h"
 #include "tools.h"
 #include "hdf5.h"
 #include "libLasRead.h"
@@ -321,7 +321,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     (*scan)->maxRead=(uint32_t)(buffSize/(sizeof(tlsBeam)-2*4));  /*if all beams had hits, there would be fewer bytes per beam*/
     /*allocate space for beams*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
-      fprintf(stderr,"error beam allocation. Allocating %lu\n",buffSize);
+      fprintf(stderr,"error beam allocation. Allocating %" PRIu64 "\n",buffSize);
       exit(1);
     }
   }else if((place==0)||(((uint64_t)place-(uint64_t)(*scan)->pOffset)<(uint64_t)(*scan)->nRead)){  /*do we need to read anymore?*/
@@ -332,7 +332,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
   buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
   if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
-    fprintf(stderr,"Error reading beam data for buffer of size %lu\n",buffSize);
+    fprintf(stderr,"Error reading beam data for buffer of size %" PRIu64 "\n",buffSize);
     exit(1);
   }
 
@@ -895,7 +895,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     fprintf(stdout,"We will be saving points\n");
     nBuff=4*tempTLS->nBeams;
     if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
-      fprintf(stderr,"error in tls point allocation. Allocating %lu\n",nBuff*sizeof(tlsPoint));
+      fprintf(stderr,"error in tls point allocation. Allocating %" PRIu64 "\n",(uint64_t)nBuff*sizeof(tlsPoint));
       exit(1);
     }
     if(map->mapFile==NULL){
@@ -962,7 +962,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*reallocate*/
     if((scan->nPoints>0)&&(scan->nPoints<tempTLS->nPoints)){
       if(!(scan->point=(tlsPoint *)realloc(scan->point,scan->nPoints*sizeof(tlsPoint)))){
-        fprintf(stderr,"Error in reallocation, allocating %lu\n",scan->nPoints*sizeof(tlsPoint));
+        fprintf(stderr,"Error in reallocation, allocating %" PRIu64 "\n",(uint64_t)scan->nPoints*sizeof(tlsPoint));
         exit(1);
       }
     }else if(scan->nPoints==0)TIDY(scan->point);
