@@ -93,15 +93,13 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   minErr=0.01;
 
   /*split up separate returns*/
-  returns=filterData(decon,nBins,0.0001);
-  if(returns==NULL)
-    return(NULL);
+  ASSIGN_CHECKNULL_RETNULL(returns,filterData(decon,nBins,0.0001));
 
   /*set results blank*/
-  fitted=falloc((uint64_t)nBins,"",0);
+  ASSIGN_CHECKNULL_RETNULL(fitted,falloc((uint64_t)nBins,"",0));
   for(i=0;i<nBins;i++)fitted[i]=0.0;
-  params=fFalloc(returns->nFeat,"Gaussian parameters",0);
-  nGauss=ialloc(returns->nFeat,"number of Gaussians",0);
+  ASSIGN_CHECKNULL_RETNULL(params,fFalloc(returns->nFeat,"Gaussian parameters",0));
+  ASSIGN_CHECKNULL_RETNULL(nGauss,ialloc(returns->nFeat,"number of Gaussians",0));
 
   for(ret=0;ret<returns->nFeat;ret++){
     if(returns->sBin[ret]<0){  /*in case all bounds are of interest*/
@@ -111,19 +109,15 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
     }
 
     /*determine number of Gaussians in this return*/
-    turnings=findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth,x);
-    if(turnings==NULL)
-      return(NULL);
+    ASSIGN_CHECKNULL_RETNULL(turnings,findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth,x));
 
     /*make a padded x arrays*/
-    padX=falloc((uint64_t)returns->width[ret],"padded x",0);
+    ASSIGN_CHECKNULL_RETNULL(padX,falloc((uint64_t)returns->width[ret],"padded x",0));
     gRes=fabs(x[2]-x[1]);
     for(i=0;i<returns->width[ret];i++)padX[i]=x[returns->sBin[ret]]+(float)(i-gaussBuffBins)*gRes;
 
     /*do the fitting*/
-    params[ret]=fitGauss(&(padX[0]),returns->temp[ret],returns->width[ret],minErr,turnings,minGsig);
-    if(params[ret]==NULL)
-      return(NULL);
+    ASSIGN_CHECKNULL_RETNULL(params[ret],fitGauss(&(padX[0]),returns->temp[ret],returns->width[ret],minErr,turnings,minGsig));
     TIDY(padX);
 
     /*load up the final wave*/
@@ -196,9 +190,7 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   nParams=3;
 
   /*initial estimates*/
-  params=initialSingleGauss(x,decon,nBins,0.0);
-  if(params==NULL)
-    return(NULL);
+  ASSIGN_CHECKNULL_RETNULL(params,initialSingleGauss(x,decon,nBins,0.0));
 
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
@@ -211,9 +203,9 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
     fprintf(stderr,"error in mpfit structure.\n");
     return(NULL);
   }
-  result->resid=dalloc(nBins,"",0);
-  result->xerror=dalloc(nParams,"",0);
-  result->covar=dalloc(nParams*nParams,"",0);
+  ASSIGN_CHECKNULL_RETNULL(result->resid,dalloc(nBins,"",0));
+  ASSIGN_CHECKNULL_RETNULL(result->xerror,dalloc(nParams,"",0));
+  ASSIGN_CHECKNULL_RETNULL(result->covar,dalloc(nParams*nParams,"",0));
 
   /*parameter bounds*/
   if(!(parStruct=(mp_par *)calloc(nParams,sizeof(mp_par)))){
@@ -264,11 +256,11 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   data.y=NULL;
 
   /*generate fitted wave*/
-  fitted=falloc((uint64_t)nBins,"Gaussian fit",0);
+  ASSIGN_CHECKNULL_RETNULL(fitted,falloc((uint64_t)nBins,"Gaussian fit",0));
   for(i=0;i<nBins;i++)fitted[i]=params[1]*gauss(x[i],params[2],params[0]);
 
   /*copy parameters*/
-  (*gaussPar)=falloc((uint64_t)nParams,"Gaussian parameters",0);
+  ASSIGN_CHECKNULL_RETNULL((*gaussPar),falloc((uint64_t)nParams,"Gaussian parameters",0));
   for(i=0;i<nParams;i++)(*gaussPar)[i]=params[i];
   TIDY(params);
   return(fitted);
@@ -286,14 +278,12 @@ double *initialSingleGauss(float *x,float *y,int nBins,float gWidth)
   float *smoothed=NULL;
   double *params=NULL;
 
-  params=dalloc(3,"Gaussian parameters",0);
+  ASSIGN_CHECKNULL_RETNULL(params,dalloc(3,"Gaussian parameters",0));
   params[1]=-1000.0;   /*A*/
 
   /*smooth to taste*/
   if(gWidth>0.0){
-    smoothed=smooth(gWidth,nBins,y,0.15);
-    if(smoothed==NULL)
-      return(NULL);
+    ASSIGN_CHECKNULL_RETNULL(smoothed,smooth(gWidth,nBins,y,0.15));
   }
   else          smoothed=&(y[0]);
 
@@ -356,8 +346,8 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
 
   nGauss=turnings->nFeats-1;
   nParams=3*nGauss;
-  params=initialGuess(x,y,numb,nGauss,turnings->bound,minGsig);
-  doParams=dalloc(nParams,"",0);  /*convert to doubles and array base 0 for mpfit*/
+  ASSIGN_CHECKNULL_RETNULL(params,initialGuess(x,y,numb,nGauss,turnings->bound,minGsig));
+  ASSIGN_CHECKNULL_RETNULL(doParams,dalloc(nParams,"",0));  /*convert to doubles and array base 0 for mpfit*/
   for(i=0;i<nParams;i++)doParams[i]=(double)params[i];
   minErr=0.0000001;
 
@@ -370,9 +360,7 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
   data->y=y;
   data->nGauss=nGauss;
   /*set bounds*/
-  parStruct=setGaussBounds(x,y,numb,doParams,nParams,nGauss,minGsig);
-  if(parStruct==NULL)
-    return(NULL);
+  ASSIGN_CHECKNULL_RETNULL(parStruct,setGaussBounds(x,y,numb,doParams,nParams,nGauss,minGsig));
   if(numb<2){  /*one point above noise, fix max and width*/
     params[3]=0.17;
     fprintf(stderr,"Insufficient parameters for a Gaussian fit\n");
@@ -392,9 +380,9 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
     fprintf(stderr,"error in mpfit structure.\n");
     return(NULL);
   }
-  result->resid=dalloc(numb,"",0);
-  result->xerror=dalloc(nParams,"",0);
-  result->covar=dalloc(nParams*nParams,"",0);
+  ASSIGN_CHECKNULL_RETNULL(result->resid,dalloc(numb,"",0));
+  ASSIGN_CHECKNULL_RETNULL(result->xerror,dalloc(nParams,"",0));
+  ASSIGN_CHECKNULL_RETNULL(result->covar,dalloc(nParams*nParams,"",0));
   fitCheck=mpfit(gaussErr,numb,nParams,doParams,parStruct,config,data,result);
   if(fitCheck<0)fprintf(stderr,"Fit check %d numb %d nGauss %d\n",fitCheck,numb,nGauss);
 
@@ -515,39 +503,39 @@ multRet *filterData(float *y,int numb,float offset)
         found=0;
         for(j=i;j>=0;j--){  /*track to feature start*/
           if(y[j]<=mean){
-            returns->sBin=markInt(returns->nFeat,returns->sBin,j);
+            ASSIGN_CHECKNULL_RETNULL(returns->sBin,markInt(returns->nFeat,returns->sBin,j));
             found=1;
             break;
           }
         }/*track to start*/
-        if(found==0)returns->sBin=markInt(returns->nFeat,returns->sBin,1);
+        if(found==0)ASSIGN_CHECKNULL_RETNULL(returns->sBin,markInt(returns->nFeat,returns->sBin,1));
       }
     }else if((y[i]<=waveThresh)&&(inFeat==1)){
       inFeat=0;
       found=0;
       for(;i<numb;i++){ /*track to end*/
         if(y[i]<=mean){
-          returns->width=markInt(returns->nFeat,returns->width,i-returns->sBin[returns->nFeat]+1);
+          ASSIGN_CHECKNULL_RETNULL(returns->width,markInt(returns->nFeat,returns->width,i-returns->sBin[returns->nFeat]+1));
           returns->nFeat++;
           found=1;
           break;
         }
       }/*track to end*/
       if(found==0){
-        returns->width=markInt(returns->nFeat,returns->width,(numb/2)-returns->sBin[returns->nFeat]+1);
+        ASSIGN_CHECKNULL_RETNULL(returns->width,markInt(returns->nFeat,returns->width,(numb/2)-returns->sBin[returns->nFeat]+1));
         returns->nFeat++;
       }
     }/*left feature*/
   }/*feature counting loop*/
   if(inFeat){  /*for low tails*/
-    returns->width=markInt(returns->nFeat,returns->width,i-returns->sBin[returns->nFeat]+1);
+    ASSIGN_CHECKNULL_RETNULL(returns->width,markInt(returns->nFeat,returns->width,i-returns->sBin[returns->nFeat]+1));
     returns->nFeat++;
   }
   /*copy intensity data*/
   gaussBuffBins=130;
-  returns->temp=fFalloc(returns->nFeat,"temp feature",0);
+  ASSIGN_CHECKNULL_RETNULL(returns->temp,fFalloc(returns->nFeat,"temp feature",0));
   for(i=0;i<returns->nFeat;i++){
-    returns->temp[i]=falloc((uint64_t)returns->width[i]+2*(uint64_t)gaussBuffBins,"temp feature",i+1);
+    ASSIGN_CHECKNULL_RETNULL(returns->temp[i],falloc((uint64_t)returns->width[i]+2*(uint64_t)gaussBuffBins,"temp feature",i+1));
     for(j=0;j<gaussBuffBins;j++)returns->temp[i][j]=0.0;
     for(j=0;j<returns->width[i];j++){
       place=j+returns->sBin[i];
@@ -616,7 +604,7 @@ float *initialGuess(float *x,float *y,int numb,int nGauss,int *bound,float minGs
   float contN=0,thisThresh=0;
 
   /*variablaes are 3*j+1 mu, 3*j+2 A, 3*j+3 sig*/
-  params=falloc(3*(uint64_t)nGauss,"parameters",0);
+  ASSIGN_CHECKNULL_RETNULL(params,falloc(3*(uint64_t)nGauss,"parameters",0));
 
   for(j=0;j<nGauss;j++){
     if((bound[j+1]-bound[j])>=3){
@@ -669,20 +657,16 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
 
   /*smooth to taste*/
   if(preSmooth>0.0){
-    smoothed=smooth(preSmooth,width,y,0.15);
-    if(smoothed==NULL)
-      return(NULL);
+    ASSIGN_CHECKNULL_RETNULL(smoothed,smooth(preSmooth,width,y,0.15));
   }
   else             smoothed=&(y[0]);
 
 
   /*determine second derivative*/
-  d2x=falloc((uint64_t)width,"d2x",0);
+  ASSIGN_CHECKNULL_RETNULL(d2x,falloc((uint64_t)width,"d2x",0));
   for(i=1;i<width-1;i++)d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
 
-  temp=smooth(preSmooth,width,d2x,0.15);
-  if(temp==NULL)
-    return(NULL);
+  ASSIGN_CHECKNULL_RETNULL(temp,smooth(preSmooth,width,d2x,0.15));
   TIDY(d2x);
   d2x=temp;
   temp=NULL;
@@ -696,18 +680,18 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
 
   /*mark the first bin*/
   i=0;
-  turnings->bound=markInt(turnings->nFeats,turnings->bound,i);
+  ASSIGN_CHECKNULL_RETNULL(turnings->bound,markInt(turnings->nFeats,turnings->bound,i));
   turnings->nFeats++;
   for(i=2;i<width-2;i++){
     if(smoothed[i]>0.0){
       if((d2x[i]<=d2x[i-1])&&(d2x[i]<d2x[i+1])){  /*minimum of the second derivative*/
-        turnings->bound=markInt(turnings->nFeats,turnings->bound,i-1);
+        ASSIGN_CHECKNULL_RETNULL(turnings->bound,markInt(turnings->nFeats,turnings->bound,i-1));
         turnings->nFeats++;
       }
     }
   }
   /*and then mark the last bin*/
-  turnings->bound=markInt(turnings->nFeats,turnings->bound,width-1);
+  ASSIGN_CHECKNULL_RETNULL(turnings->bound,markInt(turnings->nFeats,turnings->bound,width-1));
   turnings->nFeats++;
   if(preSmooth>0.0){
     TIDY(smoothed);

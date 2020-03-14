@@ -142,7 +142,7 @@ int mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double y
           fprintf(stderr,"Error in octree reallocation, %" PRIu64 "\n",(uint64_t)(octree->nMaps+1)*sizeof(int *));
           return(-1);
         }
-      }else octree->mapFile=iIalloc(octree->nMaps+1,"mapFile",0);
+      }else ASSIGN_CHECKNULL_RETINT(octree->mapFile,iIalloc(octree->nMaps+1,"mapFile",0));
       if(octree->mapPoint){
         if(!(octree->mapPoint=(uint32_t **)realloc(octree->mapPoint,(octree->nMaps+1)*sizeof(uint32_t *)))){
           fprintf(stderr,"octree map allocation error\n");
@@ -156,7 +156,7 @@ int mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double y
       }
       octree->mapPoint[octree->nMaps]=NULL;
       octree->mapFile[octree->nMaps]=NULL;
-      octree->nIn=markUint32(octree->nMaps,octree->nIn,0);
+      ASSIGN_CHECKNULL_RETINT(octree->nIn,markUint32(octree->nMaps,octree->nIn,0));
       tree[0]->mapInd=octree->nMaps;
       octree->nMaps++;
     }
@@ -168,8 +168,8 @@ int mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double y
     ISINTRETINT(mapOctree(level+1,octree,(treeStruct **)(&tree[0]->tree[place]),x,y,z,res,x0+(double)xBin*(double)res,y0+(double)yBin*(double)res,nFile,nPoint));
   }else{  /*mark the points*/
     mapInd=tree[0]->mapInd;
-    octree->mapPoint[mapInd]=markUint32(octree->nIn[mapInd],octree->mapPoint[mapInd],nPoint);
-    octree->mapFile[mapInd]=markInt(octree->nIn[mapInd],octree->mapFile[mapInd],nFile);
+    ASSIGN_CHECKNULL_RETINT(octree->mapPoint[mapInd],markUint32(octree->nIn[mapInd],octree->mapPoint[mapInd],nPoint));
+    ASSIGN_CHECKNULL_RETINT(octree->mapFile[mapInd],markInt(octree->nIn[mapInd],octree->mapFile[mapInd],nFile));
     octree->nIn[mapInd]++;
   }
 
@@ -249,7 +249,7 @@ int readOctree(treeStruct *tree,pointMapStruct *pointmap,int level,octreeStruct 
         fprintf(stderr,"Error allocating memory\n");
         return(-1);
       }
-    }else pointmap->fList=ialloc(octree->nIn[mapInd],"fList",0);
+    }else ASSIGN_CHECKNULL_RETINT(pointmap->fList,ialloc(octree->nIn[mapInd],"fList",0));
     if(pointmap->pList!=NULL){
       if(!(pointmap->pList=(uint32_t *)realloc(pointmap->pList,(pointmap->nPoints+octree->nIn[mapInd])*sizeof(uint32_t)))){
         fprintf(stderr,"Error allocating memory\n");

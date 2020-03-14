@@ -27,8 +27,8 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
     fprintf(stderr,"Damn, no %s\n",namen);
     return(-1);
   }
-  geotiff->tiepoints=dalloc(6,"",0);
-  geotiff->scale=dalloc(3,"",0);
+  ASSIGN_CHECKNULL_RETINT(geotiff->tiepoints,dalloc(6,"",0));
+  ASSIGN_CHECKNULL_RETINT(geotiff->scale,dalloc(3,"",0));
   geotiff->fImage=NULL;
   geotiff->dImage=NULL;
   geotiff->image=NULL;
@@ -44,7 +44,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
   TIFFGetField(tiffIn,TIFFTAG_TILEWIDTH,&tileWidth);
   if(tileWidth>0){
     TIFFGetField(tiffIn,TIFFTAG_TILELENGTH,&tileLength);
-    buff=falloc((uint64_t)tileWidth*(uint64_t)tileLength,"buffer",0);
+    ASSIGN_CHECKNULL_RETINT(buff,falloc((uint64_t)tileWidth*(uint64_t)tileLength,"buffer",0));
   }
 
 
@@ -57,7 +57,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
 
   if(readData){
     if(type==0){  /*unsigned char*/
-      geotiff->image=uchalloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0);
+      ASSIGN_CHECKNULL_RETINT(geotiff->image,uchalloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0));
       for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
         if(TIFFReadScanline(tiffIn,&(geotiff->image[i*geotiff->nX]),i,1)!=1){
           fprintf(stderr,"Error reading scan line %d from tiff image\n",i);
@@ -66,7 +66,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
       }
     }else if(type==3){ /*float*/
       if(((int)TIFFScanlineSize(tiffIn)/geotiff->nX)==4){
-        geotiff->fImage=falloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0);
+        ASSIGN_CHECKNULL_RETINT(geotiff->fImage,falloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0));
 
         if(tileWidth==0){   /*read scan lines*/
           for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
@@ -93,7 +93,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
           }
         }
       }else if(((int)TIFFScanlineSize(tiffIn)/geotiff->nX)==8){
-        geotiff->dImage=dalloc(geotiff->nX*geotiff->nY,namen,0);
+        ASSIGN_CHECKNULL_RETINT(geotiff->dImage,dalloc(geotiff->nX*geotiff->nY,namen,0));
         for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
           if(TIFFReadScanline(tiffIn,&(geotiff->dImage[i*geotiff->nX]),i,1)!=1){
             fprintf(stderr,"Error reading scan line %d from tiff image\n",i);
