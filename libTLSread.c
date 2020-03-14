@@ -350,7 +350,7 @@ int readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       return(-1);
     }
     ASSIGN_CHECKNULL_RETINT((*scan)->matrix,fFalloc(4,"translation matrix",0));
-    for(j=0;j<4;j++)ASSIGN_CHECKNULL_RETINT((*scan)->matrix[j],falloc(4,"translation matrix",j+1));
+    for(j=0;j<4;j++) {ASSIGN_CHECKNULL_RETINT((*scan)->matrix[j],falloc(4,"translation matrix",j+1));}
 
     /*open file*/
     if(((*scan)->ipoo=fopen(namen,"r"))==NULL){
@@ -777,7 +777,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
   /*read all data into RAM*/
   if(isPtx==0)readTLSpolarBinary(namen,0,&tempTLS);
-  else        ISINTRETNULL(readPTXleica(namen,0,&tempTLS));
+  else {ISINTRETNULL(readPTXleica(namen,0,&tempTLS));}
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
@@ -811,7 +811,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
       if(isPtx==0)readTLSpolarBinary(namen,j,&tempTLS);
-      else        ISINTRETNULL(readPTXleica(namen,j,&tempTLS));
+      else {ISINTRETNULL(readPTXleica(namen,j,&tempTLS));}
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/

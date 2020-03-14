@@ -866,8 +866,8 @@ float *deconvolve(float *data,int nBins,float **pulse,int pBins,float res,int ma
   ASSIGN_CHECKNULL_RETNULL(pulseDo,resamplePulse(numb,pulse,res,pBins));
 
   /*call deconvolution method*/
-  if(meth==0)     ASSIGN_CHECKNULL_RETNULL(deconDo,goldMeth(dataDo,pulseDo,numb,maxIter,minChange));
-  else if(meth==1)ASSIGN_CHECKNULL_RETNULL(deconDo,richLucy(dataDo,pulseDo,numb,maxIter,minChange));
+  if(meth==0) {ASSIGN_CHECKNULL_RETNULL(deconDo,goldMeth(dataDo,pulseDo,numb,maxIter,minChange));}
+  else if(meth==1) {ASSIGN_CHECKNULL_RETNULL(deconDo,richLucy(dataDo,pulseDo,numb,maxIter,minChange));}
   else{
     fprintf(stderr,"Deconvolution method not defined\n");
     return(NULL);
@@ -1181,7 +1181,7 @@ int readPulse(denPar *denoise)
     }
 
     ASSIGN_CHECKNULL_RETINT(denoise->pulse,fFalloc(2,"",0));
-    for(i=0;i<2;i++)ASSIGN_CHECKNULL_RETINT(denoise->pulse[i],falloc((uint64_t)denoise->pBins,"",i+1));
+    for(i=0;i<2;i++) {ASSIGN_CHECKNULL_RETINT(denoise->pulse[i],falloc((uint64_t)denoise->pBins,"",i+1));}
 
     /*read data*/
     i=0;
@@ -1217,7 +1217,7 @@ int readPulse(denPar *denoise)
     pRes=0.01;
     ASSIGN_CHECKNULL_RETINT(denoise->pulse,fFalloc(2,"",0));
     ASSIGN_CHECKNULL_RETINT(tempPulse,setPulse(denoise->pSigma*denoise->pScale,&denoise->pBins,pRes));
-    for(i=0;i<2;i++)ASSIGN_CHECKNULL_RETINT(denoise->pulse[i],falloc(2*(uint64_t)denoise->pBins,"",i+1));
+    for(i=0;i<2;i++) {ASSIGN_CHECKNULL_RETINT(denoise->pulse[i],falloc(2*(uint64_t)denoise->pBins,"",i+1));}
     mu=(float)denoise->pBins*pRes;
     for(i=0;i<2*denoise->pBins;i++){
       denoise->pulse[0][i]=(float)i*pRes-mu;
@@ -1485,7 +1485,7 @@ double *polyDEM(groundDstruct *groundD,double minX,double minY,float res,int nX,
   double x=0,y=0;
   double polyGround(double,double,groundDstruct *);
 
-  if(nX*nY>0)ASSIGN_CHECKNULL_RETNULL(gDEM,dalloc(nX*nY,"ground DEM",0));
+  if(nX*nY>0) {ASSIGN_CHECKNULL_RETNULL(gDEM,dalloc(nX*nY,"ground DEM",0));}
 
   for(i=0;i<nX;i++){
     x=((double)i+0.5)*(double)res+minX;
