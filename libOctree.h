@@ -77,7 +77,7 @@ typedef struct{
 octreeStruct *allocateOctree(int,int,double,double,double,double);
 octreeStruct *tidyOctree(octreeStruct *);
 pointMapStruct *mapFromOctree(int *,int,octreeStruct *,double,double,double,double);
-void fillOctree(double,double,double,int,uint32_t,octreeStruct *);
+int fillOctree(double,double,double,int,uint32_t,octreeStruct *);
 
 
 /*the end*/

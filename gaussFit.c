@@ -94,6 +94,8 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
 
   /*split up separate returns*/
   returns=filterData(decon,nBins,0.0001);
+  if(returns==NULL)
+    return(NULL);
 
   /*set results blank*/
   fitted=falloc((uint64_t)nBins,"",0);
@@ -110,6 +112,8 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
 
     /*determine number of Gaussians in this return*/
     turnings=findTurning(&(returns->temp[ret][0]),returns->width[ret],gSmooth,x);
+    if(turnings==NULL)
+      return(NULL);
 
     /*make a padded x arrays*/
     padX=falloc((uint64_t)returns->width[ret],"padded x",0);
@@ -118,6 +122,8 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
 
     /*do the fitting*/
     params[ret]=fitGauss(&(padX[0]),returns->temp[ret],returns->width[ret],minErr,turnings,minGsig);
+    if(params[ret]==NULL)
+      return(NULL);
     TIDY(padX);
 
     /*load up the final wave*/
@@ -141,7 +147,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   if((*totGauss)>0){
     if(!(fitted=(float *)realloc(fitted,(nBins+3*(*totGauss))*sizeof(float)))){
       fprintf(stderr,"Error in fitted Gaussian realoocation %" PRIu64 "\n",(uint64_t)(nBins+3*(*totGauss))*sizeof(float));
-      exit(1);
+      return(NULL);
     }
     k=0;
     for(i=0;i<returns->nFeat;i++){
@@ -191,17 +197,19 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
 
   /*initial estimates*/
   params=initialSingleGauss(x,decon,nBins,0.0);
+  if(params==NULL)
+    return(NULL);
 
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
     fprintf(stderr,"error in control structure.\n");
-    exit(1);
+    return(NULL);
   }
   config->nofinitecheck=1;
   config->maxiter=1000;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
     fprintf(stderr,"error in mpfit structure.\n");
-    exit(1);
+    return(NULL);
   }
   result->resid=dalloc(nBins,"",0);
   result->xerror=dalloc(nParams,"",0);
@@ -210,7 +218,7 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   /*parameter bounds*/
   if(!(parStruct=(mp_par *)calloc(nParams,sizeof(mp_par)))){
     fprintf(stderr,"error in bound structure.\n");
-    exit(1);
+    return(NULL);
   }
   /*mu*/
   parStruct[0].fixed=0;
@@ -282,7 +290,11 @@ double *initialSingleGauss(float *x,float *y,int nBins,float gWidth)
   params[1]=-1000.0;   /*A*/
 
   /*smooth to taste*/
-  if(gWidth>0.0)smoothed=smooth(gWidth,nBins,y,0.15);
+  if(gWidth>0.0){
+    smoothed=smooth(gWidth,nBins,y,0.15);
+    if(smoothed==NULL)
+      return(NULL);
+  }
   else          smoothed=&(y[0]);
 
   /*find maximum*/
@@ -352,13 +364,15 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
   /*load observations into a structure for passing about*/
   if(!(data=(dataStruct *)calloc(1,sizeof(dataStruct)))){
     fprintf(stderr,"error in control structure.\n");
-    exit(1);
+    return(NULL);
   }
   data->x=x;
   data->y=y;
   data->nGauss=nGauss;
   /*set bounds*/
   parStruct=setGaussBounds(x,y,numb,doParams,nParams,nGauss,minGsig);
+  if(parStruct==NULL)
+    return(NULL);
   if(numb<2){  /*one point above noise, fix max and width*/
     params[3]=0.17;
     fprintf(stderr,"Insufficient parameters for a Gaussian fit\n");
@@ -370,13 +384,13 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
 
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
     fprintf(stderr,"error in control structure.\n");
-    exit(1);
+    return(NULL);
   }
   config->nofinitecheck=1;
   config->maxiter=2000;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
     fprintf(stderr,"error in mpfit structure.\n");
-    exit(1);
+    return(NULL);
   }
   result->resid=dalloc(numb,"",0);
   result->xerror=dalloc(nParams,"",0);
@@ -470,7 +484,7 @@ multRet *filterData(float *y,int numb,float offset)
 
   if(!(returns=(multRet *)calloc(1,sizeof(multRet)))){
     fprintf(stderr,"error in multiple return structure.\n");
-    exit(1);
+    return(NULL);
   }
   returns->nFeat=0;
   returns->temp=NULL;
@@ -654,7 +668,11 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
   turnStruct *turnings=NULL;
 
   /*smooth to taste*/
-  if(preSmooth>0.0)smoothed=smooth(preSmooth,width,y,0.15);
+  if(preSmooth>0.0){
+    smoothed=smooth(preSmooth,width,y,0.15);
+    if(smoothed==NULL)
+      return(NULL);
+  }
   else             smoothed=&(y[0]);
 
 
@@ -663,13 +681,15 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
   for(i=1;i<width-1;i++)d2x[i]=2.0*smoothed[i]-(smoothed[i+1]+smoothed[i-1]);
 
   temp=smooth(preSmooth,width,d2x,0.15);
+  if(temp==NULL)
+    return(NULL);
   TIDY(d2x);
   d2x=temp;
   temp=NULL;
 
   if(!(turnings=(turnStruct *)calloc(1,sizeof(turnStruct)))){
     fprintf(stderr,"error in multiple return structure.\n");
-    exit(1);
+    return(NULL);
   }
   turnings->nFeats=0;
   turnings->bound=NULL;
@@ -709,7 +729,7 @@ mp_par *setGaussBounds(float *x,float *y,int numb,double *doParams,int nParams,i
 
   if(!(parStruct=(mp_par *)calloc(nParams,sizeof(mp_par)))){
     fprintf(stderr,"error in bound structure.\n");
-    exit(1);
+    return(NULL);
   }
 
   for(i=0;i<nGauss;i++){

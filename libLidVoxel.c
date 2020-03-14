@@ -57,7 +57,7 @@ double tanAz=0,cosAz=0,sinAz=0;
 /*#############################################*/
 /*make silhouette image from point cloud*/
 
-void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan *tlsData,rImageStruct *rImage,lidVoxPar *lidPar,int *voxList,int nIn,tlsVoxMap *map)
+int silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan *tlsData,rImageStruct *rImage,lidVoxPar *lidPar,int *voxList,int nIn,tlsVoxMap *map)
 {
   int i=0,k=0,bin=0;
   int vInd=0,pInd=0,fInd=0;
@@ -112,10 +112,10 @@ void silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan *tlsData,rImageSt
     }/*voxel loop*/
   }else{  /*no data. Something is wrong*/
     fprintf(stderr,"No data provided\n");
-    exit(1);
+    return(-1);
   }
 
-  return;
+  return(0);
 }/*silhouetteImage*/
 
 
@@ -208,7 +208,7 @@ rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad
 
   if(!(rImage=(rImageStruct *)calloc(1,sizeof(rImageStruct)))){
     fprintf(stderr,"error range image structure allocation.\n");
-    exit(1);
+    return(NULL);
   }
 
   rImage->x0=origin[0];
@@ -257,20 +257,20 @@ rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad
 /*#############################################*/
 /*add up hits and misses for a single beam*/
 
-void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNumb,int nRet,float beamRad,int numb)
+int countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNumb,int nRet,float beamRad,int numb)
 {
   int i=0;
   int *voxList=NULL,nTot=0;
   double *rangeList=NULL;
 
   /*only do this for last returns per beam*/
-  if(retNumb<nRet)return;
+  if(retNumb<nRet)return(0);
 
   /*check that a vector is there*/
   if(grad){
     if(fabs(grad[0]+grad[1]+grad[2])>TOLERANCE){
       /*determine which voxels are intersected*/
-      voxList=beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList,-1.0);
+      ASSIGN_CHECKNULL_RETINT(voxList,beamVoxels(&(grad[0]),x,y,z,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,&rangeList,-1.0));
 
       /*loop along intersected voxels*/
       for(i=0;i<nTot;i++){
@@ -282,7 +282,7 @@ void countVoxGap(double x,double y,double z,float *grad,voxStruct *vox,int retNu
     }
   }
 
-  return;
+  return(0);
 }/*countVoxGap*/
 
 
@@ -315,7 +315,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
   /*central beam*/
   for(i=0;i<3;i++)grad[i]=(double)gradIn[i];
-  pixList=findVoxels(&(grad[0]),x0,y0,z0,bounds,res,nPix,nX,nY,nZ,rangeList);
+  ASSIGN_CHECKNULL_RETNULL(pixList,findVoxels(&(grad[0]),x0,y0,z0,bounds,res,nPix,nX,nY,nZ,rangeList));
 
   /*loop around rim of the beam*/
   ang=0.0;
@@ -328,7 +328,7 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 
       /*find voxels intersected by the beam along that edge*/
       for(j=0;j<3;j++)grad[j]=(double)gradIn[j];
-      tempList=findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,&tempRange);
+      ASSIGN_CHECKNULL_RETNULL(tempList,findVoxels(&(grad[0]),x,y,z,bounds,res,&tempPix,nX,nY,nZ,&tempRange));
       /*now sort through*/
       for(j=0;j<tempPix;j++){
         foundNew=1;
@@ -518,7 +518,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   /*allocate sctructure*/
   if(!(vox=(voxStruct *)calloc(1,sizeof(voxStruct)))){
     fprintf(stderr,"error voxel structure allocation.\n");
-    exit(1);
+    return(NULL);
   }
 
   /*leave derived values as NULL, as not always needed*/
@@ -541,7 +541,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   /*check for memory wrapping*/
   if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){
     fprintf(stderr,"Voxel bounds are too big to handle. Reduce %d %d %d\n",vox->nX,vox->nY,vox->nZ);
-    exit(1);
+    return(NULL);
   }
 
   vox->nVox=vox->nX*vox->nY*vox->nZ;
@@ -767,8 +767,8 @@ fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f 
       yBin+=yDir;
       zBin+=zDir;
     }else{
-      fprintf(stderr,"Intersection test issue: %f %f %f\n",rX,rY,rZ);
-      exit(1);
+      errorf("Hit a corner\n");
+      return(NULL);
     }
 
     /*Is it within bounds? If so record the hit*/
@@ -864,7 +864,7 @@ void setWaveformRange(float *range,double z0,float *grad,int nBins,float res)
 /*###########################################################################*/
 /*read bounds for voxels from TLS*/
 
-void readBoundsFromTLS(double *bounds,char **inList,int nScans)
+int readBoundsFromTLS(double *bounds,char **inList,int nScans)
 {
   int i=0,k=0;
   uint32_t j=0,tInd=0;
@@ -876,10 +876,10 @@ void readBoundsFromTLS(double *bounds,char **inList,int nScans)
   bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
 
   for(i=0;i<nScans;i++){  /*file loop*/
-    readTLSpolarBinary(inList[i],0,&tempTLS);
+    ISINTRETINT(readTLSpolarBinary(inList[i],0,&tempTLS));
     for(j=0;j<tempTLS->nBeams;j++){/*point loop*/
       /*update TLS beams if needed*/
-      readTLSpolarBinary(inList[i],j,&tempTLS);
+      ISINTRETINT(readTLSpolarBinary(inList[i],j,&tempTLS));
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
       /*beam origin*/
       xCent=(double)tempTLS->beam[tInd].x+tempTLS->xOff;
@@ -904,7 +904,7 @@ void readBoundsFromTLS(double *bounds,char **inList,int nScans)
     tempTLS=tidyTLScan(tempTLS);
   }/*file loop*/
 
-  return;
+  return(0);
 }/*readBoundsFromTLS*/
 
 

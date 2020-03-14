@@ -61,6 +61,8 @@ float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
   decon->maxDN=255.0;
   decon->bitRate=8;
   processed=processFloWave(temp,waveLen,decon,gbic);
+  if(processed==NULL)
+    return(NULL);
   TIDY(temp);
 
   return(processed);
@@ -91,8 +93,8 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   float *sampled=NULL;
   float *digitise(float *,int,char,float);
   float *correctDrift(float *,int,int,denPar *);
-  void medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
-  void meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
+  int medNoiseStats(float *,uint32_t,float *,float *,float *,float,float,char);
+  int meanNoiseStats(float *,uint32_t,float *,float *,float *,float,float,int);
   char checkHardEnergy(int *,float *,float);
   char testHard(denPar *,float *,int,float);
   char hardTarget=0;
@@ -100,27 +102,36 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   /*smooth before denoising*/
   if(decon->psWidth>0.0){   /*Gaussian smoothing*/
     preSmoothed=smooth(decon->psWidth,waveLen,wave,decon->res);
+    if(preSmoothed==NULL)
+      return(NULL);
   }else if(decon->preMatchF){  /*matched filter*/
     preSmoothed=matchedFilter(wave,waveLen,decon,decon->res);
   }else{
     preSmoothed=falloc((uint64_t)waveLen,"",0);
     for(i=0;i<waveLen;i++)preSmoothed[i]=wave[i];
   }
+  
 
   /*determine noise statistics*/
   if(decon->varNoise){
     if(decon->medStats){
       /*convert to a set bit rate*/
       sampled=digitise(preSmoothed,waveLen,decon->bitRate,decon->maxDN);
-      medNoiseStats(sampled,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,decon->bitRate);
+      if(medNoiseStats(sampled,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,decon->bitRate)!=0)
+        return(NULL);
       TIDY(sampled);
-    }else meanNoiseStats(preSmoothed,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res));
+    }else {
+      if(meanNoiseStats(preSmoothed,waveLen,&(decon->meanN),&(decon->thresh),&thisTail,decon->tailThresh,decon->threshScale,(int)(decon->statsLen/decon->res))!=0)
+        return(NULL);
+    }
   }else thisTail=decon->tailThresh;
   if(thisTail<0)thisTail=decon->thresh;
 
   /*smooth again if needed*/
   if(decon->msWidth>0.0){   /*Gaussian smoothing after noise stats*/
     mSmoothed=smooth(decon->msWidth,waveLen,preSmoothed,decon->res);
+    if(mSmoothed==NULL)
+      return(NULL);
     TIDY(preSmoothed);
   }else{
     mSmoothed=preSmoothed;
@@ -150,7 +161,11 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   }
 
   /*see if it a single return*/
-  if(decon->matchHard)hardTarget=testHard(decon,denoised,waveLen,decon->res);
+  if(decon->matchHard){
+    hardTarget=testHard(decon,denoised,waveLen,decon->res);
+    if(hardTarget==-1)
+      return(NULL);
+  }
   else                hardTarget=0;
   if(hardTarget){  /*bunch up the energy*/
     processed=CofGhard(denoised,waveLen);
@@ -161,6 +176,8 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   /*smooth if required. Note that pulse is smoothed in readPulse()*/
   if(decon->sWidth>0.0){
     smoothed=smooth(decon->sWidth,waveLen,denoised,decon->res);
+    if(smoothed==NULL)
+      return(NULL);
     TIDY(denoised);
   }else if(decon->posMatchF){  /*matched filter*/
     smoothed=matchedFilter(denoised,waveLen,decon,decon->res);
@@ -188,6 +205,8 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   /*Gaussian fitting*/
   if(decon->fitGauss||decon->gaussFilt){
     gaussWave=fitGaussians(processed,waveLen,decon);
+    if(gaussWave==NULL)
+      return(NULL);
     /*test for hard target*/
     if(decon->gaussFilt){
       if((decon->nGauss==1)&&(decon->gPar[2]<=decon->hardWidth))hardTarget=1;
@@ -258,7 +277,7 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
   float *smoothMatchedPulse(int,float *,float,int,float *,float);
   float pulseE=0,waveE=0;
   float RMSE=0,pRes=0;
-  float matchRMSE(int,float *,float,int,float,int,float *,float,int,float);
+  float *matchRMSE(int,float *,float,int,float,int,float *,float,int,float);
   void waveStats(int *,float *,int,float *,float);
 
 
@@ -274,12 +293,17 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
     /*smooth waveform by pulse*/
     //matchWave=smoothMatchedPulse(denoise->pBins,denoise->pulse[1],pRes,nBins,floWave,res);
     matchWave=smooth(0.3,nBins,floWave,0.15);
-
+    if(matchWave==NULL)
+      return(-1);
     /*align both by peak*/
     waveStats(&maxPulse,&pulseE,denoise->pBins,denoise->pulse[1],pRes);
 
     /*calculate RMSE*/
-    RMSE=matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
+    float* match_RMSE=matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
+    if(match_RMSE==NULL)
+      return(-1);
+    
+    RMSE=*match_RMSE;
     TIDY(matchWave);
 
     /*fprintf(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
@@ -294,18 +318,19 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
 /*#############################*/
 /*RMSE between wave and pulse*/
 
-float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int nBins,float *floWave,float res,int maxWave,float waveE)
+float *matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int nBins,float *floWave,float res,int maxWave,float waveE)
 {
   int i=0,j=0;
   int sBin=0,eBin=0;
-  float RMSE=0,meanP=0;
+  float *RMSE=0;
+  float meanP=0;
   float eWithout=0,withoutThresh=0;
 
   withoutThresh=0.1;
 
   if(pRes>res){
     fprintf(stderr,"Pulse not sampled well enough\n");
-    exit(1);
+    return(NULL);
   }
 
   eWithout=0.0;
@@ -323,14 +348,14 @@ float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int 
 
     /*fprintf(stdout,"%d %f %f\n",i,meanP,floWave[i]*res/waveE);*/
     if((meanP>0.0)||(floWave[i]>0.0)){
-      RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
+      *RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
     }
     if((meanP<0.001)&&(floWave[i]>0.001))eWithout+=floWave[i]*res/waveE-meanP;
   }
 
-  if(eWithout>withoutThresh)RMSE=1000.0;    /*significant energy outside*/
-  else if(eWithout<0.01)    RMSE=0.0;       /*small hit*/
-  else                      RMSE=sqrt(RMSE);/*use RMSE*/
+  if(eWithout>withoutThresh)*RMSE=1000.0;    /*significant energy outside*/
+  else if(eWithout<0.01)    *RMSE=0.0;       /*small hit*/
+  else                      *RMSE=sqrt(*RMSE);/*use RMSE*/
   return(RMSE);
 }/*matchRMSE*/
 
@@ -539,6 +564,8 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
   for(i=0;i<waveLen;i++)x[i]=(float)i*decon->res;  /*Gaussian fitting is base 1*/
   decon->nGauss=0;
   gaussWave=fitMultiGauss(x,wave,waveLen,decon->gWidth,&(decon->nGauss),decon->minGsig);
+  if(gaussWave==NULL)
+    return(NULL);
   TIDY(x);
 
   /*transfer Gaussians parameters*/
@@ -548,7 +575,7 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
   /*trim the fitted wave*/
   if(!(gaussWave=(float *)realloc(gaussWave,waveLen*sizeof(float)))){
     fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)waveLen*sizeof(float));
-    exit(1);
+    return(NULL);
   }
 
   return(gaussWave);
@@ -558,7 +585,7 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
 /*##################################################*/
 /*waveform stats*/
 
-void medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float *tailThresh,float tailOff,float threshScale,char bitRate)
+int medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float *tailThresh,float tailOff,float threshScale,char bitRate)
 {
   uint32_t i=0;
   int *hist=NULL;
@@ -598,7 +625,7 @@ void medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float
       }
     }else{
       fprintf(stderr,"index issue %d %f\n",ind,wave[i]);
-      exit(1);
+      return(-1);
     }
   }
 
@@ -611,14 +638,14 @@ void medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float
   (*tailThresh)=(*thresh)+tailOff;
 
   TIDY(hist);
-  return;
+  return(0);
 }/*medNoiseStats*/
 
 
 /*############################################*/
 /*mean noise statistics*/
 
-void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,float *thisTail,float tailThresh,float threshScale,int statBins)
+int meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,float *thisTail,float tailThresh,float threshScale,int statBins)
 {
   int i=0,start=0;
   float stdev=0;
@@ -626,10 +653,10 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
   start=2;
   if((uint32_t)statBins>waveLen){
     fprintf(stderr,"Not enough bins for this statistics length %d %d\n",statBins,(int)waveLen);
-    exit(1);
+    return(-1);
   }else if((statBins-start)<=0){
     fprintf(stderr,"What are you doing? Start too soon %d %d\n",statBins,start);
-    exit(1);
+    return(-1);
   }
 
   /*NOTE, subtract 2 from noise bins to avoid low smoothing at signal start*/
@@ -645,7 +672,7 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
   if(tailThresh<=0.0)(*thisTail)=(*thresh);
   else               (*thisTail)=(*meanN)+tailThresh*stdev;
 
-  return;
+  return(0);
 }/*meanNoiseStats*/
 
 
@@ -756,7 +783,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
       tP=smooPulse.nPulses;
       if(!(smooPulse.pulse=(float **)realloc(smooPulse.pulse,(smooPulse.nPulses+1)*sizeof(float *)))){
         fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)(smooPulse.nPulses+1)*sizeof(float *));
-        exit(1);
+        return(NULL);
       }
       smooPulse.res=markFloat(smooPulse.nPulses,smooPulse.res,newRes);
       smooPulse.pulse[tP]=setPulse(sWidth,&nPulse,smooPulse.res[smooPulse.nPulses]);
@@ -865,7 +892,7 @@ float *deconvolve(float *data,int nBins,float **pulse,int pBins,float res,int ma
   else if(meth==1)deconDo=richLucy(dataDo,pulseDo,numb,maxIter,minChange);
   else{
     fprintf(stderr,"Deconvolution method not defined\n");
-    exit(1);
+    return(NULL);
   }
   TIDY(pulseDo);  /*tidy as we go along*/
   TIDY(dataDo);
@@ -1139,7 +1166,7 @@ double *resamplePulse(int numb,float **pulse,float res,int pBins)
 /*##################################################*/
 /*read pulse shape*/
 
-void readPulse(denPar *denoise)
+int readPulse(denPar *denoise)
 {
   int i=0,nGauss=0;
   int nMax=0;
@@ -1158,7 +1185,7 @@ void readPulse(denPar *denoise)
   if(!denoise->deconGauss){
     if((ipoo=fopen(denoise->pNamen,"r"))==NULL){
       fprintf(stderr,"Error opening pulse file %s\n",denoise->pNamen);
-      exit(1);
+      return(-1);
     }
 
     denoise->pBins=0;
@@ -1170,7 +1197,7 @@ void readPulse(denPar *denoise)
     /*rewind*/
     if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
       fprintf(stderr,"fseek error\n");
-      exit(1);
+      return(-1);
     }
 
     denoise->pulse=fFalloc(2,"",0);
@@ -1185,7 +1212,7 @@ void readPulse(denPar *denoise)
         if(sscanf(line,"%s %s",temp[0],temp[1])==2){
           if(i>denoise->pBins){
             fprintf(stderr,"Error\n");
-            exit(1);
+            return(-1);
           }
           denoise->pulse[0][i]=atof(&(temp[0][0]))*denoise->pScale;
           denoise->pulse[1][i]=atof(&(temp[1][0]));
@@ -1224,6 +1251,8 @@ void readPulse(denPar *denoise)
   /*if we want a pulse to detect hard targets*/
   if(denoise->matchHard){
     denoise->hardPulse=smooth(0.3,denoise->pBins,denoise->pulse[1],denoise->pulse[0][1]-denoise->pulse[0][0]);
+    if(denoise->hardPulse==NULL)
+      return(-1);
   }
 
   /*matched filter if we need it*/
@@ -1235,12 +1264,16 @@ void readPulse(denPar *denoise)
   /*smooth if required*/
   if(denoise->sWidth>0.0){
     smoothed=smooth(denoise->sWidth,denoise->pBins,&(denoise->pulse[1][0]),denoise->pulse[0][1]-denoise->pulse[0][0]);
+    if(smoothed==NULL)
+      return(-1);
     TIDY(denoise->pulse[1])
     denoise->pulse[1]=smoothed;
     smoothed=NULL;
   }/*smoothing*/
   if(denoise->psWidth>0.0){
     smoothed=smooth(denoise->psWidth,denoise->pBins,&(denoise->pulse[1][0]),denoise->pulse[0][1]-denoise->pulse[0][0]);
+    if(smoothed==NULL)
+      return(-1);
     TIDY(denoise->pulse[1])
     denoise->pulse[1]=smoothed;
     smoothed=NULL;
@@ -1258,12 +1291,14 @@ void readPulse(denPar *denoise)
   if((denoise->gaussPulse)||(denoise->gaussFilt)){
     nGauss=0;
     tempPulse=fitSingleGauss(denoise->pulse[0],denoise->pulse[1],denoise->pBins,0.5,&(nGauss),&gaussPar);
+    if(tempPulse==NULL)
+      return(-1);
 
     /*set width if needed*/
     if(denoise->gaussFilt){
       if(nGauss>1){
         fprintf(stderr,"Multiple Gaussians fitted to pulse\n");
-        exit(1);
+        return(-1);
       }
       denoise->hardWidth=gaussPar[2]*denoise->hardTol;
     }
@@ -1277,7 +1312,7 @@ void readPulse(denPar *denoise)
     }else TIDY(tempPulse);
   }
 
-  return;
+  return(0);
 }/*readPulse*/
 
 
@@ -1409,7 +1444,7 @@ double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,fl
   double *gDEM=NULL;
 
   fprintf(stderr,"The nearest neighbour DEM option is not ready yet\n");
-  exit(1);
+  return(NULL);
 
   return(gDEM);
 }/*findGroundNN*/
@@ -1425,11 +1460,13 @@ double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,
   double *polyDEM(groundDstruct *,double,double,float,int,int);
   groundDstruct *groundD=NULL;   /*ground data structure*/
   groundDstruct *arrangeGroundData(pCloudStruct **,int,double,double,double,double,double);
-  void fitManyPlanes(groundDstruct *,int,int);
+  int fitManyPlanes(groundDstruct *,int,int);
 
 
   /*allocate and load relevant data*/
   groundD=arrangeGroundData(data,nFiles,groundBreakElev,*minX,*minY,*maxX,*maxY);
+  if(groundD==NULL)
+    return(NULL);
 
   /*find bounds if needed*/
   if(*maxX<-1000.0){  /*if <1000, no vounds defined*/
@@ -1449,7 +1486,8 @@ double *findGroundPoly(pCloudStruct **data,int nFiles,double *minX,double *minY,
 
   if(groundD->nPoints>0){  /*check that there are ground returns*/
     /*fit the ground*/
-    fitManyPlanes(groundD,1,1);
+    if(fitManyPlanes(groundD,1,1)!=0)
+      return(NULL);
 
     /*make a ground DEM*/
     gDEM=polyDEM(groundD,*minX,*minY,res,*nX,*nY);
@@ -1511,31 +1549,32 @@ double polyGround(double x,double y,groundDstruct *groundData)
 /*########################################*/
 /*fit many polynomial planes and average*/
 
-void fitManyPlanes(groundDstruct *groundData,int cNx,int cNy)
+int fitManyPlanes(groundDstruct *groundData,int cNx,int cNy)
 {
   int i=0,j=0;
-  void fitPolyPlane(groundDstruct *);
+  int fitPolyPlane(groundDstruct *);
 
   for(i=cNx*cNy-1;i>=0;i--){
     groundData[i].nPoly[0]=6;
     groundData[i].nPoly[1]=7;
     if(groundData[i].nPoints>(groundData[i].nPoly[0]+groundData[i].nPoly[1])){
       fprintf(stdout,"Fitting %d of %d\n",i,cNx*cNy);
-      fitPolyPlane(&(groundData[i]));
+      if(fitPolyPlane(&(groundData[i]))!=0)
+        return(-1);
     }else{
       groundData[i].par=dalloc(groundData[i].nPoly[0]+groundData[i].nPoly[1],"pars",0);
       for(j=0;j<(groundData[i].nPoly[0]+groundData[i].nPoly[1]);j++)groundData[i].par[j]=0.0;
     }
   }
 
-  return;
+  return(0);
 }/*fitManyPlanes*/
 
 
 /*########################################*/
 /*fit a polynomial plane to ground*/
 
-void fitPolyPlane(groundDstruct *groundData)
+int fitPolyPlane(groundDstruct *groundData)
 {
   int i=0,nPar=0;
   int fitCheck=0;
@@ -1561,12 +1600,12 @@ void fitPolyPlane(groundDstruct *groundData)
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
     fprintf(stderr,"error in control structure.\n");
-    exit(1);
+    return(-1);
   }
   config->nofinitecheck=1;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
     fprintf(stderr,"error in mpfit structure.\n");
-    exit(1);
+    return(-1);
   }
   result->resid=dalloc(groundData->nPoints,"",0);
   result->xerror=dalloc(nPar,"",0);
@@ -1574,12 +1613,14 @@ void fitPolyPlane(groundDstruct *groundData)
 
   /*set parameter bounds*/
   parStruct=setGroundBounds(groundData->nPoly);
+  if(parStruct)
+    return(-1);
 
   /*the fitting*/
   fitCheck=mpfit(groundErr,groundData->nPoints,nPar,groundData->par,parStruct,config,(void *)groundData,result);
   if(fitCheck<0){
     fprintf(stderr,"fitCheck %d\n",fitCheck);
-    exit(1);
+    return(-1);
   }
 
   /*tidy up*/
@@ -1591,7 +1632,7 @@ void fitPolyPlane(groundDstruct *groundData)
   }
   TIDY(config);
   TIDY(parStruct);
-  return;
+  return(0);
 }/*fitPolyPlane*/
 
 
@@ -1608,7 +1649,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
   /*initialise*/
   if(!(groundD=(groundDstruct *)calloc(1,sizeof(groundDstruct)))){
     fprintf(stderr,"error in groundDstruct structure.\n");
-    exit(1);
+    return(NULL);
   }
   groundD->nPoints=0;
   groundD->xUse=NULL;
@@ -1697,7 +1738,7 @@ mp_par *setGroundBounds(int *nPar)
 
   if(!(parStruct=(mp_par *)calloc(nPar[0]+nPar[1],sizeof(mp_par)))){
     fprintf(stderr,"error in bound structure.\n");
-    exit(1);
+    return(NULL);
   }
 
   count=0;
@@ -2000,7 +2041,7 @@ float *waveLmoments(float *rh,int nRH,float rhRes,int nLm)
   if(nLm==0)return(Lmoments);
   else if(nLm>4){
     fprintf(stderr,"Not set up to deal with more than 4 L-moments yet\n");
-    exit(1);
+    return(NULL);
   }
 
   res=rhRes/100.0;

@@ -27,5 +27,5 @@
 
 
 /*function definitions*/
-void writeTLSpointFromBin(char *,double *,FILE *);
+int writeTLSpointFromBin(char *,double *,FILE *);
 
