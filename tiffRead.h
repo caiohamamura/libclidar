@@ -19,7 +19,7 @@ typedef struct{
 
 /*global functions*/
 geot *tidyTiff(geot *);
-void readGeotiff(geot *,char *,char);
+int readGeotiff(geot *,char *,char);
 
 
 /*############################################*/

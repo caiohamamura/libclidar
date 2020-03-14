@@ -34,8 +34,8 @@
 /*########################################################################*/
 /*function definitions*/
 
-void drawTiff(char *,double *,int *,double,unsigned char *,int,int,double,uint16_t);
-void drawTiffFlo(char *,double *,int *,double,float *,int,int,double,uint16_t);
+int drawTiff(char *,double *,int *,double,unsigned char *,int,int,double,uint16_t);
+int drawTiffFlo(char *,double *,int *,double,float *,int,int,double,uint16_t);
 
 /*the end*/
 /*########################################################################*/

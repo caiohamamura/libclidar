@@ -12,7 +12,7 @@
 /*############################################*/
 /*read a geotiff*/
 
-void readGeotiff(geot *geotiff,char *namen,char readData)
+int readGeotiff(geot *geotiff,char *namen,char readData)
 {
   int i=0,j=0,x=0,y=0,place=0;
   uint32_t tileWidth=0,tileLength=0;
@@ -25,7 +25,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
 
   if((tiffIn=XTIFFOpen(namen,"r"))==NULL){
     fprintf(stderr,"Damn, no %s\n",namen);
-    exit(1);
+    return(-1);
   }
   geotiff->tiepoints=dalloc(6,"",0);
   geotiff->scale=dalloc(3,"",0);
@@ -61,7 +61,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
       for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
         if(TIFFReadScanline(tiffIn,&(geotiff->image[i*geotiff->nX]),i,1)!=1){
           fprintf(stderr,"Error reading scan line %d from tiff image\n",i);
-          exit(1);
+          return(-1);
         }
       }
     }else if(type==3){ /*float*/
@@ -72,7 +72,7 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
           for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
             if(TIFFReadScanline(tiffIn,&(geotiff->fImage[i*geotiff->nX]),i,1)!=1){
               fprintf(stderr,"Error reading scan line %d from tiff image\n",i);
-              exit(1);
+              return(-1);
             }
           }
         }else{ /*read tiled data*/
@@ -97,22 +97,22 @@ void readGeotiff(geot *geotiff,char *namen,char readData)
         for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
           if(TIFFReadScanline(tiffIn,&(geotiff->dImage[i*geotiff->nX]),i,1)!=1){
             fprintf(stderr,"Error reading scan line %d from tiff image\n",i);
-            exit(1);
+            return(-1);
           }
         }
       }else{
         fprintf(stderr,"What do you think you're doing!?!\n");
-        exit(1);
+        return(-1);
       }
     }else{
       fprintf(stderr,"Cannot handle type %d\n",type);
-      exit(1);
+      return(-1);
     }
   }/*read data question*/
 
   TIDY(buff);
   XTIFFClose(tiffIn);
-  return;
+  return(0);
 }/*readGeotiff*/
 
 
