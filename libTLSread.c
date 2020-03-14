@@ -3,6 +3,7 @@
 #include "string.h"
 #include "math.h"
 #include "inttypes.h"
+#include "float.h"
 #include "tools.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"
@@ -546,7 +547,7 @@ int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,t
   float lastHitR=0;
   float groundRange=0;
   float appRefl=0,rad=0;
-  float *findGroundRange(tlsBeam *,demStruct *,float,tlsScan *,float);
+  float findGroundRange(tlsBeam *,demStruct *,float,tlsScan *,float);
   char doIt=0,hasHit=0;
 
 
@@ -557,8 +558,9 @@ int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,t
   /*determine the range to the ground, if applicable*/
   if(nIntersect>0){
     if(vox->dem){
-      float* ASSIGN_CHECKNULL_RETINT(_groundRange,findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol));
-      groundRange=*_groundRange;
+      float groundRange=findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol);
+	  if (groundRange == FLT_MAX)
+		  return(-1);
     }
     else        groundRange=10.0*maxR;
   }
@@ -636,13 +638,12 @@ int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,t
 /*##################################################################*/
 /*find range at which beam intersects ground*/
 
-float *findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float demTol)
+float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float demTol)
 {
   int k=0;
   int nPix=0,*pixList=NULL;
   float groundRange=0;
   float vect[3];
-  float *result=0;
   double *rangeList=NULL;
   double x=0,y=0,z=0,tZ=0;
   double grad[3],vRes[3];
@@ -673,7 +674,10 @@ float *findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,floa
 
 
     /*use voxel intersection, with z flattened*/
-    ASSIGN_CHECKNULL_RETNULL(pixList,findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList));
+    pixList=findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList);
+    if(pixList==NULL){
+      return(FLT_MAX);
+    }
 
 
     /*loop along and see if we hit the DEM*/
@@ -690,8 +694,7 @@ float *findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,floa
     TIDY(rangeList);
   }/*might intersect*/
 
-  *result=groundRange-demTol;
-  return(result);
+  return(groundRange-demTol);
 }/*findGroundRange*/
 
 

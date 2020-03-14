@@ -4,6 +4,7 @@
 #include "math.h"
 #include "inttypes.h"
 #include "tools.h"
+#include "float.h"
 #include "gsl/gsl_errno.h"
 #include "gsl/gsl_fft_complex.h"
 #include "mpfit.h"
@@ -278,7 +279,7 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
   float *smoothMatchedPulse(int,float *,float,int,float *,float);
   float pulseE=0,waveE=0;
   float RMSE=0,pRes=0;
-  float *matchRMSE(int,float *,float,int,float,int,float *,float,int,float);
+  float matchRMSE(int,float *,float,int,float,int,float *,float,int,float);
   void waveStats(int *,float *,int,float *,float);
 
 
@@ -300,11 +301,9 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
     waveStats(&maxPulse,&pulseE,denoise->pBins,denoise->pulse[1],pRes);
 
     /*calculate RMSE*/
-    float* match_RMSE=matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
-    if(match_RMSE==NULL)
-      return(-1);
-    
-    RMSE=*match_RMSE;
+    RMSE=matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE);
+	if(RMSE==FLT_MAX)
+		return(-1);
     TIDY(matchWave);
 
     /*fprintf(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
@@ -319,11 +318,11 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
 /*#############################*/
 /*RMSE between wave and pulse*/
 
-float *matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int nBins,float *floWave,float res,int maxWave,float waveE)
+float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int nBins,float *floWave,float res,int maxWave,float waveE)
 {
   int i=0,j=0;
   int sBin=0,eBin=0;
-  float *RMSE=0;
+  float RMSE=0;
   float meanP=0;
   float eWithout=0,withoutThresh=0;
 
@@ -331,7 +330,7 @@ float *matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int
 
   if(pRes>res){
     fprintf(stderr,"Pulse not sampled well enough\n");
-    return(NULL);
+    return(FLT_MAX);
   }
 
   eWithout=0.0;
@@ -349,14 +348,14 @@ float *matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int
 
     /*fprintf(stdout,"%d %f %f\n",i,meanP,floWave[i]*res/waveE);*/
     if((meanP>0.0)||(floWave[i]>0.0)){
-      *RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
+      RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
     }
     if((meanP<0.001)&&(floWave[i]>0.001))eWithout+=floWave[i]*res/waveE-meanP;
   }
 
-  if(eWithout>withoutThresh)*RMSE=1000.0;    /*significant energy outside*/
-  else if(eWithout<0.01)    *RMSE=0.0;       /*small hit*/
-  else                      *RMSE=sqrt(*RMSE);/*use RMSE*/
+  if(eWithout>withoutThresh)RMSE=1000.0;    /*significant energy outside*/
+  else if(eWithout<0.01)    RMSE=0.0;       /*small hit*/
+  else                      RMSE=sqrt(RMSE);/*use RMSE*/
   return(RMSE);
 }/*matchRMSE*/
 
