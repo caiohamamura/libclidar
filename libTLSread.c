@@ -45,7 +45,7 @@
 /*##################################################################*/
 /*write TLS point cloud from binary data*/
 
-void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
+int writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 {
   uint32_t i=0,nBeams=0;
   uint64_t buffSize=0;   /*buffer size*/
@@ -64,28 +64,28 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   /*open file*/
   if((ipoo=fopen(namen,"rb"))==NULL){
     fprintf(stderr,"Error opening input file %s\n",namen);
-    exit(1);
+    return(-1);
   }
 
   /*skip to 4 bytes from the end*/
   if(fseek(ipoo,(long)-4,SEEK_END)){ 
     fprintf(stderr,"fseek error from end\n");
-    exit(1);
+    return(-1);
   }
   if(fread(&nBeams,sizeof(uint32_t),1,ipoo)!=1){
     fprintf(stderr,"Error reading number of points\n");
-    exit(1);
+    return(-1);
   }
   buffSize=ftell(ipoo);
   /*24 bytes before this are the offset*/
   if(fseek(ipoo,(long)(-1*(4+3*8)),SEEK_END)){ /*skip to 4 bytes from the end*/
     fprintf(stderr,"fseek error from end\n");
-    exit(1);
+    return(-1);
   }
   buffer=challoc(3*sizeof(double),"buffer",0);
   if(fread(&(buffer[0]),sizeof(double),3,ipoo)!=3){
     fprintf(stderr,"Error reading 3 offsets\n");
-    exit(1);
+    return(-1);
   }
   memcpy(&xOff,&buffer[0],8);
   memcpy(&yOff,&buffer[8],8);
@@ -96,12 +96,12 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   /*read data into buffer*/
   if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
     fprintf(stderr,"fseek error to start\n");
-    exit(1);
+    return(-1);
   }
   buffer=challoc((uint64_t)buffSize,"buffer",0);   /*allocate spave*/
   if(fread(&buffer[0],sizeof(char),buffSize,ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading point data for writing\n");
-    exit(1);
+    return(-1);
   }
   /*close file*/
   if(ipoo){
@@ -149,14 +149,14 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 
   }/*beam loop*/
   TIDY(buffer);
-  return;
+  return(0);
 }/*writeTLSpointFromBin*/
 
 
 /*##################################################################*/
 /*read single TLS scan, all data*/
 
-void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
+int readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 {
   uint32_t i=0;
   uint64_t offset=0;
@@ -175,34 +175,34 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     /*allocate structure and open file*/
     if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
       fprintf(stderr,"error scan allocation.\n");
-      exit(1);
+      return(-1);
     }
     if(((*scan)->ipoo=fopen(namen,"rb"))==NULL){
       fprintf(stderr,"Error opening input file %s\n",namen);
-      exit(1);
+      return(-1);
     }
   
     /*last 4 bytes state number of beams*/
     if(fseek((*scan)->ipoo,(long)-4,SEEK_END)){ /*skip to 4 bytes from the end*/
       fprintf(stderr,"fseek error from end\n");
-      exit(1);
+      return(-1);
     }
     (*scan)->totSize=(uint64_t)ftell((*scan)->ipoo);
     if(fread(&((*scan)->nBeams),sizeof(uint32_t),1,(*scan)->ipoo)!=1){
       fprintf(stderr,"Error reading number of points\n");
-      exit(1);
+      return(-1);
     }
     fprintf(stdout,"There are %d TLS beams\n",(*scan)->nBeams);
     if(buffSize>(*scan)->totSize)buffSize=(*scan)->totSize;  /*reset buffer if it is too big*/
     /*24 bytes before this are the offset*/
     if(fseek((*scan)->ipoo,(long)(-1*(4+3*8)),SEEK_END)){ /*skip to 4 bytes from the end*/
       fprintf(stderr,"fseek error from end\n");
-      exit(1);
+      return(-1);
     }
     buffer=challoc(3*8,"buffer",0);
     if(fread(buffer,8,3,(*scan)->ipoo)!=3){
       fprintf(stderr,"Error reading 3 offsets\n");
-      exit(1);
+      return(-1);
     }
     memcpy(&((*scan)->xOff),&buffer[0],8);
     memcpy(&((*scan)->yOff),&buffer[8],8);
@@ -212,7 +212,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     /*seek back to start of file and set buffer sizes*/
     if(fseek((*scan)->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
       fprintf(stderr,"fseek error to start\n");
-      exit(1);
+      return(-1);
     }
     (*scan)->totRead=0;
     (*scan)->pOffset=0;
@@ -221,10 +221,10 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
     /*allocate space for beams*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
       fprintf(stderr,"error beam allocation. Allocating %" PRIu64 "\n",buffSize);
-      exit(1);
+      return(-1);
     }
   }else if((place==0)||(((uint64_t)place-(uint64_t)(*scan)->pOffset)<(uint64_t)(*scan)->nRead)){  /*do we need to read anymore?*/
-    return;  /*if not, pass straight back to avoid reading data*/
+    return(0);  /*if not, pass straight back to avoid reading data*/
   }
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
@@ -232,7 +232,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
   if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading beam data for buffer of size %" PRIu64 "\n",buffSize);
-    exit(1);
+    return(-1);
   }
 
   /*free up old space to prevent it being reallocated and wasting RAM*/
@@ -305,12 +305,12 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
   if((*scan)->ipoo){
     if(fseek((*scan)->ipoo,(long)((*scan)->totRead),SEEK_SET)){ /*rewind to whole number of beams*/
       fprintf(stderr,"fseek error to start\n");
-      exit(1);
+      return(-1);
     }
   }
 
   TIDY(buffer);
-  return;
+  return(0);
 }/*readTLSpolarBinary*/
 
 
@@ -320,7 +320,7 @@ void readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 /*###################################*/
 /*read a PTX file*/
 
-void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
+int readPTXleica(char *namen,uint32_t place,tlsScan **scan)
 {
   int j=0;
   uint32_t i=0;
@@ -346,7 +346,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     /*allocate space*/
     if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
       fprintf(stderr,"error in tls structure allocation.\n");
-      exit(1);
+      return(-1);
     }
     (*scan)->matrix=fFalloc(4,"translation matrix",0);
     for(j=0;j<4;j++)(*scan)->matrix[j]=falloc(4,"translation matrix",j+1);
@@ -354,7 +354,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     /*open file*/
     if(((*scan)->ipoo=fopen(namen,"r"))==NULL){
       fprintf(stderr,"Error opening input file %s\n",namen);
-      exit(1);
+      return(-1);
     }
 
     /*read header and determine file length*/
@@ -419,15 +419,15 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     /*allocate space*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->maxRead,sizeof(tlsBeam)))){
       fprintf(stderr,"error beam allocation.\n");
-      exit(1);
+      return(-1);
     }
     /*rewind to start of data blocks*/
     if(fseek((*scan)->ipoo,(long)fStart,SEEK_SET)){
       fprintf(stderr,"fseek error to start\n");
-      exit(1);
+      return(-1);
     }
   }else if((place-(*scan)->pOffset)<(*scan)->nRead){  /*if still within block, return*/
-    return;
+    return(0);
   }/*header reading*/
 
 
@@ -514,7 +514,7 @@ void readPTXleica(char *namen,uint32_t place,tlsScan **scan)
     (*scan)->matrix=NULL;
   }/*file closing check*/
 
-  return;
+  return(0);
 }/*readPTXleica*/
 
 
@@ -540,13 +540,13 @@ void translateLeica(double *x,double *y,double *z,float **matrix)
 /*##################################################################*/
 /*add up gap fraction for intersected voxels*/
 
-void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,tlsScan *tempTLS,uint32_t j,float maxR,char useFracGap,lidVoxPar *lidPar,int fInd)
+int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,tlsScan *tempTLS,uint32_t j,float maxR,char useFracGap,lidVoxPar *lidPar,int fInd)
 {
   int k=0,n=0;
   float lastHitR=0;
   float groundRange=0;
   float appRefl=0,rad=0;
-  float findGroundRange(tlsBeam *,demStruct *,float,tlsScan *,float);
+  float *findGroundRange(tlsBeam *,demStruct *,float,tlsScan *,float);
   char doIt=0,hasHit=0;
 
 
@@ -556,7 +556,10 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
 
   /*determine the range to the ground, if applicable*/
   if(nIntersect>0){
-    if(vox->dem)groundRange=findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol);
+    if(vox->dem){
+      float* ASSIGN_CHECKNULL_RETINT(_groundRange,findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol));
+      groundRange=*_groundRange;
+    }
     else        groundRange=10.0*maxR;
   }
 
@@ -573,7 +576,7 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
       }/*hit to voxel check*/
     }else{            /*John's fractional method*/
       fprintf(stderr,"John's folly method not implemented yet\n");
-      exit(1);
+      return(-1);
     }/*hits before voxel*/
 
     /*has the beam reached this voxel unblocked?*/
@@ -626,19 +629,20 @@ void noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,
     }/*beam made it to voxel check*/
   }/*voxel intersection loop*/
 
-  return;
+  return(0);
 }/*noteVoxelGaps*/
 
 
 /*##################################################################*/
 /*find range at which beam intersects ground*/
 
-float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float demTol)
+float *findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float demTol)
 {
   int k=0;
   int nPix=0,*pixList=NULL;
   float groundRange=0;
   float vect[3];
+  float *result=0;
   double *rangeList=NULL;
   double x=0,y=0,z=0,tZ=0;
   double grad[3],vRes[3];
@@ -669,7 +673,7 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
 
 
     /*use voxel intersection, with z flattened*/
-    pixList=findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList);
+    ASSIGN_CHECKNULL_RETNULL(pixList,findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList));
 
 
     /*loop along and see if we hit the DEM*/
@@ -686,7 +690,8 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
     TIDY(rangeList);
   }/*might intersect*/
 
-  return(groundRange-demTol);
+  *result=groundRange-demTol;
+  return(result);
 }/*findGroundRange*/
 
 
@@ -755,7 +760,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   double grad[3],*rangeList=NULL;
   double xCent=0,yCent=0,zCent=0;
   tlsScan *scan=NULL,*tempTLS=NULL;
-  void noteVoxelGaps(int *,int,double *,voxStruct *,tlsScan *,uint32_t,float,char,lidVoxPar *,int);
+  int noteVoxelGaps(int *,int,double *,voxStruct *,tlsScan *,uint32_t,float,char,lidVoxPar *,int);
   void saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
   char checkIfPtx(char *);
   char isPtx=0;  /*ptx file flag*/
@@ -769,12 +774,12 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   /*allocate space*/
   if(!(scan=(tlsScan *)calloc(1,sizeof(tlsScan)))){
     fprintf(stderr,"error in tls structure allocation.\n");
-    exit(1);
+    return(NULL);
   }
 
   /*read all data into RAM*/
   if(isPtx==0)readTLSpolarBinary(namen,0,&tempTLS);
-  else        readPTXleica(namen,0,&tempTLS);
+  else        ISINTRETNULL(readPTXleica(namen,0,&tempTLS));
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
@@ -782,13 +787,13 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     nBuff=4*tempTLS->nBeams;
     if(!(scan->point=(tlsPoint *)calloc(nBuff,sizeof(tlsPoint)))){
       fprintf(stderr,"error in tls point allocation. Allocating %" PRIu64 "\n",(uint64_t)nBuff*sizeof(tlsPoint));
-      exit(1);
+      return(NULL);
     }
     if(map->mapFile==NULL){
       map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
       if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
         fprintf(stderr,"error in voxel point map allocation.\n");
-        exit(1);
+        return(NULL);
       }
       map->nIn=ialloc(vox->nVox,"voxel map number",0);        /*file per voxel*/
     }
@@ -808,7 +813,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
       if(isPtx==0)readTLSpolarBinary(namen,j,&tempTLS);
-      else        readPTXleica(namen,j,&tempTLS);
+      else        ISINTRETNULL(readPTXleica(namen,j,&tempTLS));
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/
@@ -827,12 +832,12 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       grad[0]=tempTLS->beam[tInd].zen;
       grad[1]=tempTLS->beam[tInd].az;
       grad[2]=-99999.0;
-      voxList=findVoxels(&(grad[0]),xCent,yCent,zCent,vox->bounds,\
-                  &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList);
+      ASSIGN_CHECKNULL_RETNULL(voxList,findVoxels(&(grad[0]),xCent,yCent,zCent,vox->bounds,\
+                  &(vox->res[0]),&nIntersect,vox->nX,vox->nY,vox->nZ,&rangeList));
       if(nIntersect==0)continue;   /*if no voxels intersected*/
 
       /*add up gap fraction for intersected voxels*/
-      noteVoxelGaps(voxList,nIntersect,rangeList,vox,tempTLS,tInd,maxR,useFracGap,lidPar,fInd);
+      ISINTRETNULL(noteVoxelGaps(voxList,nIntersect,rangeList,vox,tempTLS,tInd,maxR,useFracGap,lidPar,fInd));
 
       /*record and map useful points if needed*/
       if(vox->savePts){
@@ -848,7 +853,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     if((scan->nPoints>0)&&(scan->nPoints<tempTLS->nPoints)){
       if(!(scan->point=(tlsPoint *)realloc(scan->point,scan->nPoints*sizeof(tlsPoint)))){
         fprintf(stderr,"Error in reallocation, allocating %" PRIu64 "\n",(uint64_t)scan->nPoints*sizeof(tlsPoint));
-        exit(1);
+        return(NULL);
       }
     }else if(scan->nPoints==0)TIDY(scan->point);
 

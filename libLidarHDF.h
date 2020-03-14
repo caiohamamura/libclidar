@@ -190,18 +190,18 @@ typedef struct lgw_v1_04 * ptr_lgw_v1_04;
 /*functions*/
 
 lvisLGWdata *readLVISlgw(char *,lvisLGWstruct *);
-void checkLVISsizes();
+int checkLVISsizes();
 lvisHDF *tidyLVISstruct(lvisHDF *);
 lvisHDF *readLVIShdf(char *);
-void write1dDoubleHDF5(hid_t,char *,double *,int);
-void write1dFloatHDF5(hid_t,char *,float *,int);
-void write2dFloatHDF5(hid_t,char *,float *,int,int);
-void write2dCharHDF5(hid_t,char *,char *,int,int);
-void write1dIntHDF5(hid_t,char *,int *,int);
-void write1dUint32HDF5(hid_t,char *,uint32_t *,int);
-void write2dUint16HDF5(hid_t,char *,uint16_t *,int,int);
-void writeComp2dFloatHDF5(hid_t,char *,float *,int,int);
-void writeComp1dFloatHDF5(hid_t,char *,float *,int);
+int write1dDoubleHDF5(hid_t,char *,double *,int);
+int write1dFloatHDF5(hid_t,char *,float *,int);
+int write2dFloatHDF5(hid_t,char *,float *,int,int);
+int write2dCharHDF5(hid_t,char *,char *,int,int);
+int write1dIntHDF5(hid_t,char *,int *,int);
+int write1dUint32HDF5(hid_t,char *,uint32_t *,int);
+int write2dUint16HDF5(hid_t,char *,uint16_t *,int,int);
+int writeComp2dFloatHDF5(hid_t,char *,float *,int,int);
+int writeComp1dFloatHDF5(hid_t,char *,float *,int);
 float *read1dFloatHDF5(hid_t,char *,int *);
 double *read1dDoubleHDF5(hid_t,char *,int *);
 uint16_t *read1dUint16HDF5(hid_t,char *,int *);

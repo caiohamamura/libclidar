@@ -43,7 +43,7 @@
 /*########################################*/
 /*write a geoTIFF file*/
 
-void drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image,int nX,int nY,double scale,uint16_t epsg)
+int drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image,int nX,int nY,double scale,uint16_t epsg)
 {
   void SetUpGeoKeys(GTIF *,uint16_t);
   void SetUpTIFFDirectory(TIFF *,int,int,int,int,double,double,float,double);
@@ -54,12 +54,12 @@ void drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image
   tif=XTIFFOpen(namen,"w");
   if(!tif){
     fprintf(stderr,"Error opening %s\n",namen);
-    exit(1);
+    return(-1);
   }
   gtif=GTIFNew(tif);
   if(!gtif){
     fprintf(stderr,"failed in GTIFNew\n");
-    exit(1);
+    return(-1);
   }
   SetUpTIFFDirectory(tif,nX,nY,geoI[0],geoI[1],geoL[0],geoL[1],res,scale);
   SetUpGeoKeys(gtif,epsg);
@@ -71,7 +71,7 @@ void drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image
   tif=NULL;
   gtif=NULL;
 
-  return;
+  return(0);
 }/*drawTiff*/
 
 
@@ -166,7 +166,7 @@ void WriteImageFlo(TIFF *tif,int nX,int nY,float *image)
 /*########################################*/
 /*write a float32 geoTIFF file*/
 
-void drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,int nX,int nY,double scale,uint16_t epsg)
+int drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,int nX,int nY,double scale,uint16_t epsg)
 {
   void SetUpGeoKeys(GTIF *,uint16_t);
   void WriteImageFlo(TIFF *,int,int,float *);
@@ -179,12 +179,12 @@ void drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,in
   tif=XTIFFOpen(namen,"w");
   if(!tif){
     fprintf(stderr,"Error opening %s\n",namen);
-    exit(1);
+    return(-1);
   }
   gtif=GTIFNew(tif);
   if(!gtif){
     fprintf(stderr,"failed in GTIFNew\n");
-    exit(1);
+    return(-1);
   }
   SetUpTIFFDirectoryFlo(tif,nX,nY,geoI[0],geoI[1],geoL[0],geoL[1],res,scale);
   SetUpGeoKeys(gtif,epsg);
@@ -196,7 +196,7 @@ void drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,in
   tif=NULL;
   gtif=NULL;
 
-  return;
+  return(0);
 }/*drawTiffFlo*/
 
 
