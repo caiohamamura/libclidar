@@ -451,7 +451,7 @@ int readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       return(-1);
     }
     ASSIGN_CHECKNULL_RETINT((*scan)->matrix,fFalloc(4,"translation matrix",0));
-    for(j=0;j<4;j++)ASSIGN_CHECKNULL_RETINT((*scan)->matrix[j],falloc(4,"translation matrix",j+1));
+    for(j=0;j<4;j++) {ASSIGN_CHECKNULL_RETINT((*scan)->matrix[j],falloc(4,"translation matrix",j+1));}
 
     /*open file*/
     if(((*scan)->ipoo=fopen(namen,"r"))==NULL){
