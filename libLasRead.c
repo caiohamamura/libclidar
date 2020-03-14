@@ -72,7 +72,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
 
   /*determine type*/
   tempLen=96;
-  pubHead=challoc((uint64_t)tempLen,"pubHead",0);
+  ASSIGN_CHECKNULL_RETNULL(pubHead,challoc((uint64_t)tempLen,"pubHead",0));
   if(fread(&(pubHead[0]),sizeof(char),tempLen,las->ipoo)!=tempLen){
     fprintf(stderr,"error reading data from %s\n",namen);
     return(NULL);
@@ -104,7 +104,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   }
 
   /*set header length depending on version*/
-  pubHead=challoc((uint64_t)las->headSize,"pubHead",0);
+  ASSIGN_CHECKNULL_RETNULL(pubHead,challoc((uint64_t)las->headSize,"pubHead",0));
 
   if(fread(&(pubHead[0]),sizeof(char),las->headSize,las->ipoo)!=las->headSize){
     fprintf(stderr,"error reading data from %s\n",namen);
@@ -215,9 +215,9 @@ int readLasGeo(lasFile *las)
   /*read the variable header - needed for waveform information*/
   headLen=54;
   las->epsg=0;
-  varHead=chChalloc(las->nVarRec,"variable headers",0);
+  ASSIGN_CHECKNULL_RETINT(varHead,chChalloc(las->nVarRec,"variable headers",0));
   for(i=0;i<las->nVarRec;i++){
-    varHead[i]=challoc((uint64_t)headLen,"variable headers",i+1);
+    ASSIGN_CHECKNULL_RETINT(varHead[i],challoc((uint64_t)headLen,"variable headers",i+1));
     if(fread(&(varHead[i][0]),sizeof(char),headLen,las->ipoo)!=headLen){
       fprintf(stderr,"Error reading variable header\n");
       return(-1);
@@ -232,14 +232,14 @@ int readLasGeo(lasFile *las)
     memcpy(&varLen,&varHead[i][offset],2);
 
     /*read variable part*/
-    varData=challoc((uint64_t)varLen,"variable data",0);
+    ASSIGN_CHECKNULL_RETINT(varData,challoc((uint64_t)varLen,"variable data",0));
     if(fread(&(varData[0]),sizeof(char),varLen,las->ipoo)!=varLen){
       fprintf(stderr,"Error reading variable header\n");
       return(-1);
     }
     if(!strncasecmp(namen,"LASF_Projection",16)){  /*geo projection*/
       if(recID==34735){
-fprintf(stdout,"vrLen %d\n",(int)varLen);
+        fprintf(stdout,"vrLen %d\n",(int)varLen);
         offset=102;
         memcpy(&las->epsg,&varData[offset],2);
         fprintf(stdout,"EPSG %d\n",las->epsg);
@@ -404,7 +404,7 @@ unsigned char *readLasWave(uint64_t waveMap,int32_t waveLen,FILE *ipoo,uint64_t 
 {
   unsigned char *wave=NULL;
 
-  wave=uchalloc((uint64_t)waveLen,"waveform",(int)waveMap);
+  ASSIGN_CHECKNULL_RETNULL(wave,uchalloc((uint64_t)waveLen,"waveform",(int)waveMap));
   if(fseeko(ipoo,(off_t)((uint64_t)waveMap+(uint64_t)waveStart),SEEK_SET)){
     printf("Error seeking through las file\n");
     return(NULL);
@@ -441,11 +441,11 @@ char **readInList(int *nFiles,char *inList)
     return(NULL);
   }
   *nFiles=i;
-  namen=chChalloc(*nFiles,"file names",0);
+  ASSIGN_CHECKNULL_RETNULL(namen,chChalloc(*nFiles,"file names",0));
   i=0;
   while(fgets(line,399,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){
-      namen[i]=challoc((uint64_t)strlen(line)+1,"file names",i+1);
+      ASSIGN_CHECKNULL_RETNULL(namen[i],challoc((uint64_t)strlen(line)+1,"file names",i+1));
       sscanf(line,"%s",namen[i]);
       i++;
     }
@@ -543,7 +543,7 @@ int readGBIC(char appGBIC,char balFlights,lasFile **lasIn,listLas *lasList)
 
   for(i=0;i<lasList->nFiles;i++){
     lasIn[i]->gbLen=257;
-    lasIn[i]->gbic=falloc((uint64_t)lasIn[i]->gbLen,"GBIC",i+1);
+    ASSIGN_CHECKNULL_RETINT(lasIn[i]->gbic,falloc((uint64_t)lasIn[i]->gbLen,"GBIC",i+1));
     if(balFlights==0)lasIn[i]->flightBal=1.0;
     else             lasIn[i]->flightBal=lasList->flightBal[i];
     if(appGBIC){  /*open file if needed*/
@@ -616,15 +616,15 @@ listLas *readLasList(char *namen)
     fprintf(stderr,"No files in %s\n",namen);
     return(NULL);
   }
-  lasList->nameList=chChalloc(lasList->nFiles,"name list",0);
-  lasList->gbicNamen=chChalloc(lasList->nFiles,"GBIC file list",0);
+  ASSIGN_CHECKNULL_RETNULL(lasList->nameList,chChalloc(lasList->nFiles,"name list",0));
+  ASSIGN_CHECKNULL_RETNULL(lasList->gbicNamen,chChalloc(lasList->nFiles,"GBIC file list",0));
   /*TLS only parameters, left blank for ALS*/
-  lasList->scanCent=dDalloc(lasList->nFiles,"scan centre",0);
-  lasList->align=dDalloc(lasList->nFiles,"scan alignment",0);
-  lasList->flightBal=falloc((uint64_t)lasList->nFiles,"flight balance",0);
+  ASSIGN_CHECKNULL_RETNULL(lasList->scanCent,dDalloc(lasList->nFiles,"scan centre",0));
+  ASSIGN_CHECKNULL_RETNULL(lasList->align,dDalloc(lasList->nFiles,"scan alignment",0));
+  ASSIGN_CHECKNULL_RETNULL(lasList->flightBal,falloc((uint64_t)lasList->nFiles,"flight balance",0));
   for(i=0;i<lasList->nFiles;i++){
-    lasList->scanCent[i]=dalloc(3,"scan centre",i+1);
-    lasList->align[i]=dalloc(3,"alignment",i+1);
+    ASSIGN_CHECKNULL_RETNULL(lasList->scanCent[i],dalloc(3,"scan centre",i+1));
+    ASSIGN_CHECKNULL_RETNULL(lasList->align[i],dalloc(3,"alignment",i+1));
     lasList->flightBal[i]=1.0;
   }/*TLS only parameters*/
 
@@ -641,18 +641,18 @@ listLas *readLasList(char *namen)
       /*really I should read the number of spaces here*/
 
       if(sscanf(line,"%s %s %s",temp1,temp2,temp3)==3){ /*read las, GBIC file and flight intensity balance*/
-        lasList->nameList[i]=challoc((uint64_t)strlen(temp1)+1,"name list",i+1);
+        ASSIGN_CHECKNULL_RETNULL(lasList->nameList[i],challoc((uint64_t)strlen(temp1)+1,"name list",i+1));
         strcpy(&(lasList->nameList[i][0]),temp1);
-        lasList->gbicNamen[i]=challoc((uint64_t)strlen(temp2)+1,"GBIC file list",i+1);
+        ASSIGN_CHECKNULL_RETNULL(lasList->gbicNamen[i],challoc((uint64_t)strlen(temp2)+1,"GBIC file list",i+1));
         strcpy(&(lasList->gbicNamen[i][0]),temp2);
         lasList->flightBal[i]=atof(temp3);
       }else if(sscanf(line,"%s %s",temp1,temp2)==2){ /*read las and GBIC file*/
-        lasList->nameList[i]=challoc((uint64_t)strlen(temp1)+1,"name list",i+1);
+        ASSIGN_CHECKNULL_RETNULL(lasList->nameList[i],challoc((uint64_t)strlen(temp1)+1,"name list",i+1));
         strcpy(&(lasList->nameList[i][0]),temp1);
-        lasList->gbicNamen[i]=challoc((uint64_t)strlen(temp2)+1,"GBIC file list",i+1);
+        ASSIGN_CHECKNULL_RETNULL(lasList->gbicNamen[i],challoc((uint64_t)strlen(temp2)+1,"GBIC file list",i+1));
         strcpy(&(lasList->gbicNamen[i][0]),temp2);
       }else{
-        lasList->nameList[i]=challoc((uint64_t)strlen(line)+1,"name list",i+1);
+        ASSIGN_CHECKNULL_RETNULL(lasList->nameList[i],challoc((uint64_t)strlen(line)+1,"name list",i+1));
         sscanf(line,"%s",lasList->nameList[i]);
       }
       i++;
@@ -700,8 +700,8 @@ double **readCoordList(int nFiles,char **nameList,char *coordNamen)
     fprintf(stderr,"Error opening coords input file \"%s\"\n",coordNamen);
     return(NULL);
   }
-  coords=dDalloc(nFiles,"coords",0);
-  for(i=0;i<nFiles;i++)coords[i]=dalloc(3,"coords",i+1);
+  ASSIGN_CHECKNULL_RETNULL(coords,dDalloc(nFiles,"coords",0));
+  for(i=0;i<nFiles;i++)ASSIGN_CHECKNULL_RETNULL(coords[i],dalloc(3,"coords",i+1));
 
   while(fgets(line,200,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){

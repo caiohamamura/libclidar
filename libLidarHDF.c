@@ -72,7 +72,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
   float arg=0;
   lvisLGWdata *data=NULL;
   char *buffer=NULL;
-  void lgwVersionFind(lvisLGWstruct *,char *,uint64_t);
+  int lgwVersionFind(lvisLGWstruct *,char *,uint64_t);
   FILE *ipoo=NULL;
 
   /*open file*/
@@ -94,7 +94,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 
 
   /*allocate reading space*/
-  buffer=challoc(len,"buffer",0);
+  ASSIGN_CHECKNULL_RETNULL(buffer,challoc(len,"buffer",0));
   /*read data*/
   if(fread(&(buffer[0]),sizeof(char),len,ipoo)!=len){
     fprintf(stderr,"error reading data\n");
@@ -106,7 +106,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
   }
 
   /*determine version type*/
-  lgwVersionFind(lvis,buffer,len);
+  ISINTRETNULL(lgwVersionFind(lvis,buffer,len));
 
   if(!(data=(lvisLGWdata *)calloc(lvis->nWaves,sizeof(lvisLGWdata)))){
     fprintf(stderr,"error data structure allocation.\n");
@@ -150,7 +150,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
     offset+=(uint64_t)sizeof(float);
     if(lvis->nTxBins>0){
       if(lvis->verMin<4){
-        data[i].txwave=uchalloc(lvis->nTxBins,"txwave",i+1);
+        ASSIGN_CHECKNULL_RETNULL(data[i].txwave,uchalloc(lvis->nTxBins,"txwave",i+1));
         memcpy(&(data[i].txwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nTxBins);
         offset+=(uint64_t)sizeof(unsigned char)*(uint64_t)lvis->nTxBins;
       }else{   /*version 4 is a higher bit rate*/
@@ -163,7 +163,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
       }
     }else data[i].txwave=NULL;
     if(lvis->verMin<4){
-      data[i].rxwave=uchalloc(lvis->nBins,"rxwave",0);
+      ASSIGN_CHECKNULL_RETNULL(data[i].rxwave,uchalloc(lvis->nBins,"rxwave",0));
       memcpy(&(data[i].rxwave[0]),&(buffer[offset]),sizeof(unsigned char)*lvis->nBins);
       offset+=(uint64_t)sizeof(unsigned char)*(uint64_t)lvis->nBins;
     }else{   /*version 4 is a higher bit rate*/
@@ -203,7 +203,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
 /*#####################################*/
 /*determine lgw version*/
 
-void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
+int lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
 {
   int i=0,j=0,nWaves=0;
   int nVers=0,*rLen=NULL;
@@ -213,7 +213,7 @@ void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
 
   /*length of data packet in each version type*/
   nVers=5;
-  rLen=ialloc(nVers,"record length",0);
+  ASSIGN_CHECKNULL_RETINT(rLen,ialloc(nVers,"record length",0));
   rLen[0]=476; /*(int)sizeof(struct lvis_lgw_v1_00);*/
   rLen[1]=484; /*(int)sizeof(struct lvis_lgw_v1_01);*/
   rLen[2]=492; /*(int)sizeof(struct lvis_lgw_v1_02);*/
@@ -262,7 +262,7 @@ void lgwVersionFind(lvisLGWstruct *lvis,char *buffer,uint64_t len)
   lvis->data=NULL;
 
   TIDY(rLen);
-  return;
+  return(0);
 }/*lgwVersionFind*/
 
 
@@ -332,46 +332,33 @@ lvisHDF *readLVIShdf(char *inNamen)
   ASSIGN_CHECKNULL_RETNULL(lvis->lon0,read1dDoubleHDF5(file,"LON0",&nWaves));
   lvis->nWaves=nWaves;
   ASSIGN_CHECKNULL_RETNULL(lvis->lat0,read1dDoubleHDF5(file,"LAT0",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"LAT0")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"LAT0"));
   ASSIGN_CHECKNULL_RETNULL(lvis->lon1023,read1dDoubleHDF5(file,"LON1023",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"LON1023")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"LON1023"));
   ASSIGN_CHECKNULL_RETNULL(lvis->lat1023,read1dDoubleHDF5(file,"LAT1023",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"LAT1023")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"LAT1023"));
   ASSIGN_CHECKNULL_RETNULL(lvis->time,read1dDoubleHDF5(file,"TIME",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"TIME")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"TIME"));
 
   /*read 1D float arrays*/
   ASSIGN_CHECKNULL_RETNULL(lvis->zen,read1dFloatHDF5(file,"INCIDENTANGLE",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"INCIDENTANGLE")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"INCIDENTANGLE"));
   ASSIGN_CHECKNULL_RETNULL(lvis->z0,read1dFloatHDF5(file,"Z0",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"Z0")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"Z0"));
   ASSIGN_CHECKNULL_RETNULL(lvis->z1023,read1dFloatHDF5(file,"Z1023",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"Z1023")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"Z1023"));
   ASSIGN_CHECKNULL_RETNULL(lvis->sigmean,read1dFloatHDF5(file,"SIGMEAN",&nWaves));
-  if(checkNumber(nWaves,lvis->nWaves,"SIGMEAN")!=0)
-    return(NULL);
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"SIGMEAN"));
 
   /*read 1D uint32 arrays*/
-  lvis->lfid=read1dUint32HDF5(file,"LFID",&nWaves);
-  ISNULLRETNULL(lvis->lfid);
+  ASSIGN_CHECKNULL_RETNULL(lvis->lfid,read1dUint32HDF5(file,"LFID",&nWaves));
   NOT0RETNULL(checkNumber(nWaves,lvis->nWaves,"LFID"));
-  lvis->shotN=read1dUint32HDF5(file,"SHOTNUMBER",&nWaves);
-  ISNULLRETNULL(lvis->shotN);
+  ASSIGN_CHECKNULL_RETNULL(lvis->shotN,read1dUint32HDF5(file,"SHOTNUMBER",&nWaves));
   NOT0RETNULL(checkNumber(nWaves,lvis->nWaves,"SHOTNUMBER"));
 
   /*read 2d unit16 arrays*/
-  lvis->wave=read2dUint16HDF5(file,"RXWAVE",&lvis->nBins,&nWaves);
-  if(lvis->wave)
-    return(NULL);
-  if(checkNumber(nWaves,lvis->nWaves,"RXWAVE")!=0)
-    return(NULL);
+  ASSIGN_CHECKNULL_RETNULL(lvis->wave,read2dUint16HDF5(file,"RXWAVE",&lvis->nBins,&nWaves));
+  ISINTRETNULL(checkNumber(nWaves,lvis->nWaves,"RXWAVE"));
   /*if there is a pulse*/
   /*lvis->pulse=read2dUint16HDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
   checkNumber(nWaves,lvis->nWaves,"TXWAVE");*/
@@ -486,7 +473,7 @@ float *read15dFloatHDF5(hid_t file,char *label,int *nWaves,int *nBins)
   (*nBins)=(int)dims[1];
 
   /*allocate space*/
-  jimlad=falloc((uint64_t)(*nWaves)*(uint64_t)(*nBins),"1.5d float array HDF",0);
+  ASSIGN_CHECKNULL_RETNULL(jimlad,falloc((uint64_t)(*nWaves)*(uint64_t)(*nBins),"1.5d float array HDF",0));
 
   /*read data*/
   if(H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad)){
@@ -540,7 +527,7 @@ char *read15dCharHDF5(hid_t file,char *label,int *nWaves,int *nBins)
   (*nBins)=(int)dims[1];
   
   /*allocate space*/
-  jimlad=challoc((*nWaves)*(*nBins),"1.5d float array HDF",0);
+  ASSIGN_CHECKNULL_RETNULL(jimlad,challoc((*nWaves)*(*nBins),"1.5d float array HDF",0));
   
   /*read data*/
   if(H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad)){
@@ -692,7 +679,7 @@ int *read1dIntHDF5(hid_t file,char *varName,int *nBins)
     return(NULL);
   }
   *nBins=dims[0];
-  jimlad=ialloc(dims[0],"",0);
+  ASSIGN_CHECKNULL_RETNULL(jimlad,ialloc(dims[0],"",0));
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     fprintf(stderr,"Data reading error %d\n",status);
@@ -725,7 +712,7 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
     return(NULL);
   }
   *nBins=dims[0];
-  jimlad=falloc((uint64_t)dims[0],varName,0);
+  ASSIGN_CHECKNULL_RETNULL(jimlad,falloc((uint64_t)dims[0],varName,0));
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     fprintf(stderr,"Data reading error %d\n",status);
@@ -758,7 +745,7 @@ double *read1dDoubleHDF5(hid_t file,char *varName,int *nBins)
     return(NULL);
   }
   *nBins=dims[0];
-  jimlad=dalloc(dims[0],"",0);
+  ASSIGN_CHECKNULL_RETNULL(jimlad,dalloc(dims[0],"",0));
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     fprintf(stderr,"Data reading error %d\n",status);

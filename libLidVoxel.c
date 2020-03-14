@@ -244,9 +244,9 @@ rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad
   rImage->nY=(int)((rImage->bounds[4]-rImage->bounds[1])/rImage->iRes+0.5);
 
   /*allocate image and set blank*/
-  rImage->image=chChalloc(rImage->nBins,"range image",0);
+  ASSIGN_CHECKNULL_RETNULL(rImage->image,chChalloc(rImage->nBins,"range image",0));
   for(i=0;i<rImage->nBins;i++){
-    rImage->image[i]=challoc((uint64_t)rImage->nX*(uint64_t)rImage->nY,"range image",i+1);
+    ASSIGN_CHECKNULL_RETNULL(rImage->image[i],challoc((uint64_t)rImage->nX*(uint64_t)rImage->nY,"range image",i+1));
     for(k=rImage->nX*rImage->nY-1;k>=0;k--)rImage->image[i][k]=0;
   }
   return(rImage);
@@ -338,8 +338,8 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
           }
         }/*final list loop*/
         if(foundNew==1){  /*if new, mark it*/
-          pixList=markInt(*nPix,pixList,tempList[j]);
-          rangeList[0]=markDo(*nPix,rangeList[0],tempRange[j]);
+          ASSIGN_CHECKNULL_RETNULL(pixList,markInt(*nPix,pixList,tempList[j]));
+          ASSIGN_CHECKNULL_RETNULL(rangeList[0],markDo(*nPix,rangeList[0],tempRange[j]));
           (*nPix)++;
         } /*if new, mark it*/
       }/*temporary list loop*/
@@ -546,34 +546,34 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
   vox->nVox=vox->nX*vox->nY*vox->nZ;
   vox->nScans=nFiles;
 
-  vox->hits=fFalloc(vox->nScans,"voxel beam hits",0);
-  vox->miss=fFalloc(vox->nScans,"voxel beam miss",0);
-  vox->inHit=fFalloc(vox->nScans,"voxel point hits",0);
-  vox->inMiss=fFalloc(vox->nScans,"voxel point miss",0);
-  vox->sampVol=fFalloc(vox->nScans,"voxel volume sampled",0);
-  vox->totVol=fFalloc(vox->nScans,"voxel volume total",0);
-  vox->sumRsq=fFalloc(vox->nScans,"sum of radius of TLS points, squared",0);
-  vox->meanRefl=fFalloc(vox->nScans,"mean reflectance of intersecting beams",0);
-  vox->meanZen=fFalloc(vox->nScans,"mean zenith angle of intersecting beams",0);
-  vox->contN=ialloc(vox->nVox,"voxel contribution",0);
+  ASSIGN_CHECKNULL_RETNULL(vox->hits,fFalloc(vox->nScans,"voxel beam hits",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->miss,fFalloc(vox->nScans,"voxel beam miss",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->inHit,fFalloc(vox->nScans,"voxel point hits",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->inMiss,fFalloc(vox->nScans,"voxel point miss",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->sampVol,fFalloc(vox->nScans,"voxel volume sampled",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->totVol,fFalloc(vox->nScans,"voxel volume total",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->sumRsq,fFalloc(vox->nScans,"sum of radius of TLS points, squared",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->meanRefl,fFalloc(vox->nScans,"mean reflectance of intersecting beams",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->meanZen,fFalloc(vox->nScans,"mean zenith angle of intersecting beams",0));
+  ASSIGN_CHECKNULL_RETNULL(vox->contN,ialloc(vox->nVox,"voxel contribution",0));
   for(j=0;j<vox->nVox;j++)vox->contN[j]=0;
 
   vox->useRMSE=useRMSE;
   if(useRMSE){
-    vox->rmse=falloc((uint64_t)vox->nVox,"voxel error",0);
+    ASSIGN_CHECKNULL_RETNULL(vox->rmse,falloc((uint64_t)vox->nVox,"voxel error",0));
     for(j=0;j<vox->nVox;j++)vox->rmse[j]=0.0;
   }
 
   for(i=0;i<vox->nScans;i++){
-    vox->hits[i]=falloc((uint64_t)vox->nVox,"voxel hits",i+1);
-    vox->miss[i]=falloc((uint64_t)vox->nVox,"voxel miss",i+1);
-    vox->inHit[i]=falloc((uint64_t)vox->nVox,"voxel hits",i+1);
-    vox->inMiss[i]=falloc((uint64_t)vox->nVox,"voxel miss",i+1);
-    vox->sampVol[i]=falloc((uint64_t)vox->nVox,"voxel volume sampled",i+1);
-    vox->totVol[i]=falloc((uint64_t)vox->nVox,"voxel volume total",i+1);
-    vox->meanRefl[i]=falloc((uint64_t)vox->nVox,"mean reflectance of intersecting beams",i+1);
-    vox->meanZen[i]=falloc((uint64_t)vox->nVox,"mean zenith angle of intersecting beams",i+1);
-    vox->sumRsq[i]=falloc((uint64_t)vox->nVox,"sum of radius of TLS points, squared",i+1);
+    ASSIGN_CHECKNULL_RETNULL(vox->hits[i],falloc((uint64_t)vox->nVox,"voxel hits",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->miss[i],falloc((uint64_t)vox->nVox,"voxel miss",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->inHit[i],falloc((uint64_t)vox->nVox,"voxel hits",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->inMiss[i],falloc((uint64_t)vox->nVox,"voxel miss",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->sampVol[i],falloc((uint64_t)vox->nVox,"voxel volume sampled",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->totVol[i],falloc((uint64_t)vox->nVox,"voxel volume total",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->meanRefl[i],falloc((uint64_t)vox->nVox,"mean reflectance of intersecting beams",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->meanZen[i],falloc((uint64_t)vox->nVox,"mean zenith angle of intersecting beams",i+1));
+    ASSIGN_CHECKNULL_RETNULL(vox->sumRsq[i],falloc((uint64_t)vox->nVox,"sum of radius of TLS points, squared",i+1));
     for(j=0;j<vox->nVox;j++){
       vox->hits[i][j]=vox->miss[i][j]=vox->inHit[i][j]=vox->inMiss[i][j]=0.0;
       vox->sampVol[i][j]=vox->totVol[i][j]=vox->sumRsq[i][j]=0.0;
@@ -689,9 +689,9 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   zBin=(int)((coord[2]-bounds[2])/vRes[2]);
   *nPix=0;
   if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){
-    pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
-    rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
-        (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+    ASSIGN_CHECKNULL_RETNULL(pixList,markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin));
+    ASSIGN_CHECKNULL_RETNULL(rangeList[0],markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
+        (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent))));
     (*nPix)++;
   }
 
@@ -745,9 +745,9 @@ fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f 
     /*Is it within bounds? If so record the hit*/
     if((xBin>=0)&&(xBin<vX)&&(yBin>=0)&&(yBin<vY)&&(zBin>=0)&&(zBin<vZ)){
       /*record*/
-      pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
-      rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*(coord[0]-xCent)+\
-                 (coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+      ASSIGN_CHECKNULL_RETNULL(pixList,markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin));
+      ASSIGN_CHECKNULL_RETNULL(rangeList[0],markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*(coord[0]-xCent)+\
+                 (coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent))));
 
 /*if(*nPix>0){
   if((rangeList[0][*nPix]-rangeList[0][(*nPix)-1])>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2])){
@@ -761,8 +761,8 @@ fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f 
   }/*intersection loop*/
 
   /*record the range to the very end*/
-  rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
-      (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
+  ASSIGN_CHECKNULL_RETNULL(rangeList[0],markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*\
+      (coord[0]-xCent)+(coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent))));
 
   return(pixList);
 }/*findVoxels*/
@@ -779,7 +779,7 @@ double *findVoxelBounds(int *voxList,int nIn,voxStruct *vox,tlsVoxMap *map,float
   float zen=0,az=0;
   double *bounds=NULL,vect[3];
 
-  bounds=dalloc(6,"bounds",0);
+  ASSIGN_CHECKNULL_RETNULL(bounds,dalloc(6,"bounds",0));
   bounds[0]=bounds[1]=bounds[2]=10000000000.0;
   bounds[3]=bounds[4]=bounds[5]=-10000000000.0;
 

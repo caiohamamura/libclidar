@@ -83,7 +83,7 @@ int writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     fprintf(stderr,"fseek error from end\n");
     return(-1);
   }
-  buffer=challoc(3*sizeof(double),"buffer",0);
+  ASSIGN_CHECKNULL_RETINT(buffer,challoc(3*sizeof(double),"buffer",0));
   if(fread(&(buffer[0]),sizeof(double),3,ipoo)!=3){
     fprintf(stderr,"Error reading 3 offsets\n");
     return(-1);
@@ -99,7 +99,7 @@ int writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
     fprintf(stderr,"fseek error to start\n");
     return(-1);
   }
-  buffer=challoc((uint64_t)buffSize,"buffer",0);   /*allocate spave*/
+  ASSIGN_CHECKNULL_RETINT(buffer,challoc((uint64_t)buffSize,"buffer",0));
   if(fread(&buffer[0],sizeof(char),buffSize,ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading point data for writing\n");
     return(-1);
@@ -200,7 +200,7 @@ int readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
       fprintf(stderr,"fseek error from end\n");
       return(-1);
     }
-    buffer=challoc(3*8,"buffer",0);
+    ASSIGN_CHECKNULL_RETINT(buffer,challoc(3*8,"buffer",0));
     if(fread(buffer,8,3,(*scan)->ipoo)!=3){
       fprintf(stderr,"Error reading 3 offsets\n");
       return(-1);
@@ -230,7 +230,7 @@ int readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
   /*allocate buffer space and read. Fudge to prevent reading off the end of the file*/
   if((buffSize+(*scan)->totRead)>(*scan)->totSize)buffSize=(*scan)->totSize-(*scan)->totRead;  /*adjust if at file end*/
-  buffer=challoc(buffSize,"buffer",0);      /*allocate space*/
+  ASSIGN_CHECKNULL_RETINT(buffer,challoc(buffSize,"buffer",0));
   if(fread(&buffer[0],sizeof(char),buffSize,(*scan)->ipoo)!=buffSize){  /*read beams*/
     fprintf(stderr,"Error reading beam data for buffer of size %" PRIu64 "\n",buffSize);
     return(-1);
@@ -275,8 +275,8 @@ int readTLSpolarBinary(char *namen,uint32_t place,tlsScan **scan)
 
     /*copy hit information, multiple per beam*/
     if((*scan)->beam[i].nHits>0){
-      (*scan)->beam[i].r=falloc((uint64_t)(*scan)->beam[i].nHits,"range",i);
-      (*scan)->beam[i].refl=falloc((uint64_t)(*scan)->beam[i].nHits,"refl",i);
+      ASSIGN_CHECKNULL_RETINT((*scan)->beam[i].r,falloc((uint64_t)(*scan)->beam[i].nHits,"range",i));
+      ASSIGN_CHECKNULL_RETINT((*scan)->beam[i].refl,falloc((uint64_t)(*scan)->beam[i].nHits,"refl",i));
       for(j=0;j<(*scan)->beam[i].nHits;j++){
         memcpy(&((*scan)->beam[i].r[j]),&buffer[offset],4);
         offset+=4;
@@ -349,8 +349,8 @@ int readPTXleica(char *namen,uint32_t place,tlsScan **scan)
       fprintf(stderr,"error in tls structure allocation.\n");
       return(-1);
     }
-    (*scan)->matrix=fFalloc(4,"translation matrix",0);
-    for(j=0;j<4;j++)(*scan)->matrix[j]=falloc(4,"translation matrix",j+1);
+    ASSIGN_CHECKNULL_RETINT((*scan)->matrix,fFalloc(4,"translation matrix",0));
+    for(j=0;j<4;j++)ASSIGN_CHECKNULL_RETINT((*scan)->matrix[j],falloc(4,"translation matrix",j+1));
 
     /*open file*/
     if(((*scan)->ipoo=fopen(namen,"r"))==NULL){
@@ -463,8 +463,8 @@ int readPTXleica(char *namen,uint32_t place,tlsScan **scan)
         (*scan)->beam[i].az=(float)atan2(x,y);
         /*mark hit*/
         (*scan)->beam[i].nHits=1;
-        (*scan)->beam[i].r=falloc(1,"range",i+1);
-        (*scan)->beam[i].refl=falloc(1,"refl",i+1);
+        ASSIGN_CHECKNULL_RETINT((*scan)->beam[i].r,falloc(1,"range",i+1));
+        ASSIGN_CHECKNULL_RETINT((*scan)->beam[i].refl,falloc(1,"refl",i+1));
         (*scan)->beam[i].r[0]=sqrt(x*x+y*y+z*z);
         (*scan)->beam[i].refl[0]=atof(temp4);
 
@@ -558,9 +558,7 @@ int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,t
   /*determine the range to the ground, if applicable*/
   if(nIntersect>0){
     if(vox->dem){
-      float groundRange=findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol);
-	  if (groundRange == FLT_MAX)
-		  return(-1);
+      float ASSIGN_CHECKFLT_RETINT(groundRange,findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol));
     }
     else        groundRange=10.0*maxR;
   }
@@ -674,11 +672,8 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
 
 
     /*use voxel intersection, with z flattened*/
-    pixList=findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList);
-    if(pixList==NULL){
-      return(FLT_MAX);
-    }
-
+    ASSIGN_CHECKNULL_RETFLT(pixList,findVoxels(&grad[0],x,y,0.0,&bounds[0],&vRes[0],&nPix,dem->nX,dem->nY,1,&rangeList));
+    
 
     /*loop along and see if we hit the DEM*/
     for(k=0;k<nPix;k++){
@@ -701,7 +696,7 @@ float findGroundRange(tlsBeam *beam,demStruct *dem,float maxR,tlsScan *tls,float
 /*##################################################################*/
 /*save relevant TLS points*/
 
-void saveTLSpoints(tlsScan *tempTLS,uint32_t j,voxStruct *vox,tlsScan *scan,double xCent,double yCent,double zCent,tlsVoxMap *map,int fInd)
+int saveTLSpoints(tlsScan *tempTLS,uint32_t j,voxStruct *vox,tlsScan *scan,double xCent,double yCent,double zCent,tlsVoxMap *map,int fInd)
 {
   int k=0,vPlace=0;
   int xBin=0,yBin=0,zBin=0;
@@ -738,14 +733,14 @@ void saveTLSpoints(tlsScan *tempTLS,uint32_t j,voxStruct *vox,tlsScan *scan,doub
       scan->point[scan->nPoints].hitN=k;
       scan->point[scan->nPoints].nHits=tempTLS->beam[j].nHits;
       /*map to voxels*/
-      map->mapFile[vPlace]=markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),fInd);
-      map->mapPoint[vPlace]=markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scan->nPoints);
+      ASSIGN_CHECKNULL_RETINT(map->mapFile[vPlace],markInt(map->nIn[vPlace],&(map->mapFile[vPlace][0]),fInd));
+      ASSIGN_CHECKNULL_RETINT(map->mapPoint[vPlace],markUint32(map->nIn[vPlace],&(map->mapPoint[vPlace][0]),scan->nPoints));
       map->nIn[vPlace]++;
       scan->nPoints++;
     }
   }/*hit in beam loop*/
 
-  return;
+  return(0);
 }/*saveTLSpoints*/
 
 
@@ -764,7 +759,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   double xCent=0,yCent=0,zCent=0;
   tlsScan *scan=NULL,*tempTLS=NULL;
   int noteVoxelGaps(int *,int,double *,voxStruct *,tlsScan *,uint32_t,float,char,lidVoxPar *,int);
-  void saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
+  int saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
   char checkIfPtx(char *);
   char isPtx=0;  /*ptx file flag*/
 
@@ -793,12 +788,12 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
       return(NULL);
     }
     if(map->mapFile==NULL){
-      map->mapFile=iIalloc(vox->nVox,"voxel file map",0);        /*file per voxel*/
+      ASSIGN_CHECKNULL_RETNULL(map->mapFile,iIalloc(vox->nVox,"voxel file map",0));        /*file per voxel*/
       if(!(map->mapPoint=(uint32_t **)calloc(vox->nVox,sizeof(uint32_t *)))){
         fprintf(stderr,"error in voxel point map allocation.\n");
         return(NULL);
       }
-      map->nIn=ialloc(vox->nVox,"voxel map number",0);        /*file per voxel*/
+      ASSIGN_CHECKNULL_RETNULL(map->nIn,ialloc(vox->nVox,"voxel map number",0));        /*file per voxel*/
     }
   }
   scan->nPoints=scan->nBeams=0;
@@ -844,7 +839,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
       /*record and map useful points if needed*/
       if(vox->savePts){
-        saveTLSpoints(tempTLS,tInd,vox,scan,xCent,yCent,zCent,map,fInd);
+        ISINTRETNULL(saveTLSpoints(tempTLS,tInd,vox,scan,xCent,yCent,zCent,map,fInd));
       }
 
       /*clear voxel intersection arrays*/
