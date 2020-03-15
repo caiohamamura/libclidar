@@ -5,6 +5,7 @@
 #include "geotiffio.h"
 #include "xtiffio.h"
 #include "tiffWrite.h"
+#include "msgHandling.h"
 
 
 /*########################*/
@@ -53,12 +54,12 @@ int drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image,
 
   tif=XTIFFOpen(namen,"w");
   if(!tif){
-    fprintf(stderr,"Error opening %s\n",namen);
+    fprintf2(stderr,"Error opening %s\n",namen);
     return(-1);
   }
   gtif=GTIFNew(tif);
   if(!gtif){
-    fprintf(stderr,"failed in GTIFNew\n");
+    fprintf2(stderr,"failed in GTIFNew\n");
     return(-1);
   }
   SetUpTIFFDirectory(tif,nX,nY,geoI[0],geoI[1],geoL[0],geoL[1],res,scale);
@@ -67,7 +68,7 @@ int drawTiff(char *namen,double *geoL,int *geoI,double res,unsigned char *image,
   GTIFWriteKeys(gtif);
   GTIFFree(gtif);
   XTIFFClose(tif);
-  fprintf(stdout,"Written to %s\n",namen);
+  fprintf2(stdout,"Written to %s\n",namen);
   tif=NULL;
   gtif=NULL;
 
@@ -178,12 +179,12 @@ int drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,int
   sprintf(namen,"%s.tif",outRoot);
   tif=XTIFFOpen(namen,"w");
   if(!tif){
-    fprintf(stderr,"Error opening %s\n",namen);
+    fprintf2(stderr,"Error opening %s\n",namen);
     return(-1);
   }
   gtif=GTIFNew(tif);
   if(!gtif){
-    fprintf(stderr,"failed in GTIFNew\n");
+    fprintf2(stderr,"failed in GTIFNew\n");
     return(-1);
   }
   SetUpTIFFDirectoryFlo(tif,nX,nY,geoI[0],geoI[1],geoL[0],geoL[1],res,scale);
@@ -192,7 +193,7 @@ int drawTiffFlo(char *outRoot,double *geoL,int *geoI,double res,float *image,int
   GTIFWriteKeys(gtif);
   GTIFFree(gtif);
   XTIFFClose(tif);
-  fprintf(stdout,"Written to %s\n",namen);
+  fprintf2(stdout,"Written to %s\n",namen);
   tif=NULL;
   gtif=NULL;
 

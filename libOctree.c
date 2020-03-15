@@ -4,6 +4,7 @@
 #include "math.h"
 #include "inttypes.h"
 #include "tools.h"
+#include "msgHandling.h"
 #include "libOctree.h"
 
 /*########################*/
@@ -48,7 +49,7 @@ octreeStruct *allocateOctree(int nLevels,int topN,double minX,double maxX,double
 
   /*allocate space*/
   if(!(octree=(octreeStruct *)calloc(1,sizeof(octreeStruct)))){
-    fprintf(stderr,"error octree allocation.\n");
+    fprintf2(stderr,"error octree allocation.\n");
     return(NULL);
   }
 
@@ -70,7 +71,7 @@ octreeStruct *allocateOctree(int nLevels,int topN,double minX,double maxX,double
 
   /*set pointers blank*/
   if(!(octree->tree=(treeStruct **)calloc(octree->nX*octree->nY,sizeof(treeStruct *)))){
-    fprintf(stderr,"error octree allocation.\n");
+    fprintf2(stderr,"error octree allocation.\n");
     return(NULL);
   }
   for(i=octree->nX*octree->nY-1;i>=0;i--)octree->tree[i]=NULL;
@@ -127,30 +128,30 @@ int mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double y
   /*if not allocated, allocate*/
   if(*tree==NULL){
     if(!(*tree=(treeStruct *)calloc(1,sizeof(treeStruct)))){
-      fprintf(stderr,"error octree allocation.\n");
+      fprintf2(stderr,"error octree allocation.\n");
       return(-1);
     }
     if(level<(octree->nLevel-1)){  /*only allocate children for higher levels*/
       if(!(tree[0]->tree=(void **)calloc(4,sizeof(treeStruct *)))){
-        fprintf(stderr,"error octree allocation.\n");
+        fprintf2(stderr,"error octree allocation.\n");
         return(-1);
       }
       for(i=0;i<4;i++)tree[0]->tree[i]=NULL;
     }else{  /*this is the lowest level, allocate map space*/
       if(octree->mapFile){
         if(!(octree->mapFile=(int **)realloc(octree->mapFile,(octree->nMaps+1)*sizeof(int *)))){
-          fprintf(stderr,"Error in octree reallocation, %" PRIu64 "\n",(uint64_t)(octree->nMaps+1)*sizeof(int *));
+          fprintf2(stderr,"Error in octree reallocation, %" PRIu64 "\n",(uint64_t)(octree->nMaps+1)*sizeof(int *));
           return(-1);
         }
       }else ASSIGN_CHECKNULL_RETINT(octree->mapFile,iIalloc(octree->nMaps+1,"mapFile",0));
       if(octree->mapPoint){
         if(!(octree->mapPoint=(uint32_t **)realloc(octree->mapPoint,(octree->nMaps+1)*sizeof(uint32_t *)))){
-          fprintf(stderr,"octree map allocation error\n");
+          fprintf2(stderr,"octree map allocation error\n");
           return(-1);
         }
       }else{
         if(!(octree->mapPoint=(uint32_t **)calloc(octree->nMaps+1,sizeof(uint32_t *)))){
-          fprintf(stderr,"error octree map allocation.\n");
+          fprintf2(stderr,"error octree map allocation.\n");
           return(-1);
         }
       }
@@ -189,7 +190,7 @@ pointMapStruct *mapFromOctree(int *octList,int nOct,octreeStruct *octree,double 
 
   /*allocate space*/
   if(!(pointmap=(pointMapStruct *)calloc(1,sizeof(pointMapStruct)))){
-    fprintf(stderr,"error pointMapStruct allocation.\n");
+    fprintf2(stderr,"error pointMapStruct allocation.\n");
     return(NULL);
   }
   pointmap->nPoints=0;
@@ -246,18 +247,18 @@ int readOctree(treeStruct *tree,pointMapStruct *pointmap,int level,octreeStruct 
     /*adjust array sizes*/
     if(pointmap->fList!=NULL){
       if(!(pointmap->fList=(int *)realloc(pointmap->fList,(pointmap->nPoints+octree->nIn[mapInd])*sizeof(int)))){
-        fprintf(stderr,"Error allocating memory\n");
+        fprintf2(stderr,"Error allocating memory\n");
         return(-1);
       }
     }else ASSIGN_CHECKNULL_RETINT(pointmap->fList,ialloc(octree->nIn[mapInd],"fList",0));
     if(pointmap->pList!=NULL){
       if(!(pointmap->pList=(uint32_t *)realloc(pointmap->pList,(pointmap->nPoints+octree->nIn[mapInd])*sizeof(uint32_t)))){
-        fprintf(stderr,"Error allocating memory\n");
+        fprintf2(stderr,"Error allocating memory\n");
         return(-1);
       }
     }else{
       if(!(pointmap->pList=(uint32_t *)calloc(octree->nIn[mapInd],sizeof(uint32_t)))){
-        fprintf(stderr,"error tls allocation.\n");
+        fprintf2(stderr,"error tls allocation.\n");
         return(-1);
       }
     }
