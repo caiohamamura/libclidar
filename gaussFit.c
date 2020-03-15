@@ -4,7 +4,7 @@
 #include "math.h"
 #include "inttypes.h"
 #include "tools.h"
-#include "msgHandling.h"
+#include "functionWrappers.h"
 #include "mpfit.h"
 #include "libLasProcess.h"
 
@@ -141,7 +141,7 @@ float *fitMultiGauss(float *x,float *decon,int nBins,float gSmooth,int *totGauss
   /*copy Gaussian parameters to end of fitted array*/
   if((*totGauss)>0){
     if(!(fitted=(float *)realloc(fitted,(nBins+3*(*totGauss))*sizeof(float)))){
-      fprintf2(stderr,"Error in fitted Gaussian realoocation %" PRIu64 "\n",(uint64_t)(nBins+3*(*totGauss))*sizeof(float));
+      errorf("Error in fitted Gaussian realoocation %" PRIu64 "\n",(uint64_t)(nBins+3*(*totGauss))*sizeof(float));
       return(NULL);
     }
     k=0;
@@ -195,13 +195,13 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
 
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
-    fprintf2(stderr,"error in control structure.\n");
+    errorf("error in control structure.\n");
     return(NULL);
   }
   config->nofinitecheck=1;
   config->maxiter=1000;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
-    fprintf2(stderr,"error in mpfit structure.\n");
+    errorf("error in mpfit structure.\n");
     return(NULL);
   }
   ASSIGN_CHECKNULL_RETNULL(result->resid,dalloc(nBins,"",0));
@@ -210,7 +210,7 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
 
   /*parameter bounds*/
   if(!(parStruct=(mp_par *)calloc(nParams,sizeof(mp_par)))){
-    fprintf2(stderr,"error in bound structure.\n");
+    errorf("error in bound structure.\n");
     return(NULL);
   }
   /*mu*/
@@ -239,7 +239,7 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
   /*the fitting*/
   fitCheck=mpfit(gaussErr,nBins,nParams,params,parStruct,config,(void *)(&data),result);
   if(fitCheck<0){
-    fprintf2(stderr,"fitCheck %d\n",fitCheck);
+    errorf("fitCheck %d\n",fitCheck);
   } 
 
   /*tidy up*/
@@ -354,7 +354,7 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
 
   /*load observations into a structure for passing about*/
   if(!(data=(dataStruct *)calloc(1,sizeof(dataStruct)))){
-    fprintf2(stderr,"error in control structure.\n");
+    errorf("error in control structure.\n");
     return(NULL);
   }
   data->x=x;
@@ -364,7 +364,7 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
   ASSIGN_CHECKNULL_RETNULL(parStruct,setGaussBounds(x,y,numb,doParams,nParams,nGauss,minGsig));
   if(numb<2){  /*one point above noise, fix max and width*/
     params[3]=0.17;
-    fprintf2(stderr,"Insufficient parameters for a Gaussian fit\n");
+    errorf("Insufficient parameters for a Gaussian fit\n");
     return(params);
   }
 
@@ -372,19 +372,19 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
   checkGaussBounds(nGauss,parStruct,doParams);
 
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
-    fprintf2(stderr,"error in control structure.\n");
+    errorf("error in control structure.\n");
     return(NULL);
   }
   config->nofinitecheck=1;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
-    fprintf2(stderr,"error in mpfit structure.\n");
+    errorf("error in mpfit structure.\n");
     return(NULL);
   }
   ASSIGN_CHECKNULL_RETNULL(result->resid,dalloc(numb,"",0));
   ASSIGN_CHECKNULL_RETNULL(result->xerror,dalloc(nParams,"",0));
   ASSIGN_CHECKNULL_RETNULL(result->covar,dalloc(nParams*nParams,"",0));
   fitCheck=mpfit(gaussErr,numb,nParams,doParams,parStruct,config,data,result);
-  if(fitCheck<0)fprintf2(stderr,"Fit check %d numb %d nGauss %d\n",fitCheck,numb,nGauss);
+  if(fitCheck<0)errorf("Fit check %d numb %d nGauss %d\n",fitCheck,numb,nGauss);
 
 
   if(fitCheck>=0){
@@ -471,7 +471,7 @@ multRet *filterData(float *y,int numb,float offset)
   tol=max/800.0; //0.000001; /*smallest floating point number*/
 
   if(!(returns=(multRet *)calloc(1,sizeof(multRet)))){
-    fprintf2(stderr,"error in multiple return structure.\n");
+    errorf("error in multiple return structure.\n");
     return(NULL);
   }
   returns->nFeat=0;
@@ -541,7 +541,7 @@ multRet *filterData(float *y,int numb,float offset)
       place=j+returns->sBin[i];
       if((place>=0)&&(place<numb)){
         returns->temp[i][j+gaussBuffBins]=y[place];
-      }else fprintf2(stderr,"Bawbag %d of %d\n",place,numb);
+      }else errorf("Bawbag %d of %d\n",place,numb);
     }
     for(j=gaussBuffBins+returns->width[i];j<2*gaussBuffBins+returns->width[i];j++)returns->temp[i][j]=0.0;
     returns->width[i]+=2*gaussBuffBins;
@@ -672,7 +672,7 @@ turnStruct *findTurning(float *y,int width,float preSmooth,float *x)
   temp=NULL;
 
   if(!(turnings=(turnStruct *)calloc(1,sizeof(turnStruct)))){
-    fprintf2(stderr,"error in multiple return structure.\n");
+    errorf("error in multiple return structure.\n");
     return(NULL);
   }
   turnings->nFeats=0;
@@ -712,7 +712,7 @@ mp_par *setGaussBounds(float *x,float *y,int numb,double *doParams,int nParams,i
   mp_par *parStruct=NULL;
 
   if(!(parStruct=(mp_par *)calloc(nParams,sizeof(mp_par)))){
-    fprintf2(stderr,"error in bound structure.\n");
+    errorf("error in bound structure.\n");
     return(NULL);
   }
 
