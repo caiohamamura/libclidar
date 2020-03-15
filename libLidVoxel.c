@@ -5,7 +5,7 @@
 #include "stdint.h"
 #include "hdf5.h"
 #include "tools.h"
-#include "msgHandling.h"
+#include "functionWrappers.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"
 #include "libLasProcess.h"
@@ -112,7 +112,7 @@ int silhouetteImage(int nFiles,pCloudStruct **alsData,tlsScan *tlsData,rImageStr
       }/*point in voxel loop*/
     }/*voxel loop*/
   }else{  /*no data. Something is wrong*/
-    fprintf2(stderr,"No data provided\n");
+    errorf("No data provided\n");
     return(-1);
   }
 
@@ -208,7 +208,7 @@ rImageStruct *allocateRangeImage(float beamRad,float rRes,float iRes,float *grad
   rImageStruct *rImage=NULL;
 
   if(!(rImage=(rImageStruct *)calloc(1,sizeof(rImageStruct)))){
-    fprintf2(stderr,"error range image structure allocation.\n");
+    errorf("error range image structure allocation.\n");
     return(NULL);
   }
 
@@ -518,7 +518,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
 
   /*allocate sctructure*/
   if(!(vox=(voxStruct *)calloc(1,sizeof(voxStruct)))){
-    fprintf2(stderr,"error voxel structure allocation.\n");
+    errorf("error voxel structure allocation.\n");
     return(NULL);
   }
 
@@ -541,7 +541,7 @@ voxStruct *voxAllocate(int nFiles,float *vRes,double *bounds,char useRMSE)
 
   /*check for memory wrapping*/
   if(((uint64_t)vox->nX*(uint64_t)vox->nY*(uint64_t)vox->nZ)>=2147483647){
-    fprintf2(stderr,"Voxel bounds are too big to handle. Reduce %d %d %d\n",vox->nX,vox->nY,vox->nZ);
+    errorf("Voxel bounds are too big to handle. Reduce %d %d %d\n",vox->nX,vox->nY,vox->nZ);
     return(NULL);
   }
 
@@ -717,7 +717,7 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     else          rZ=0.0;
 
 /*if((rX>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rY>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rZ>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))){
-fprintf2(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f %f ranges %f %f %f of %f dir %d %d %d\n",*nPix,coord[0],coord[1],coord[2],xBin,yBin,zBin,nextXbin,nextYbin,nextZbin,nextX,nextY,nextZ,rX,rY,rZ,sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]),xDir,yDir,zDir);
+msgf("pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f %f ranges %f %f %f of %f dir %d %d %d\n",*nPix,coord[0],coord[1],coord[2],xBin,yBin,zBin,nextXbin,nextYbin,nextZbin,nextX,nextY,nextZ,rX,rY,rZ,sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]),xDir,yDir,zDir);
 }*/
 
     /*if nothing has changed*/

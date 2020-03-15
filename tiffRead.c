@@ -24,7 +24,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
   TIFF *tiffIn=(TIFF*)0;
 
   if((tiffIn=XTIFFOpen(namen,"r"))==NULL){
-    fprintf2(stderr,"Damn, no %s\n",namen);
+    errorf("Damn, no %s\n",namen);
     return(-1);
   }
   ASSIGN_CHECKNULL_RETINT(geotiff->tiepoints,dalloc(6,"",0));
@@ -60,7 +60,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
       ASSIGN_CHECKNULL_RETINT(geotiff->image,uchalloc((uint64_t)geotiff->nX*(uint64_t)geotiff->nY,namen,0));
       for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
         if(TIFFReadScanline(tiffIn,&(geotiff->image[i*geotiff->nX]),i,1)!=1){
-          fprintf2(stderr,"Error reading scan line %d from tiff image\n",i);
+          errorf("Error reading scan line %d from tiff image\n",i);
           return(-1);
         }
       }
@@ -71,7 +71,7 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
         if(tileWidth==0){   /*read scan lines*/
           for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
             if(TIFFReadScanline(tiffIn,&(geotiff->fImage[i*geotiff->nX]),i,1)!=1){
-              fprintf2(stderr,"Error reading scan line %d from tiff image\n",i);
+              errorf("Error reading scan line %d from tiff image\n",i);
               return(-1);
             }
           }
@@ -96,16 +96,16 @@ int readGeotiff(geot *geotiff,char *namen,char readData)
         ASSIGN_CHECKNULL_RETINT(geotiff->dImage,dalloc(geotiff->nX*geotiff->nY,namen,0));
         for(i=0;i<geotiff->nY;i++){                  /*looping along the lattitude*/
           if(TIFFReadScanline(tiffIn,&(geotiff->dImage[i*geotiff->nX]),i,1)!=1){
-            fprintf2(stderr,"Error reading scan line %d from tiff image\n",i);
+            errorf("Error reading scan line %d from tiff image\n",i);
             return(-1);
           }
         }
       }else{
-        fprintf2(stderr,"What do you think you're doing!?!\n");
+        errorf("What do you think you're doing!?!\n");
         return(-1);
       }
     }else{
-      fprintf2(stderr,"Cannot handle type %d\n",type);
+      errorf("Cannot handle type %d\n",type);
       return(-1);
     }
   }/*read data question*/
