@@ -4,6 +4,7 @@
 #include "math.h"
 #include "inttypes.h"
 #include "tools.h"
+#include "msgHandling.h"
 #include "float.h"
 #include "gsl/gsl_errno.h"
 #include "gsl/gsl_fft_complex.h"
@@ -287,7 +288,7 @@ char testHard(denPar *denoise,float *floWave,int nBins,float res)
     ASSIGN_CHECKFLT_RETINT(RMSE,matchRMSE(denoise->pBins,denoise->hardPulse,pRes,maxPulse,pulseE,nBins,matchWave,res,maxWave,waveE));
     TIDY(matchWave);
 
-    /*fprintf(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
+    /*fprintf2(stderr,"RMSE %f thresh %f\n",RMSE,denoise->hardThresh);*/
     if(RMSE<=denoise->hardThresh)isHard=1;
     else                         isHard=0;
   }else isHard=0;
@@ -310,7 +311,7 @@ float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int 
   withoutThresh=0.1;
 
   if(pRes>res){
-    fprintf(stderr,"Pulse not sampled well enough\n");
+    fprintf2(stderr,"Pulse not sampled well enough\n");
     return(-FLT_MAX);
   }
 
@@ -327,7 +328,7 @@ float matchRMSE(int pBins,float *pulse,float pRes,int maxPulse,float pulseE,int 
     for(j=sBin;j<eBin;j++)meanP+=pulse[j];
     if((eBin-sBin)>0)meanP*=pRes/((float)(eBin-sBin)*pulseE*res);
 
-    /*fprintf(stdout,"%d %f %f\n",i,meanP,floWave[i]*res/waveE);*/
+    /*fprintf2(stdout,"%d %f %f\n",i,meanP,floWave[i]*res/waveE);*/
     if((meanP>0.0)||(floWave[i]>0.0)){
       RMSE+=(meanP-floWave[i]*res/waveE)*(meanP-floWave[i]*res/waveE);
     }
@@ -491,7 +492,7 @@ float *hardHitWave(denPar *decon,int numb)
     i=(int)(decon->gPar[0]/decon->res);
     if((i>=0)&&(i<numb))hardWave[i]=1.0; /*sqrt(2.0*M_PI)*decon->gPar[1]*decon->gPar[2];*/
     else{
-      fprintf(stderr,"Beyond bounds %f %f\n",decon->gPar[0],(float)i*decon->res);
+      fprintf2(stderr,"Beyond bounds %f %f\n",decon->gPar[0],(float)i*decon->res);
     }
   }
 
@@ -553,7 +554,7 @@ float *fitGaussians(float *wave,int waveLen,denPar *decon)
 
   /*trim the fitted wave*/
   if(!(gaussWave=(float *)realloc(gaussWave,waveLen*sizeof(float)))){
-    fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)waveLen*sizeof(float));
+    fprintf2(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)waveLen*sizeof(float));
     return(NULL);
   }
 
@@ -603,7 +604,7 @@ int medNoiseStats(float *wave,uint32_t waveLen,float *meanN,float *thresh,float 
         (*meanN)=wave[i];  /*modal noise*/
       }
     }else{
-      fprintf(stderr,"index issue %d %f\n",ind,wave[i]);
+      fprintf2(stderr,"index issue %d %f\n",ind,wave[i]);
       return(-1);
     }
   }
@@ -631,10 +632,10 @@ int meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,fl
 
   start=2;
   if((uint32_t)statBins>waveLen){
-    fprintf(stderr,"Not enough bins for this statistics length %d %d\n",statBins,(int)waveLen);
+    fprintf2(stderr,"Not enough bins for this statistics length %d %d\n",statBins,(int)waveLen);
     return(-1);
   }else if((statBins-start)<=0){
-    fprintf(stderr,"What are you doing? Start too soon %d %d\n",statBins,start);
+    fprintf2(stderr,"What are you doing? Start too soon %d %d\n",statBins,start);
     return(-1);
   }
 
@@ -761,7 +762,7 @@ float *smooth(float sWidth,int nBins,float *data,float res)
     if(newPulse){
       tP=smooPulse.nPulses;
       if(!(smooPulse.pulse=(float **)realloc(smooPulse.pulse,(smooPulse.nPulses+1)*sizeof(float *)))){
-        fprintf(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)(smooPulse.nPulses+1)*sizeof(float *));
+        fprintf2(stderr,"Error reallocating %" PRIu64 "\n",(uint64_t)(smooPulse.nPulses+1)*sizeof(float *));
         return(NULL);
       }
       ASSIGN_CHECKNULL_RETNULL(smooPulse.res,markFloat(smooPulse.nPulses,smooPulse.res,newRes));
@@ -870,7 +871,7 @@ float *deconvolve(float *data,int nBins,float **pulse,int pBins,float res,int ma
   if(meth==0) {ASSIGN_CHECKNULL_RETNULL(deconDo,goldMeth(dataDo,pulseDo,numb,maxIter,minChange));}
   else if(meth==1) {ASSIGN_CHECKNULL_RETNULL(deconDo,richLucy(dataDo,pulseDo,numb,maxIter,minChange));}
   else{
-    fprintf(stderr,"Deconvolution method not defined\n");
+    fprintf2(stderr,"Deconvolution method not defined\n");
     return(NULL);
   }
   TIDY(pulseDo);  /*tidy as we go along*/
@@ -963,7 +964,7 @@ double *richLucy(double *data,double *pulse,int numb,int maxIter,double minChang
       tot+=o[i];
     }
     changeSq/=(double)numb;
-    /*fprintf(stdout,"Iter %d change %.20f\n",j,changeSq);*/
+    /*fprintf2(stdout,"Iter %d change %.20f\n",j,changeSq);*/
     if((minChange>=0.0)&&(changeSq<=minChangeSq))break;
     j++;
   }while(j<maxIter);
@@ -1035,7 +1036,7 @@ double *goldMeth(double *data,double *pulse,int numb,int maxIter,double minChang
       o[i]=new;
     }
     changeSq/=(double)numb;
-    /*fprintf(stdout,"Iter %d change %.20f\n",j,changeSq);*/
+    /*fprintf2(stdout,"Iter %d change %.20f\n",j,changeSq);*/
     if((minChange>=0.0)&&(changeSq<=minChangeSq))break;
     j++;
   }while(j<maxIter);
@@ -1163,7 +1164,7 @@ int readPulse(denPar *denoise)
   /*is it an assymmetric or gaussian pulse?*/
   if(!denoise->deconGauss){
     if((ipoo=fopen(denoise->pNamen,"r"))==NULL){
-      fprintf(stderr,"Error opening pulse file %s\n",denoise->pNamen);
+      fprintf2(stderr,"Error opening pulse file %s\n",denoise->pNamen);
       return(-1);
     }
 
@@ -1175,7 +1176,7 @@ int readPulse(denPar *denoise)
 
     /*rewind*/
     if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
-      fprintf(stderr,"fseek error\n");
+      fprintf2(stderr,"fseek error\n");
       return(-1);
     }
 
@@ -1190,7 +1191,7 @@ int readPulse(denPar *denoise)
       if(strncasecmp(line,"#",1)){
         if(sscanf(line,"%s %s",temp[0],temp[1])==2){
           if(i>denoise->pBins){
-            fprintf(stderr,"Error\n");
+            fprintf2(stderr,"Error\n");
             return(-1);
           }
           denoise->pulse[0][i]=atof(&(temp[0][0]))*denoise->pScale;
@@ -1268,7 +1269,7 @@ int readPulse(denPar *denoise)
     /*set width if needed*/
     if(denoise->gaussFilt){
       if(nGauss>1){
-        fprintf(stderr,"Multiple Gaussians fitted to pulse\n");
+        fprintf2(stderr,"Multiple Gaussians fitted to pulse\n");
         return(-1);
       }
       denoise->hardWidth=gaussPar[2]*denoise->hardTol;
@@ -1414,7 +1415,7 @@ double *findGroundNN(pCloudStruct **data,int nFiles,double *minX,double *minY,fl
 {
   double *gDEM=NULL;
 
-  fprintf(stderr,"The nearest neighbour DEM option is not ready yet\n");
+  fprintf2(stderr,"The nearest neighbour DEM option is not ready yet\n");
   return(NULL);
 
   return(gDEM);
@@ -1527,7 +1528,7 @@ int fitManyPlanes(groundDstruct *groundData,int cNx,int cNy)
     groundData[i].nPoly[0]=6;
     groundData[i].nPoly[1]=7;
     if(groundData[i].nPoints>(groundData[i].nPoly[0]+groundData[i].nPoly[1])){
-      fprintf(stdout,"Fitting %d of %d\n",i,cNx*cNy);
+      fprintf2(stdout,"Fitting %d of %d\n",i,cNx*cNy);
       ISINTRETINT(fitPolyPlane(&(groundData[i])));
     }else{
       ASSIGN_CHECKNULL_RETINT(groundData[i].par,dalloc(groundData[i].nPoly[0]+groundData[i].nPoly[1],"pars",0));
@@ -1567,12 +1568,12 @@ int fitPolyPlane(groundDstruct *groundData)
 
   /*allocate arrays*/
   if(!(config=(mp_config *)calloc(1,sizeof(mp_config)))){
-    fprintf(stderr,"error in control structure.\n");
+    fprintf2(stderr,"error in control structure.\n");
     return(-1);
   }
   config->nofinitecheck=1;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
-    fprintf(stderr,"error in mpfit structure.\n");
+    fprintf2(stderr,"error in mpfit structure.\n");
     return(-1);
   }
   ASSIGN_CHECKNULL_RETINT(result->resid,dalloc(groundData->nPoints,"",0));
@@ -1585,7 +1586,7 @@ int fitPolyPlane(groundDstruct *groundData)
   /*the fitting*/
   fitCheck=mpfit(groundErr,groundData->nPoints,nPar,groundData->par,parStruct,config,(void *)groundData,result);
   if(fitCheck<0){
-    fprintf(stderr,"fitCheck %d\n",fitCheck);
+    fprintf2(stderr,"fitCheck %d\n",fitCheck);
     return(-1);
   }
 
@@ -1614,7 +1615,7 @@ groundDstruct *arrangeGroundData(pCloudStruct **data,int nFiles,double groundBre
 
   /*initialise*/
   if(!(groundD=(groundDstruct *)calloc(1,sizeof(groundDstruct)))){
-    fprintf(stderr,"error in groundDstruct structure.\n");
+    fprintf2(stderr,"error in groundDstruct structure.\n");
     return(NULL);
   }
   groundD->nPoints=0;
@@ -1703,7 +1704,7 @@ mp_par *setGroundBounds(int *nPar)
   mp_par *parStruct=NULL;
 
   if(!(parStruct=(mp_par *)calloc(nPar[0]+nPar[1],sizeof(mp_par)))){
-    fprintf(stderr,"error in bound structure.\n");
+    fprintf2(stderr,"error in bound structure.\n");
     return(NULL);
   }
 
@@ -2006,7 +2007,7 @@ float *waveLmoments(float *rh,int nRH,float rhRes,int nLm)
 
   if(nLm==0)return(Lmoments);
   else if(nLm>4){
-    fprintf(stderr,"Not set up to deal with more than 4 L-moments yet\n");
+    fprintf2(stderr,"Not set up to deal with more than 4 L-moments yet\n");
     return(NULL);
   }
 
