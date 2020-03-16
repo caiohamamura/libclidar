@@ -143,7 +143,7 @@ int mapOctree(int level,octreeStruct *octree,treeStruct **tree,double x,double y
           errorf("Error in octree reallocation, %" PRIu64 "\n",(uint64_t)(octree->nMaps+1)*sizeof(int *));
           return(-1);
         }
-      }else ASSIGN_CHECKNULL_RETINT(octree->mapFile,iIalloc(octree->nMaps+1,"mapFile",0));
+      }else{ASSIGN_CHECKNULL_RETINT(octree->mapFile,iIalloc(octree->nMaps+1,"mapFile",0));}
       if(octree->mapPoint){
         if(!(octree->mapPoint=(uint32_t **)realloc(octree->mapPoint,(octree->nMaps+1)*sizeof(uint32_t *)))){
           errorf("octree map allocation error\n");
@@ -250,7 +250,7 @@ int readOctree(treeStruct *tree,pointMapStruct *pointmap,int level,octreeStruct 
         errorf("Error allocating memory\n");
         return(-1);
       }
-    }else ASSIGN_CHECKNULL_RETINT(pointmap->fList,ialloc(octree->nIn[mapInd],"fList",0));
+    }else{ASSIGN_CHECKNULL_RETINT(pointmap->fList,ialloc(octree->nIn[mapInd],"fList",0));}
     if(pointmap->pList!=NULL){
       if(!(pointmap->pList=(uint32_t *)realloc(pointmap->pList,(pointmap->nPoints+octree->nIn[mapInd])*sizeof(uint32_t)))){
         errorf("Error allocating memory\n");
