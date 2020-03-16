@@ -6,6 +6,7 @@
 #include "geotiffio.h"
 #include "xtiffio.h"
 #include "tools.h"
+#include "functionWrappers.h"
 #include "tiffRead.h"
 
 
