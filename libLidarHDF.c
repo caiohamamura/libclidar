@@ -543,6 +543,10 @@ float *read15dFloatHDF5(hid_t file,char *label,int *nWaves,int *nBins)
     errorf("Error closing space %s\n",label);
     return(NULL);
   }
+  if(H5Tclose(filetype)){
+    errorf("Error closing type %s\n",label);
+    return(NULL);
+  }
 
   TIDY(dims);
   return(jimlad);
@@ -595,6 +599,10 @@ char *read15dCharHDF5(hid_t file,char *label,int *nWaves,int *nBins)
   }
   if(H5Sclose(space)){
     errorf("Error closing space %s\n",label);
+    return(NULL);
+  }
+  if(H5Tclose(filetype)){
+    errorf("Error closing type %s\n",label);
     return(NULL);
   }
   
@@ -677,6 +685,10 @@ uint16_t *read1dUint16HDF5(hid_t file,char *varName,int *nBins)
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dUint16HDF5*/
 
@@ -712,6 +724,10 @@ uint32_t *read1dUint32HDF5(hid_t file,char *varName,int *nBins)
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dUint32HDF5*/
 
@@ -747,6 +763,10 @@ uint64_t *read1dUint64HDF5(hid_t file,char *varName,int *nBins)
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dUint64HDF5*/
 
@@ -779,6 +799,10 @@ int *read1dIntHDF5(hid_t file,char *varName,int *nBins)
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dIntHDF5*/
 
@@ -813,6 +837,10 @@ float *read1dFloatHDF5(hid_t file,char *varName,int *nBins)
 
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dFloatHDF5*/
 
@@ -845,6 +873,10 @@ double *read1dDoubleHDF5(hid_t file,char *varName,int *nBins)
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
+  if(H5Tclose(filetype)){
+    errorf("Error closing type\n");
+    return(NULL);
+  }
   return(jimlad);
 }/*read1dDoubleHDF5*/
 
