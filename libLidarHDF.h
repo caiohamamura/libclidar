@@ -198,6 +198,7 @@ void write2dFloatHDF5(hid_t,char *,float *,int,int);
 void write2dCharHDF5(hid_t,char *,char *,int,int);
 void write1dIntHDF5(hid_t,char *,int *,int);
 void write1dUint32HDF5(hid_t,char *,uint32_t *,int);
+void write1dUint16HDF5(hid_t,char *,uint16_t *,int);
 void write2dUint16HDF5(hid_t,char *,uint16_t *,int,int);
 void writeComp2dFloatHDF5(hid_t,char *,float *,int,int);
 void writeComp1dFloatHDF5(hid_t,char *,float *,int);
