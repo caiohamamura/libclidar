@@ -1310,6 +1310,56 @@ void write2dFloatHDF5(hid_t file,char *varName,float *data,int nWaves,int nBins)
 
 
 /*####################################################*/
+/*write a compressed 2D int8 array*/
+
+void writeComp2dInt8HDF5(hid_t file,char *varName,int8_t *data,int nWaves,int nBins)
+{
+  hid_t dset;
+  herr_t status;
+  hsize_t dims[2];
+  hid_t datatype,dataspace;  /*data definitions*/
+  hid_t lcpl_id,dcpl_id,dapl_id;     /*creation and access properties*/
+  hsize_t chunk[2];
+
+
+  /*define dataspace*/
+  dims[0]=(hsize_t)nWaves;
+  dims[1]=(hsize_t)nBins;
+  dataspace=H5Screate_simple(2,dims,NULL);
+  datatype=H5Tcopy(H5T_NATIVE_CHAR);
+  /*access and creation properties*/
+  lcpl_id=H5Pcopy(H5P_DEFAULT);
+  dapl_id=H5Pcopy(H5P_DEFAULT);
+
+  /*set compression*/
+  chunk[0]=nWaves;
+  chunk[1]=nBins;
+  dcpl_id=H5Pcreate (H5P_DATASET_CREATE);
+  status=H5Pset_deflate (dcpl_id, 9);
+  status=H5Pset_chunk(dcpl_id,2,chunk);
+
+  /*create new dataset*/
+  dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
+  if(dset<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*write data*/
+  status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
+  if(status<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*close data*/
+  status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
+  return;
+}/*writeComp2dInt8HDF5*/
+
+
+/*####################################################*/
 /*write a compressed 2D float array*/
 
 void writeComp2dFloatHDF5(hid_t file,char *varName,float *data,int nWaves,int nBins)
