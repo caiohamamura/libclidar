@@ -900,6 +900,54 @@ void writeComp1dUint32HDF5(hid_t file,char *varName,uint32_t *data,int nWaves)
 /*####################################################*/
 /*write a 1D uint32 array*/
 
+void writeComp1dInt8HDF5(hid_t file,char *varName,int8_t *data,int nWaves)
+{
+  hid_t dset;
+  herr_t status;
+  hsize_t dims[1];
+  hid_t datatype,dataspace;  /*data definitions*/
+  hid_t lcpl_id,dcpl_id,dapl_id;     /*creation and access properties*/
+  hsize_t chunk[1];
+
+  /*define dataspace*/
+  dims[0]=(hsize_t)nWaves;
+  dataspace=H5Screate_simple(1,dims,NULL);
+  datatype=H5Tcopy(H5T_NATIVE_CHAR);
+  /*access and creation properties*/
+  lcpl_id=H5Pcopy(H5P_DEFAULT);
+  dcpl_id=H5Pcopy(H5P_DEFAULT);
+  dapl_id=H5Pcopy(H5P_DEFAULT);
+
+  /*set compression*/
+  chunk[0]=nWaves;
+  dcpl_id=H5Pcreate (H5P_DATASET_CREATE);
+  status=H5Pset_deflate (dcpl_id, 9);
+  status=H5Pset_chunk(dcpl_id,1,chunk);
+
+  /*create new dataset*/
+  dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
+  if(dset<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*write data*/
+  status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
+  if(status<0){
+    fprintf(stderr,"Error writing %s\n",varName);
+    exit(1);
+  }
+
+  /*close data*/
+  status=H5Dclose(dset);
+  status=H5Sclose(dataspace);
+  return;
+}/*writeComp1dInt8HDF5*/
+
+
+/*####################################################*/
+/*write a 1D uint32 array*/
+
 void writeComp1dInt32HDF5(hid_t file,char *varName,int32_t *data,int nWaves)
 {
   hid_t dset;
