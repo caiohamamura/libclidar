@@ -6,6 +6,7 @@
 #include "tools.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"
+#include "libLasProcess.h"
 #include "libLidVoxel.h"
 
 

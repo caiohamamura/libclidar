@@ -196,6 +196,14 @@ void rotateX(double *,double);
 void rotateZ(double *,double);
 void readBoundsFromTLS(double *,char **,int);
 void beamVoxelBounds(double *,float *,float,char,double *);
+void makeBinImage(double *,float *,float *,char *,int,float,double,uint16_t,float,int,int,float,lidVoxPar *);
+void readCanBounds(canBstruct *,char *,double *);
+void setCanInd(int *,int *,double,double,double,lasFile *,canBstruct *);
+void imposeCanBound(float *,int,int,int);
+double setCanGround(double,double,canBstruct *);
+void setTopVoxBlank(voxStruct *);
+void voxelate(voxStruct *,float *,lasFile *,double,double,double,float);
+void writeAsciiVox(voxStruct *,char *);
 
 /*the end*/
 /*###################################################*/

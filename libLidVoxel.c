@@ -6,8 +6,8 @@
 #include "tools.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"
-#include "libLidVoxel.h"
 #include "libLasProcess.h"
+#include "libLidVoxel.h"
 
 
 /*#########################*/
@@ -930,6 +930,398 @@ void beamVoxelBounds(double *origin,float *grad,float fSigma,char gaussFoot,doub
 }/*beamVoxelBounds*/
 
 
+/*############################################*/
+/*the below are TLS specific things*/
+
+/*###############################################*/
+/*mark an image with a point and add up area*/
+
+void makeBinImage(double *coord,float *area,float *count,char *rImage,int numb,float gap,double r,uint16_t refl,float beamRad,int rNx,int rNy,float rimRes,lidVoxPar *tlsPar)
+{
+  int xInd=0,yInd=0,rPlace=0;
+  int xStart=0,xEnd=0;
+  int yStart=0,yEnd=0;
+  double xIcent=0,yIcent=0;
+  float rad=0;
+  float maxRsepSq=0,rSepSq=0;
+
+  if(gap<tlsPar->minGap)gap=tlsPar->minGap;
+  rad=tlsPointSize(r,refl,tlsPar->beamTanDiv,tlsPar->beamRad,tlsPar->minRefl,tlsPar->maxRefl,tlsPar->appRefl,gap);
+
+  (*area)+=rad*rad*tlsPar->appRefl/(beamRad*beamRad);
+  (*count)+=1.0;
+
+  /*range image*/
+  xIcent=(int)((coord[0]+beamRad)/rimRes);
+  yIcent=(int)((coord[1]+beamRad)/rimRes);
+  xStart=xIcent-(int)(rad/rimRes);
+  xEnd=xIcent+(int)(rad/rimRes);
+  yStart=yIcent-(int)(rad/rimRes);
+  yEnd=yIcent+(int)(rad/rimRes);
+  maxRsepSq=rad*rad;
+
+  if(xStart<0)xStart=0;      /*enforce bounds*/
+  if(xEnd>=rNx)xEnd=rNx-1;
+  if(yStart<0)yStart=0;
+  if(yEnd>=rNy)yEnd=rNy-1;   /*enforce bounds*/
+
+  for(xInd=xStart;xInd<=xEnd;xInd++){
+    for(yInd=yStart;yInd<=yEnd;yInd++){
+      rSepSq=(float)((xInd-xIcent)*(xInd-xIcent)+(yInd-yIcent)*(yInd-yIcent))*rimRes*rimRes;
+      if(rSepSq<=maxRsepSq){
+        rPlace=yInd*rNx+xInd;
+        if(rImage[rPlace]==0)rImage[rPlace]=1;
+      }/*check within point*/
+    }/*loop around point*/
+  }/*loop around point*/
+
+  return;
+}/*makeBinImage*/
+
+
+/*############################################*/
+/*read cnaopy bounds*/
+
+void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
+{
+  int xBin=0,yBin=0;
+  int totN=0,place=0;
+  double x=0,y=0;
+  double sX=0,eX=0;     /*first and second points to determine res*/
+  double buff=0;
+  char line[400],temp1[100],temp2[100];
+  char temp3[100],temp4[100];
+  FILE *ipoo=NULL;
+
+  if((ipoo=fopen(canNamen,"r"))==NULL){
+    fprintf(stderr,"Error opening output file %s\n",canNamen);
+    exit(1);
+  }
+
+  buff=20.0;
+
+  canB->cUbound[0]=canB->cUbound[1]=100000000.0;
+  canB->cUbound[2]=canB->cUbound[3]=-100000.0;
+
+  sX=eX=-1.0;
+
+  /*read number of pixels*/
+  xBin=0;
+  while(fgets(line,400,ipoo)!=NULL){
+    if(strncasecmp(line,"#",1)){
+      if(sscanf(line,"%s %s",temp1,temp2)==2){
+        x=atof(temp1);
+        y=atof(temp2);
+
+        /*first and second point for res*/
+        if(sX<0.0)sX=x;
+        else if(eX<0.0){
+          if(sX!=x)eX=x;
+        }
+        /*if(sY<0.0)sY=y;
+        else if(eY<0.0){
+          if(sY!=y)eY=y;
+        }*/
+
+        if((x>=(bounds[0]-buff))&&(x<=(bounds[3]+buff))&&(y>=(bounds[1]-buff))&&(y<=(bounds[4]+buff))){
+          if(x<canB->cUbound[0])canB->cUbound[0]=x;
+          if(y<canB->cUbound[1])canB->cUbound[1]=y;
+          if(x>canB->cUbound[2])canB->cUbound[2]=x;
+          if(y>canB->cUbound[3])canB->cUbound[3]=y;
+        }
+
+        xBin++;
+      }
+    }
+  }
+
+  if(canB->cUbound[2]<0.0){  /*then there is no data*/
+    fprintf(stderr,"Canopy bound issue %f in %s from %d xBound %.2f %.2f yBound %.2f %.2f\n",canB->cUbound[2],canNamen,xBin,bounds[0],bounds[3],bounds[1],bounds[4]);
+    exit(1);
+  }
+  canB->cUbound[0]-=buff;
+  canB->cUbound[1]-=buff;
+  canB->cUbound[2]+=buff;
+  canB->cUbound[3]+=buff;
+
+  canB->cRes=eX-sX;
+  canB->cNx=(int)((canB->cUbound[2]-canB->cUbound[0])/canB->cRes)+1;
+  canB->cNy=(int)((canB->cUbound[3]-canB->cUbound[1])/canB->cRes)+1;
+
+  if((canB->cNx<=0)||(canB->cNy<=0)){
+    fprintf(stderr,"canopy pixel error\n");
+    fprintf(stderr,"x %f %f y %f %f res %f\n",canB->cUbound[2],canB->cUbound[0],canB->cUbound[3],canB->cUbound[1],canB->cRes);
+    exit(1);
+  }
+
+  totN=canB->cNx*canB->cNy;
+  canB->canMin=falloc((uint64_t)totN,"canMin",0);
+  canB->canMax=falloc((uint64_t)totN,"canMax",0);
+
+  if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
+    fprintf(stderr,"fseek error\n");
+    exit(1);
+  }
+  while(fgets(line,400,ipoo)!=NULL){
+    if(strncasecmp(line,"#",1)){
+      if(sscanf(line,"%s %s %s %s",temp1,temp2,temp3,temp4)==4){  /*read top and bottom*/
+        x=atof(temp1);
+        y=atof(temp2);
+
+        xBin=(int)((x-canB->cUbound[0])/canB->cRes+0.5);
+        yBin=(int)((y-canB->cUbound[1])/canB->cRes+0.5);
+
+        /*within bounds check*/
+        if((xBin>=0)&&(xBin<canB->cNx)&&(yBin>=0)&&(yBin<canB->cNy)){
+          place=yBin*canB->cNx+xBin;
+          canB->canMin[place]=atof(temp3);
+          canB->canMax[place]=atof(temp4);
+        }
+      }else if(sscanf(line,"%s %s %s",temp1,temp2,temp3)==3){  /*only read bottom*/
+        x=atof(temp1);
+        y=atof(temp2);
+
+        xBin=(int)((x-canB->cUbound[0])/canB->cRes+0.5);
+        yBin=(int)((y-canB->cUbound[1])/canB->cRes+0.5);
+
+        if((xBin>=0)&&(xBin<canB->cNx)&&(yBin>=0)&&(yBin<canB->cNy)){
+          place=yBin*canB->cNx+xBin;
+          canB->canMin[place]=atof(temp3);
+          canB->canMax[place]=10000.0;   /*a large number*/
+        }
+      }
+    }
+  }
+
+  if(ipoo){
+    fclose(ipoo);
+    ipoo=NULL;
+  }
+
+  return;
+}/*readCanBounds*/
+
+
+/*############################################*/
+/*determine indices of bounds*/
+
+void setCanInd(int *wStart,int *wEnd,double xCent,double yCent,double zCent,lasFile *lasIn,canBstruct *canB)
+{
+  int i=0;
+  int xBin=0,yBin=0,place=0;
+  double x=0,y=0,z=0;
+  double sSep=0;
+
+  (*wStart)=-1;
+  (*wEnd)=lasIn->waveLen+2;
+
+  for(i=0;i<lasIn->waveLen;i++){
+    binPosition(&x,&y,&z,i,xCent,yCent,zCent,lasIn->time,lasIn->grad);
+
+    xBin=(int)((x-canB->cUbound[0])/(double)canB->cRes+0.5);
+    yBin=(int)((y-canB->cUbound[1])/(double)canB->cRes+0.5);
+
+    if((xBin<0)||(xBin>=canB->cNx)||(yBin<0)||(yBin>=canB->cNy)){
+      //fprintf(stderr,"Canopy bounds not wide enough for ind %d %d %d %d point %f %f can bound %f %f\n",xBin,yBin,canB->cNx,canB->cNy,x,y,canB->cUbound[0],canB->cUbound[1]);
+      (*wStart)=0;
+      (*wEnd)=lasIn->waveLen;
+      break;
+    }
+
+    place=yBin*canB->cNx+xBin;
+
+    if(((*wStart)<0)&&(z>canB->canMax[place])){
+      sSep=sqrt((z-canB->canMax[place])*(z-canB->canMax[place]));
+      if(sSep<0.15)(*wStart)=i;
+    }
+
+    if(z<canB->canMin[place]){
+      (*wEnd)=i+1;  /*add one as we loop up to but not over here*/
+      break;
+    }
+  }
+  if((*wStart)<0)(*wStart)=0;
+  if((*wEnd)>lasIn->waveLen)(*wEnd)=lasIn->waveLen;
+
+  return;
+}/*setCanInd*/
+
+
+/*#######################################*/
+/*impose canopy bounds*/
+
+void imposeCanBound(float *denoised,int wStart,int wEnd,int numb)
+{
+  int i=0;
+
+  for(i=wStart;i>=0;i--)denoised[i]=0.0;
+  for(i=wEnd;i<numb;i++)denoised[i]=0.0;
+
+  return;
+}/*imposeCanBound*/
+
+
+/*############################################*/
+/*set min and max for this pixel*/
+
+double setCanGround(double x,double y,canBstruct *canB)
+{
+  int xBin=0,yBin=0,place=0;
+  double z=0;
+
+  xBin=(int)((x-canB->cUbound[0])/(double)canB->cRes+0.5);
+  yBin=(int)((y-canB->cUbound[1])/(double)canB->cRes+0.5);
+
+  if((xBin>=0)&&(xBin<canB->cNx)&&(yBin>=0)&&(yBin<canB->cNy)){
+    place=yBin*canB->cNx+xBin;
+    z=canB->canMin[place];
+  }else{
+    //fprintf(stderr,"Canopy bounds not wide enough for z %d %d %d %d\n",xBin,yBin,canB->cNx,canB->cNy);
+    z=-10000.0;
+  }
+
+  return(z);
+}/*setCanBounds*/
+
+
+
+/*#######################################*/
+/*set higher voxels bank*/
+
+void setTopVoxBlank(voxStruct *vox)
+{
+  int i=0,j=0,k=0;
+  int numb=0,place=0;
+  float total=0;
+
+  for(i=0;i<vox->nX;i++){
+    for(j=0;j<vox->nY;j++){
+      /*loop down to find first filled voxel*/
+      total=0.0;
+      for(k=vox->nZ-1;k>=0;k--){
+        place=k*vox->nX*vox->nY+j*vox->nX+i;
+        for(numb=0;numb<vox->nScans;numb++)total+=vox->hits[numb][place]+vox->miss[numb][place];
+        if(total>0.0){
+          break;
+        }
+      }
+      /*set all above here to blank*/
+      for(k++;k<vox->nZ;k++){
+        place=k*vox->nX*vox->nY+j*vox->nX+i;
+        total=0.0;
+        for(numb=0;numb<vox->nScans;numb++)total+=vox->hits[numb][place]+vox->miss[numb][place];
+        if(total>0.0){
+          fprintf(stderr,"Balls\n");
+          exit(1);
+        }
+        for(numb=0;numb<vox->nScans;numb++)vox->miss[numb][place]=1.0;
+      }
+    }/*y loop*/
+  }/*x loop*/
+
+  return;
+}/*setTopVoxBlank*/
+
+
+/*#######################################*/
+/*voxelise from waveform lidar*/
+
+void voxelate(voxStruct *vox,float *wave,lasFile *lasIn,double xCent,double yCent,double zCent,float beamRad)
+{
+  int i=0,j=0,nTot=0;
+  int lastBin=0,zInd=0;
+  int *voxList=NULL;
+  int *nHitCont=NULL;
+  double x0=0,y0=0,z0=0;
+  double zTop=0,zBot=0;
+  float *meanHit=NULL;
+  char *passList=NULL;
+
+  /*determine when the beam is blocked*/
+  lastBin=lasIn->waveLen+1;
+  for(i=0;i<lasIn->waveLen;i++){
+    if(wave[i]>0.0)lastBin=i;
+  }
+
+  /*map for all beams*/
+  binPosition(&x0,&y0,&z0,0,xCent,yCent,zCent,lasIn->time,lasIn->grad);
+  voxList=beamVoxels(lasIn->grad,x0,y0,z0,&(vox->bounds[0]),&(vox->res[0]),vox->nX,vox->nY,vox->nZ,&nTot,beamRad,NULL,-1.0);
+  passList=challoc((uint64_t)nTot,"pass list",0);
+  for(j=0;j<nTot;j++)passList[j]=0;
+
+  /*gap fraction for each voxel for this beam*/
+  meanHit=falloc((uint64_t)nTot,"meanHit",0);
+  nHitCont=ialloc(nTot,"nHitCont",0);
+  for(i=0;i<nTot;i++){
+    meanHit[i]=0.0;
+    nHitCont[i]=0;
+  }
+
+  /*loop along until last beam*/
+  for(i=0;i<lastBin;i++){
+    binPosition(&x0,&y0,&z0,i,xCent,yCent,zCent,lasIn->time,lasIn->grad);
+    for(j=0;j<nTot;j++){
+      zInd=(int)((float)voxList[j]/(float)(vox->nX*vox->nY));
+      zBot=(double)(zInd)*(double)vox->res[2]+vox->bounds[2];
+      zTop=(double)(zInd+1)*(double)vox->res[2]+vox->bounds[2];
+      if((z0<zTop)&&(z0>zBot)){  /*check that this voxel is within bin*/
+        vox->hits[0][voxList[j]]+=wave[i]/0.15;
+        vox->miss[0][voxList[j]]+=(1.0-wave[i])/0.15;
+        vox->contN[voxList[j]]++;
+      }
+    }/*voxel loop*/
+  }/*bin loop*/
+
+  TIDY(meanHit);
+  TIDY(nHitCont);
+  TIDY(passList);
+  TIDY(voxList);
+  return;
+}/*voxelate*/
+
+
+/*############################################*/
+/*write out ASCII voxels*/
+
+void writeAsciiVox(voxStruct *vox,char *outRoot)
+{
+  int i=0,j=0,k=0;
+  int place=0;
+  char namen[200];
+  FILE *opoo=NULL;
+
+  sprintf(namen,"%s.vox",outRoot);
+  if((opoo=fopen(namen,"w"))==NULL){
+    fprintf(stderr,"Error opening output file %s\n",namen);
+    exit(1);
+  }
+  fprintf(opoo,"# 1 x, 2 y, 3 z, 4 cover, 5 nALS\n");
+  /*write out the voxel map*/
+  for(i=0;i<vox->nX;i++){
+    for(j=0;j<vox->nY;j++){
+      for(k=0;k<vox->nZ;k++){
+        place=k*vox->nX*vox->nY+j*vox->nX+i;
+        if(vox->contN[place]>0){
+          fprintf(opoo,"%f %f %f %f %d\n",((float)i+0.5)*vox->res[0]+vox->bounds[0],\
+            ((float)j+0.5)*vox->res[1]+vox->bounds[1],((float)k+0.5)*vox->res[2]+\
+            vox->bounds[2],vox->hits[0][place]/(vox->hits[0][place]+vox->miss[0][place]),vox->contN[place]);
+        }else{
+          fprintf(opoo,"%f %f %f %f %d\n",((float)i+0.5)*vox->res[0]+vox->bounds[0],\
+            ((float)j+0.5)*vox->res[1]+vox->bounds[1],((float)k+0.5)*vox->res[2]+\
+            vox->bounds[2],-1.0,vox->contN[place]);
+        }
+      }
+    }
+  }
+  if(opoo){
+    fclose(opoo);
+    opoo=NULL;
+  }
+  fprintf(stdout,"Written to %s\n",namen);
+
+  return;
+}/*writeAsciiVox*/
+
 /*the end*/
-/*###########################################################################*/
+/*#######################################*/
 
