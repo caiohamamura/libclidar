@@ -174,9 +174,20 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
   if((gbic>0.0)&&(gbic!=1.0))for(i=0;i<waveLen;i++)smoothed[i]/=gbic;
 
 
+
+  /*deconvolve if required*/
+  if((decon->deconMeth>=0)&&(hardTarget==0)){
+    processed=deconvolve(smoothed,waveLen,decon->pulse,decon->pBins,\
+                  decon->res,decon->maxIter,decon->deChang,decon->deconMeth);
+    TIDY(smoothed);
+  }else{
+    processed=smoothed;    /*otherwise just use the denoised array*/
+    smoothed=NULL;
+  }
+
   /*Gaussian fitting*/
   if(decon->fitGauss||decon->gaussFilt){
-    gaussWave=fitGaussians(smoothed,waveLen,decon);
+    gaussWave=fitGaussians(processed,waveLen,decon);
     /*test for hard target*/
     if(decon->gaussFilt){
       if((decon->nGauss==1)&&(decon->gPar[2]<=decon->hardWidth))hardTarget=1;
@@ -186,32 +197,22 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
     /*copy Gaussian if to be used*/
     if(hardTarget){ /*single hit*/
       TIDY(gaussWave);
-      TIDY(smoothed);
+      TIDY(processed);
       gaussWave=hardHitWave(decon,waveLen);
     }else if(decon->fitGauss){ /*pass on Gaussian waveform*/
-      TIDY(smoothed);
+      TIDY(processed);
     }else{                /*delete fitting and pass original*/
       TIDY(gaussWave);
-      gaussWave=smoothed;
-      smoothed=NULL;
+      gaussWave=processed;
+      processed=NULL;
     }
   }else{   /*don't fit Gaussians*/
-    gaussWave=smoothed;
-    smoothed=NULL;
+    gaussWave=processed;
+    processed=NULL;
     hardTarget=0;
   }
 
-  /*deconvolve if required*/
-  if((decon->deconMeth>=0)&&(hardTarget==0)){
-    processed=deconvolve(gaussWave,waveLen,decon->pulse,decon->pBins,\
-                  decon->res,decon->maxIter,decon->deChang,decon->deconMeth);
-    TIDY(gaussWave);
-  }else{
-    processed=gaussWave;    /*otherwise just use the denoised array*/
-    gaussWave=NULL;
-  }
-
-  return(processed);
+  return(gaussWave);
 }/*processFloWave*/
 
 
