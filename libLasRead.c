@@ -319,6 +319,7 @@ void readLasPoint(lasFile *las,uint32_t j)
     nFilesOpen--;
   }
 
+  /*offset to start of this point record*/
   offTo=(uint64_t)(j-las->buffStart)*(uint64_t)las->pRecLen;
 
   /*point format 3 and 4*/
