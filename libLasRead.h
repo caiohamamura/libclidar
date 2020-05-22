@@ -108,12 +108,12 @@ typedef struct{
   unsigned char userData; /*user data*/
   uint16_t psID;          /*point source ID, used for Leica's AGC*/
   double gpsTime;         /*GPS time*/
+  uint16_t RGB[3];        /*RGB image*/
   unsigned char packetDes;/*waveform packed description*/
   uint64_t waveMap;       /*pointer to waveform in file*/
   uint32_t waveLen;       /*length of waveform in bins*/
   float time;             /*time in picoseconds of this wave*/
   float grad[3];          /*waveform gradient*/
-  uint16_t RGB[3];        /*RGB image*/
   /*uint64_t counter;*/    /*I do not know why this is here?*/
 
   /*buffer to read multiple points at a time*/

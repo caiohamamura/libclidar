@@ -368,6 +368,16 @@ void readLasPoint(lasFile *las,uint32_t j)
 
   memcpy(&las->psID,&las->pointBuff[offset],2);
   offset+=2;
+  /*GPS time*/
+  memcpy(&las->gpsTime,&las->pointBuff[offset],8);
+  offset+=8;
+
+  if((las->pointFormat==3)||(las->pointFormat==10)||(las->pointFormat==8)||(las->pointFormat==7)||(las->pointFormat==5)){  /*there is RGB*/
+    for(j=0;j<3;j++){
+      memcpy(&(las->RGB[j]),&las->pointBuff[offset],2);
+      offset+=2;
+    }
+  }/*there is RGB*/
 
   if((las->pointFormat==4)||(las->pointFormat==5)||(las->pointFormat==9)||(las->pointFormat==10)){   /*full waveform data*/
     memcpy(&las->packetDes,&las->pointBuff[offset],1);
@@ -388,10 +398,6 @@ void readLasPoint(lasFile *las,uint32_t j)
     las->packetDes=0;
     las->grad[0]=las->grad[1]=las->grad[2]=0.0;  /*leave the grad bits blank*/
   }
-
-  if((las->pointFormat==3)||(las->pointFormat==10)||(las->pointFormat==8)||(las->pointFormat==7)||(las->pointFormat==5)){  /*there is RGB*/
-    memcpy(&las->RGB[0],&las->pointBuff[offset],3*2);
-  }/*there is RGB*/
 
   return;
 }/*readLasPoint*/
