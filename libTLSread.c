@@ -927,7 +927,7 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
 
 
 /*##################################################################*/
-/*see if a file is aptx file*/
+/*see if a file is a ptx file*/
 
 char checkIfPtx(char *namen)
 {
@@ -938,7 +938,7 @@ char checkIfPtx(char *namen)
 
 
 /*##################################################################*/
-/*see if a file is aptx file*/
+/*see if a file is a HDF5 file*/
 
 char checkIfHDF(char *namen)
 {
