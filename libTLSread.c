@@ -4,11 +4,12 @@
 #include "math.h"
 #include "stdint.h"
 #include "tools.h"
+#include "hdf5.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"
 #include "libLasProcess.h"
 #include "libLidVoxel.h"
-
+#include "libLidarHDF.h"
 
 /*######################*/
 /*# A library for      #*/
@@ -152,6 +153,34 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
   TIDY(buffer);
   return;
 }/*writeTLSpointFromBin*/
+
+
+/*##################################################################*/
+/*read single TLS scan, all data*/
+
+void readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
+{
+
+
+  /*is this the first call?*/
+  if((*scan)==NULL){  /*if so, read size and allocate space*/
+    fprintf(stdout,"Reading %s ",namen);
+
+    /*allocate structure and open file*/
+    if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
+      fprintf(stderr,"error scan allocation.\n");
+      exit(1);
+    }
+
+
+  }else{   /*read a single point*/
+
+
+  }
+
+
+  return;
+}/*readTLSpolarHDF*/
 
 
 /*##################################################################*/
@@ -765,11 +794,16 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   tlsScan *scan=NULL,*tempTLS=NULL;
   void noteVoxelGaps(int *,int,double *,voxStruct *,tlsScan *,uint32_t,float,char,lidVoxPar *,int);
   void saveTLSpoints(tlsScan *,uint32_t,voxStruct *,tlsScan *,double,double,double,tlsVoxMap *,int);
+  void readPTXleica(char *,uint32_t,tlsScan **);
+  void readTLSpolarBinary(char *,uint32_t,tlsScan **);
+  void readTLSpolarHDF(char *,uint32_t,tlsScan **);
   char checkIfPtx(char *);
-  char isPtx=0;  /*ptx file flag*/
+  char checkIfHDF(char *);
+  char isPtx=0,isHDF;  /*file format flags*/
 
   /*is this a ptx file?*/
   isPtx=checkIfPtx(namen);
+  isHDF=checkIfHDF(namen);
 
   /*max range of Riegl: OTHERS ARE SHORTER or longer. COULD BE ADJUSTABLE*/
   maxR=1450.0;
@@ -781,8 +815,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   }
 
   /*read all data into RAM*/
-  if(isPtx==0)readTLSpolarBinary(namen,0,&tempTLS);
-  else        readPTXleica(namen,0,&tempTLS);
+  if(isPtx==1)     readPTXleica(namen,0,&tempTLS);
+  else if(isHDF==1)readTLSpolarHDF(namen,0,&tempTLS);
+  else             readTLSpolarBinary(namen,0,&tempTLS);
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
@@ -815,8 +850,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*loop over beams in scan*/
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
-      if(isPtx==0)readTLSpolarBinary(namen,j,&tempTLS);
-      else        readPTXleica(namen,j,&tempTLS);
+      if(isPtx==1)     readPTXleica(namen,j,&tempTLS);
+      else if(isHDF==1)readTLSpolarHDF(namen,j,&tempTLS);
+      else             readTLSpolarBinary(namen,j,&tempTLS);
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/
@@ -899,6 +935,18 @@ char checkIfPtx(char *namen)
   if(!strncasecmp(&namen[strlen(namen)-4],".ptx",4))return(1);
   else                                              return(0);
 }/*checkIfPtx*/
+
+
+/*##################################################################*/
+/*see if a file is aptx file*/
+
+char checkIfHDF(char *namen)
+{
+  /*check last three characters*/
+  if(!strncasecmp(&namen[strlen(namen)-3],".h5",3))      return(1);
+  else if(!strncasecmp(&namen[strlen(namen)-4],".hdf",4))return(1);
+  else                                                   return(0);
+}/*checkIfHDF*/
 
 
 /*##################################################################*/
