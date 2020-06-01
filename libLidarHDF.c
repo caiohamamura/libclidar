@@ -1134,7 +1134,7 @@ void write1dUint32HDF5(hid_t file,char *varName,uint32_t *data,int nWaves)
 
 
 /*####################################################*/
-/*write a 1D float array*/
+/*write a 1D double array*/
 
 void write1dDoubleHDF5(hid_t file,char *varName,double *data,int nWaves)
 {
