@@ -193,10 +193,10 @@ void readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
     }
 
     temp=read1dFloatHDF5((*scan)->hdfFile,"AZ",&tempInt);
-    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].az=temp[i];
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].az=temp[i]*M_PI/180.0;
     TIDY(temp);
     temp=read1dFloatHDF5((*scan)->hdfFile,"ZEN",&tempInt);
-    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].zen=temp[i];
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].zen=temp[i]*M_PI/180.0;
     TIDY(temp);
     temp=read1dFloatHDF5((*scan)->hdfFile,"X0",&tempInt);
     for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].x=temp[i];
