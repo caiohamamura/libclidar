@@ -160,7 +160,10 @@ void writeTLSpointFromBin(char *namen,double *bounds,FILE *opoo)
 
 void readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 {
-
+  int tempInt=0;
+  uint8_t *tempU8=NULL,j=0;
+  uint32_t i=0,*tempU32=NULL,tot=0;
+  float *temp=NULL,*temp2=NULL;
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
@@ -172,10 +175,78 @@ void readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
       exit(1);
     }
 
+    /*open and read whole file*/
+    (*scan)->hdfFile=H5Fopen(namen,H5F_ACC_RDONLY,H5P_DEFAULT);
+    /*read header*/
+    memcpy(&(*scan)->xOff,read1dDoubleHDF5((*scan)->hdfFile,"XCENT",&tempInt),sizeof(double));
+    memcpy(&(*scan)->yOff,read1dDoubleHDF5((*scan)->hdfFile,"YCENT",&tempInt),sizeof(double));
+    memcpy(&(*scan)->zOff,read1dDoubleHDF5((*scan)->hdfFile,"ZCENT",&tempInt),sizeof(double));
+    memcpy(&(*scan)->nBeams,read1dUint32HDF5((*scan)->hdfFile,"TOTSHOT",&tempInt),sizeof(uint32_t));
+    memcpy(&(*scan)->nPoints,read1dUint32HDF5((*scan)->hdfFile,"TOTHITS",&tempInt),sizeof(uint32_t));
 
-  }else{   /*read a single point*/
+    fprintf(stdout,"There are %u beams\n",(*scan)->nBeams);
 
+    /*allocate space for beams*/
+    if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->nBeams,sizeof(tlsBeam)))){
+      fprintf(stderr,"error beam allocation. Allocating %u\n",(*scan)->nBeams);
+      exit(1);
+    }
 
+    temp=read1dFloatHDF5((*scan)->hdfFile,"AZ",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].az=temp[i];
+    TIDY(temp);
+    temp=read1dFloatHDF5((*scan)->hdfFile,"ZEN",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].zen=temp[i];
+    TIDY(temp);
+    temp=read1dFloatHDF5((*scan)->hdfFile,"X0",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].x=temp[i];
+    TIDY(temp);
+    temp=read1dFloatHDF5((*scan)->hdfFile,"Y0",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].y=temp[i];
+    TIDY(temp);
+    temp=read1dFloatHDF5((*scan)->hdfFile,"Z0",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].z=temp[i];
+    TIDY(temp);
+    tempU32=read1dUint32HDF5((*scan)->hdfFile,"SHOTN",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].shotN=tempU32[i];
+    TIDY(tempU32);
+    tempU8=read1dUint8HDF5((*scan)->hdfFile,"NHITS",&tempInt);
+    for(i=0;i<(*scan)->nBeams;i++)(*scan)->beam[i].nHits=tempU8[i];
+    TIDY(tempU8);
+
+    /*allocate multiple hits*/
+    temp=read1dFloatHDF5((*scan)->hdfFile,"RANGE",&tempInt);
+    temp2=read1dFloatHDF5((*scan)->hdfFile,"REFL",&tempInt);
+    tot=0;
+    for(i=0;i<(*scan)->nBeams;i++){
+      if((*scan)->beam[i].nHits>0){
+        (*scan)->beam[i].r=falloc((uint64_t)(*scan)->beam[i].nHits,"TLS point range",(int)tot);
+        (*scan)->beam[i].refl=falloc((uint64_t)(*scan)->beam[i].nHits,"TLS point refl",(int)tot);
+
+        for(j=0;j<(*scan)->beam[i].nHits;j++){
+          (*scan)->beam[i].r[j]=temp[tot];
+          (*scan)->beam[i].refl[j]=temp2[tot];
+          tot++;
+        }
+      }
+    }
+
+    /*check total number of hits*/
+    if((*scan)->nPoints!=tot){
+      fprintf(stderr,"Beam counting mismatch %u %u\n",tot,(*scan)->nPoints);
+      exit(1);
+    }
+
+    TIDY(temp);
+    TIDY(temp2);
+
+    /*close input*/
+    if(H5Fclose((*scan)->hdfFile)){
+      fprintf(stderr,"Issue closing file\n");
+      exit(1);
+    }
+  }else{   /*no need to read more buffer*/
+    return;
   }
 
 

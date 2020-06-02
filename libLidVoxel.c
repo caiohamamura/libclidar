@@ -3,6 +3,7 @@
 #include "string.h"
 #include "math.h"
 #include "stdint.h"
+#include "hdf5.h"
 #include "tools.h"
 #include "libLasRead.h"
 #include "libDEMhandle.h"

@@ -213,6 +213,7 @@ void writeComp1dInt32HDF5(hid_t,char *,int32_t *,int);
 void writeComp1dDoubleHDF5(hid_t,char *,double *,int);
 float *read1dFloatHDF5(hid_t,char *,int *);
 double *read1dDoubleHDF5(hid_t,char *,int *);
+uint8_t *read1dUint8HDF5(hid_t,char *,int *);
 uint16_t *read1dUint16HDF5(hid_t,char *,int *);
 uint32_t *read1dUint32HDF5(hid_t,char *,int *);
 uint64_t *read1dUint64HDF5(hid_t,char *,int *);
