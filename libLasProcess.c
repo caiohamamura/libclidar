@@ -1747,14 +1747,14 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   float cumul=0;
   float totE=0,r=0;
   float *rh=NULL;
-  float tolerance=0;
   float lastRet=0;
   char *done=NULL;
 
   /*total energy*/
   totE=0.0;
-  for(i=0;i<nBins;i++)if(wave[i]>tolerance)totE+=wave[i];
+  for(i=0;i<nBins;i++)totE+=wave[i];
 
+  /*allocate space*/
   *nRH=(int)(100.0/rhRes+1);
   rh=falloc((uint64_t)(*nRH),"rh metrics",0);
   done=challoc((uint64_t)(*nRH),"RH done flag",0);
@@ -1763,18 +1763,16 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
     rh[i]=-9999.0;
   }
 
-  /*make toelrance have the RH metric step*/
-  tolerance=totE*rhRes/(100.0*3000.0);  /*0.00000000000001*totE;*/
-
+  /*which way is the waveform arranged?*/
   cumul=0.0;
   if(z[nBins-i]<z[0]){   /*wave is from from top to bottom*/
     for(i=nBins-1;i>=0;i--){
       cumul+=wave[i];
-      if(wave[i]>tolerance){
+      if(wave[i]>0.0){
         for(j=0;j<(*nRH);j++){
           r=((float)j*(float)(rhRes/100.0))*totE;
           if(r>totE)r=totE;
-          if((done[j]==0)&&(cumul>=(r-tolerance))){
+          if((done[j]==0)&&(cumul>=r)){
             rh[j]=(float)(z[i]-gHeight);
             done[j]=1;
           }
@@ -1785,11 +1783,11 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   }else{
     for(i=0;i<nBins;i++){  /*wave is from bottom to top*/
       cumul+=wave[i];
-      if(wave[i]>tolerance){
+      if(wave[i]>0.0){
         for(j=0;j<(*nRH);j++){
           r=((float)j*(float)(rhRes/100.0))*totE;
           if(r>totE)r=totE;
-          if((done[j]==0)&&(cumul>=(r-tolerance))){
+          if((done[j]==0)&&(cumul>=r)){
             rh[j]=(float)(z[i]-gHeight);
             done[j]=1;
           }
