@@ -173,7 +173,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 
     /*allocate structure and open file*/
     if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
-      fprintf(stderr,"error scan allocation.\n");
+      errorf("error scan allocation.\n");
       return -1;
     }
 
@@ -190,7 +190,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 
     /*allocate space for beams*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->nBeams,sizeof(tlsBeam)))){
-      fprintf(stderr,"error beam allocation. Allocating %u\n",(*scan)->nBeams);
+      errorf("error beam allocation. Allocating %u\n",(*scan)->nBeams);
       return -1;
     }
 
@@ -235,7 +235,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 
     /*check total number of hits*/
     if((*scan)->nPoints!=tot){
-      fprintf(stderr,"Beam counting mismatch %u %u\n",tot,(*scan)->nPoints);
+      errorf("Beam counting mismatch %u %u\n",tot,(*scan)->nPoints);
       return -1;
     }
 
@@ -244,7 +244,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 
     /*close input*/
     if(H5Fclose((*scan)->hdfFile)){
-      fprintf(stderr,"Issue closing file\n");
+      errorf("Issue closing file\n");
       return -1;
     }
   }else{   /*no need to read more buffer*/

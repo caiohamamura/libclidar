@@ -1011,7 +1011,7 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   FILE *ipoo=NULL;
 
   if((ipoo=fopen(canNamen,"r"))==NULL){
-    fprintf(stderr,"Error opening output file %s\n",canNamen);
+    errorf("Error opening output file %s\n",canNamen);
     exit(1);
   }
 
@@ -1053,7 +1053,7 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   }
 
   if(canB->cUbound[2]<0.0){  /*then there is no data*/
-    fprintf(stderr,"Canopy bound issue %f in %s from %d xBound %.2f %.2f yBound %.2f %.2f\n",canB->cUbound[2],canNamen,xBin,bounds[0],bounds[3],bounds[1],bounds[4]);
+    errorf("Canopy bound issue %f in %s from %d xBound %.2f %.2f yBound %.2f %.2f\n",canB->cUbound[2],canNamen,xBin,bounds[0],bounds[3],bounds[1],bounds[4]);
     exit(1);
   }
   canB->cUbound[0]-=buff;
@@ -1066,8 +1066,8 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   canB->cNy=(int)((canB->cUbound[3]-canB->cUbound[1])/canB->cRes)+1;
 
   if((canB->cNx<=0)||(canB->cNy<=0)){
-    fprintf(stderr,"canopy pixel error\n");
-    fprintf(stderr,"x %f %f y %f %f res %f\n",canB->cUbound[2],canB->cUbound[0],canB->cUbound[3],canB->cUbound[1],canB->cRes);
+    errorf("canopy pixel error\n");
+    errorf("x %f %f y %f %f res %f\n",canB->cUbound[2],canB->cUbound[0],canB->cUbound[3],canB->cUbound[1],canB->cRes);
     exit(1);
   }
 
@@ -1076,7 +1076,7 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   canB->canMax=falloc((uint64_t)totN,"canMax",0);
 
   if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
-    fprintf(stderr,"fseek error\n");
+    errorf("fseek error\n");
     exit(1);
   }
   while(fgets(line,400,ipoo)!=NULL){
@@ -1139,7 +1139,7 @@ void setCanInd(int *wStart,int *wEnd,double xCent,double yCent,double zCent,lasF
     yBin=(int)((y-canB->cUbound[1])/(double)canB->cRes+0.5);
 
     if((xBin<0)||(xBin>=canB->cNx)||(yBin<0)||(yBin>=canB->cNy)){
-      //fprintf(stderr,"Canopy bounds not wide enough for ind %d %d %d %d point %f %f can bound %f %f\n",xBin,yBin,canB->cNx,canB->cNy,x,y,canB->cUbound[0],canB->cUbound[1]);
+      //errorf("Canopy bounds not wide enough for ind %d %d %d %d point %f %f can bound %f %f\n",xBin,yBin,canB->cNx,canB->cNy,x,y,canB->cUbound[0],canB->cUbound[1]);
       (*wStart)=0;
       (*wEnd)=lasIn->waveLen;
       break;
@@ -1193,7 +1193,7 @@ double setCanGround(double x,double y,canBstruct *canB)
     place=yBin*canB->cNx+xBin;
     z=canB->canMin[place];
   }else{
-    //fprintf(stderr,"Canopy bounds not wide enough for z %d %d %d %d\n",xBin,yBin,canB->cNx,canB->cNy);
+    //errorf("Canopy bounds not wide enough for z %d %d %d %d\n",xBin,yBin,canB->cNx,canB->cNy);
     z=-10000.0;
   }
 
@@ -1228,7 +1228,7 @@ void setTopVoxBlank(voxStruct *vox)
         total=0.0;
         for(numb=0;numb<vox->nScans;numb++)total+=vox->hits[numb][place]+vox->miss[numb][place];
         if(total>0.0){
-          fprintf(stderr,"Balls\n");
+          errorf("Balls\n");
           exit(1);
         }
         for(numb=0;numb<vox->nScans;numb++)vox->miss[numb][place]=1.0;
@@ -1309,7 +1309,7 @@ void writeAsciiVox(voxStruct *vox,char *outRoot)
 
   sprintf(namen,"%s.vox",outRoot);
   if((opoo=fopen(namen,"w"))==NULL){
-    fprintf(stderr,"Error opening output file %s\n",namen);
+    errorf("Error opening output file %s\n",namen);
     exit(1);
   }
   fprintf(opoo,"# 1 x, 2 y, 3 z, 4 cover, 5 nALS\n");
