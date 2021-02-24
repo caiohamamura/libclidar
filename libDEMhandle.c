@@ -57,11 +57,11 @@ demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double max
   line=challoc((uint64_t)maxLen,"line",0);
 
   if(!(dem=(demStruct *)calloc(1,sizeof(demStruct)))){
-    fprintf(stderr,"error demStruct allocation.\n");
+    errorf("error demStruct allocation.\n");
     exit(1);
   }
   if((ipoo=fopen(namen,"r"))==NULL){
-    fprintf(stderr,"Error opening dem file %s\n",namen);
+    errorf("Error opening dem file %s\n",namen);
     exit(1);
   }
 
@@ -118,11 +118,11 @@ demStruct *readTifDEM(char *namen,double minX,double minY,double maxX,double max
 
   /*allocate space*/
   if(!(dem=(demStruct *)calloc(1,sizeof(demStruct)))){
-    fprintf(stderr,"error demStruct allocation.\n");
+    errorf("error demStruct allocation.\n");
     exit(1);
   }
   if(!(geotiff=(geot *)calloc(1,sizeof(geot)))){
-    fprintf(stderr,"error geotiff allocation.\n");
+    errorf("error geotiff allocation.\n");
     exit(1);
   }
 

@@ -226,7 +226,7 @@ uint16_t *swapUint16Arr(uint16_t *jimlad,int numb)
 
   /*allocate space*/
   if(!(swap=(uint16_t *)calloc(numb,sizeof(uint16_t)))){
-    fprintf(stderr,"error in uint16 swap array allocation.\n");
+    errorf("error in uint16 swap array allocation.\n");
     exit(1);
   }
 
@@ -616,22 +616,22 @@ uint8_t *read1dUint8HDF5(hid_t file,char *varName,int *nBins)
   filetype=H5Dget_type(dset);
   space=H5Dget_space(dset);
   //if((filetype!=H5T_NATIVE_USHORT)&&(filetype!=H5T_STD_I16BE)&&(filetype!=H5T_STD_I16LE)){
-  //  fprintf(stderr,"Wrong data type\n");
+  //  errorf("Wrong data type\n");
   //  exit(1);
   //}
   ndims=H5Sget_simple_extent_dims(space,dims,NULL);
   if(ndims>1){
-    fprintf(stderr,"Wrong number of dimensions %d\n",ndims);
+    errorf("Wrong number of dimensions %d\n",ndims);
     exit(1);
   }
   *nBins=dims[0];
   if(!(jimlad=(uint8_t *)calloc(*nBins,sizeof(uint8_t)))){
-    fprintf(stderr,"error in float buffer allocation.\n");
+    errorf("error in float buffer allocation.\n");
     exit(1);
   }
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
-    fprintf(stderr,"Data reading error %d\n",status);
+    errorf("Data reading error %d\n",status);
     exit(1);
   }
   status=H5Dclose(dset);
@@ -902,14 +902,14 @@ int writeComp1dUint8HDF5(hid_t file,char *varName,uint8_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -951,14 +951,14 @@ int writeComp1dUint32HDF5(hid_t file,char *varName,uint32_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -999,14 +999,14 @@ int writeComp1dInt8HDF5(hid_t file,char *varName,int8_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1047,14 +1047,14 @@ int writeComp1dInt32HDF5(hid_t file,char *varName,int32_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1096,14 +1096,14 @@ int writeComp1dUint64HDF5(hid_t file,char *varName,uint64_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1145,14 +1145,14 @@ int writeComp1dUint16HDF5(hid_t file,char *varName,uint16_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1413,14 +1413,14 @@ int writeComp2dInt8HDF5(hid_t file,char *varName,int8_t *data,int nWaves,int nBi
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1604,14 +1604,14 @@ int writeComp1dDoubleHDF5(hid_t file,char *varName,double *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
@@ -1690,14 +1690,14 @@ int write1dInt64HDF5(hid_t file,char *varName,int64_t *data,int nWaves)
   /*create new dataset*/
   dset=H5Dcreate2(file,varName,datatype,dataspace,lcpl_id,dcpl_id,dapl_id);
   if(dset<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
   /*write data*/
   status=H5Dwrite(dset,datatype,H5S_ALL,H5S_ALL,H5P_DEFAULT,(void *)data);
   if(status<0){
-    fprintf(stderr,"Error writing %s\n",varName);
+    errorf("Error writing %s\n",varName);
     return -1;
   }
 
