@@ -889,9 +889,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
   }
 
   /*read all data into RAM*/
-  if(isPtx==1)     ISINTRETNULL(readPTXleica(namen,0,&tempTLS));
-  else if(isHDF==1)ISINTRETNULL(readTLSpolarHDF(namen,0,&tempTLS));
-  else             ISINTRETNULL(readTLSpolarBinary(namen,0,&tempTLS));
+  if(isPtx==1)      { ISINTRETNULL(readPTXleica(namen,0,&tempTLS)); }
+  else if(isHDF==1) { ISINTRETNULL(readTLSpolarHDF(namen,0,&tempTLS)); }
+  else              { ISINTRETNULL(readTLSpolarBinary(namen,0,&tempTLS)); }
 
   /*if we are saving points, allocate a buffer*/
   if(vox->savePts){
@@ -924,9 +924,9 @@ tlsScan *readOneTLS(char *namen,voxStruct *vox,char useFracGap,tlsVoxMap *map,in
     /*loop over beams in scan*/
     for(j=0;j<tempTLS->nBeams;j++){
       /*update where we are in the file if needed*/
-      if(isPtx==1)     ISINTRETNULL(readPTXleica(namen,j,&tempTLS));
-      else if(isHDF==1)ISINTRETNULL(readTLSpolarHDF(namen,j,&tempTLS));
-      else             ISINTRETNULL(readTLSpolarBinary(namen,j,&tempTLS));
+      if(isPtx==1)      { ISINTRETNULL(readPTXleica(namen,j,&tempTLS)); }
+      else if(isHDF==1) { ISINTRETNULL(readTLSpolarHDF(namen,j,&tempTLS)); }
+      else              { ISINTRETNULL(readTLSpolarBinary(namen,j,&tempTLS)); }
       tInd=j-tempTLS->pOffset;   /*update index to account for buffered memory*/
 
       /*avoid tilt mount if needed*/

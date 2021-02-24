@@ -508,7 +508,7 @@ multRet *filterData(float *y,int numb,float offset)
             break;
           }
         }/*track to start*/
-        if(found==0)ASSIGN_CHECKNULL_RETNULL(returns->sBin,markInt(returns->nFeat,returns->sBin,1));
+        if(found==0) { ASSIGN_CHECKNULL_RETNULL(returns->sBin,markInt(returns->nFeat,returns->sBin,1)); }
       }
     }else if((y[i]<=waveThresh)&&(inFeat==1)){
       inFeat=0;

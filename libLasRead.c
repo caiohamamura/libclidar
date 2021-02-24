@@ -713,7 +713,7 @@ double **readCoordList(int nFiles,char **nameList,char *coordNamen)
     return(NULL);
   }
   ASSIGN_CHECKNULL_RETNULL(coords,dDalloc(nFiles,"coords",0));
-  for(i=0;i<nFiles;i++)ASSIGN_CHECKNULL_RETNULL(coords[i],dalloc(3,"coords",i+1));
+  for(i=0;i<nFiles;i++) { ASSIGN_CHECKNULL_RETNULL(coords[i],dalloc(3,"coords",i+1)); }
 
   while(fgets(line,200,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){
