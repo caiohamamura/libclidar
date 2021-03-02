@@ -1,14 +1,14 @@
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "math.h"
-#include "inttypes.h"
-#include "tools.h"
-#include "functionWrappers.h"
-#include "float.h"
-#include "gsl/gsl_errno.h"
-#include "gsl/gsl_fft_complex.h"
-#include "mpfit.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <inttypes.h>
+#include <tools.h>
+#include <functionWrappers.h>
+#include <float.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_fft_complex.h>
+#include <mpfit.h>
 #include "libLasRead.h"
 #include "libLasProcess.h"
 
@@ -194,7 +194,7 @@ float *processFloWave(float *wave,int waveLen,denPar *decon,float gbic)
 
   /*Gaussian fitting*/
   if(decon->fitGauss||decon->gaussFilt){
-    ASSIGN_CHECKNULL_RETNULL(gaussWave,fitGaussians(smoothed,waveLen,decon));
+    ASSIGN_CHECKNULL_RETNULL(gaussWave,fitGaussians(processed,waveLen,decon));
     /*test for hard target*/
     if(decon->gaussFilt){
       if((decon->nGauss==1)&&(decon->gPar[2]<=decon->hardWidth))hardTarget=1;
