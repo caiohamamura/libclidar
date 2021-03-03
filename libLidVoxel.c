@@ -982,7 +982,7 @@ void makeBinImage(double *coord,float *area,float *count,char *rImage,int numb,f
 /*############################################*/
 /*read cnaopy bounds*/
 
-void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
+int readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
 {
   int xBin=0,yBin=0;
   int totN=0,place=0;
@@ -995,7 +995,7 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
 
   if((ipoo=fopen(canNamen,"r"))==NULL){
     errorf("Error opening output file %s\n",canNamen);
-    exit(1);
+    return -1;
   }
 
   buff=20.0;
@@ -1037,7 +1037,7 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
 
   if(canB->cUbound[2]<0.0){  /*then there is no data*/
     errorf("Canopy bound issue %f in %s from %d xBound %.2f %.2f yBound %.2f %.2f\n",canB->cUbound[2],canNamen,xBin,bounds[0],bounds[3],bounds[1],bounds[4]);
-    exit(1);
+    return -1;
   }
   canB->cUbound[0]-=buff;
   canB->cUbound[1]-=buff;
@@ -1051,16 +1051,16 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   if((canB->cNx<=0)||(canB->cNy<=0)){
     errorf("canopy pixel error\n");
     errorf("x %f %f y %f %f res %f\n",canB->cUbound[2],canB->cUbound[0],canB->cUbound[3],canB->cUbound[1],canB->cRes);
-    exit(1);
+    return -1;
   }
 
   totN=canB->cNx*canB->cNy;
-  canB->canMin=falloc((uint64_t)totN,"canMin",0);
-  canB->canMax=falloc((uint64_t)totN,"canMax",0);
+  ASSIGN_CHECKNULL_RETINT(canB->canMin,falloc((uint64_t)totN,"canMin",0));
+  ASSIGN_CHECKNULL_RETINT(canB->canMax,falloc((uint64_t)totN,"canMax",0));
 
   if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
     errorf("fseek error\n");
-    exit(1);
+    return -1;
   }
   while(fgets(line,400,ipoo)!=NULL){
     if(strncasecmp(line,"#",1)){
@@ -1188,7 +1188,7 @@ double setCanGround(double x,double y,canBstruct *canB)
 /*#######################################*/
 /*set higher voxels bank*/
 
-void setTopVoxBlank(voxStruct *vox)
+int setTopVoxBlank(voxStruct *vox)
 {
   int i=0,j=0,k=0;
   int numb=0,place=0;
@@ -1212,7 +1212,7 @@ void setTopVoxBlank(voxStruct *vox)
         for(numb=0;numb<vox->nScans;numb++)total+=vox->hits[numb][place]+vox->miss[numb][place];
         if(total>0.0){
           errorf("Balls\n");
-          exit(1);
+          return -1;
         }
         for(numb=0;numb<vox->nScans;numb++)vox->miss[numb][place]=1.0;
       }
@@ -1283,7 +1283,7 @@ void voxelate(voxStruct *vox,float *wave,lasFile *lasIn,double xCent,double yCen
 /*############################################*/
 /*write out ASCII voxels*/
 
-void writeAsciiVox(voxStruct *vox,char *outRoot)
+int writeAsciiVox(voxStruct *vox,char *outRoot)
 {
   int i=0,j=0,k=0;
   int place=0;
@@ -1293,7 +1293,7 @@ void writeAsciiVox(voxStruct *vox,char *outRoot)
   sprintf(namen,"%s.vox",outRoot);
   if((opoo=fopen(namen,"w"))==NULL){
     errorf("Error opening output file %s\n",namen);
-    exit(1);
+    return (-1);
   }
   fprintf(opoo,"# 1 x, 2 y, 3 z, 4 cover, 5 nALS\n");
   /*write out the voxel map*/
@@ -1319,7 +1319,7 @@ void writeAsciiVox(voxStruct *vox,char *outRoot)
   }
   fprintf(stdout,"Written to %s\n",namen);
 
-  return;
+  return 0;
 }/*writeAsciiVox*/
 
 /*the end*/
