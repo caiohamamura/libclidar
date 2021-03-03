@@ -196,7 +196,7 @@ lvisLGWdata *readLVISlgw(char *namen,lvisLGWstruct *lvis)
       if(arg>0.0)data[i].zen=atan2(sqrt(1.0-arg*arg),arg)*180.0/M_PI;
     }
     if(lvis->verMin==4){   /*v1.4 needs byte swapping*/
-      data[i].rxwave4=swapUint16Arr(data[i].rxwave4,lvis->nBins);
+      ASSIGN_CHECKNULL_RETNULL(data[i].rxwave4,swapUint16Arr(data[i].rxwave4,lvis->nBins));
     }
   }
   TIDY(buffer);
@@ -227,7 +227,7 @@ uint16_t *swapUint16Arr(uint16_t *jimlad,int numb)
   /*allocate space*/
   if(!(swap=(uint16_t *)calloc(numb,sizeof(uint16_t)))){
     errorf("error in uint16 swap array allocation.\n");
-    exit(1);
+    return NULL;
   }
 
   /*loop over array*/
@@ -632,17 +632,17 @@ uint8_t *read1dUint8HDF5(hid_t file,char *varName,int *nBins)
   ndims=H5Sget_simple_extent_dims(space,dims,NULL);
   if(ndims>1){
     errorf("Wrong number of dimensions %d\n",ndims);
-    exit(1);
+    return NULL;
   }
   *nBins=dims[0];
   if(!(jimlad=(uint8_t *)calloc(*nBins,sizeof(uint8_t)))){
     errorf("error in float buffer allocation.\n");
-    exit(1);
+    return NULL;
   }
   status=H5Dread(dset,filetype,H5S_ALL,H5S_ALL,H5P_DEFAULT,jimlad);
   if(status){
     errorf("Data reading error %d\n",status);
-    exit(1);
+    return NULL;
   }
   status=H5Dclose(dset);
   status=H5Sclose(space);
