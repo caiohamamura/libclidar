@@ -1098,7 +1098,7 @@ int readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
     ipoo=NULL;
   }
 
-  return;
+  return 0;
 }/*readCanBounds*/
 
 
@@ -1219,7 +1219,7 @@ int setTopVoxBlank(voxStruct *vox)
     }/*y loop*/
   }/*x loop*/
 
-  return;
+  return 0;
 }/*setTopVoxBlank*/
 
 
