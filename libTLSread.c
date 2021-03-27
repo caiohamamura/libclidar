@@ -169,7 +169,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
 
   /*is this the first call?*/
   if((*scan)==NULL){  /*if so, read size and allocate space*/
-    fprintf(stdout,"Reading %s ",namen);
+    msgf("Reading %s ",namen);
 
     /*allocate structure and open file*/
     if(!((*scan)=(tlsScan *)calloc(1,sizeof(tlsScan)))){
@@ -186,7 +186,7 @@ int readTLSpolarHDF(char *namen,uint32_t place,tlsScan **scan)
     memcpy(&(*scan)->nBeams,read1dUint32HDF5((*scan)->hdfFile,"TOTSHOT",&tempInt),sizeof(uint32_t));
     memcpy(&(*scan)->nPoints,read1dUint32HDF5((*scan)->hdfFile,"TOTHITS",&tempInt),sizeof(uint32_t));
 
-    fprintf(stdout,"There are %u beams\n",(*scan)->nBeams);
+    msgf("There are %u beams\n",(*scan)->nBeams);
 
     /*allocate space for beams*/
     if(!((*scan)->beam=(tlsBeam *)calloc((long)(*scan)->nBeams,sizeof(tlsBeam)))){

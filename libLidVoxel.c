@@ -1334,7 +1334,7 @@ int writeAsciiVox(voxStruct *vox,char *outRoot)
     fclose(opoo);
     opoo=NULL;
   }
-  fprintf(stdout,"Written to %s\n",namen);
+  msgf("Written to %s\n",namen);
 
   return 0;
 }/*writeAsciiVox*/
