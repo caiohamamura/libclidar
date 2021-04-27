@@ -726,23 +726,48 @@ fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f 
     if(rY==0.0)rY=(bounds[4]-bounds[1])*1000.0;
     if(rZ==0.0)rZ=(bounds[5]-bounds[2])*1000.0;
 
-    if((rX<rY)&&(rX<rZ)){  /*x change*/
+    if((rX<rY)&&(rX<rZ)){       /*x change*/
       coord[0]=nextX;
       coord[1]+=rX*vectY;
       coord[2]+=rX*vectZ;
       xBin+=xDir;
-    }else if((rY<rZ)&&(rY<rX)){       /*y change*/
+    }else if((rY<rZ)&&(rY<rX)){  /*y change*/
       coord[0]+=rY*vectX;
       coord[1]=nextY;
       coord[2]+=rY*vectZ;
       yBin+=yDir;
-    }else if((rZ<rY)&&(rZ<rX)){                 /*z change*/
+    }else if((rZ<rY)&&(rZ<rX)){  /*z change*/
       coord[0]+=rZ*vectX;
       coord[1]+=rZ*vectY;
       coord[2]=nextZ;
       zBin+=zDir;
+    }else if((rX<rZ)&&(rX==rY)){ /*x and y change*/
+      coord[0]=nextX;
+      coord[1]+=rX*vectY;
+      coord[2]+=rX*vectZ;
+      xBin+=xDir;
+      yBin+=yDir;
+    }else if((rX<rY)&&(rX==rZ)){ /*x and z change*/
+      coord[0]=nextX;
+      coord[1]+=rX*vectY;
+      coord[2]+=rX*vectZ;
+      xBin+=xDir;
+      zBin+=zDir;
+    }else if((rY<rX)&&(rY==rZ)){ /*y and z change*/
+      coord[0]+=rY*vectX;
+      coord[1]=nextY;
+      coord[2]+=rY*vectZ;
+      yBin+=yDir;
+      zBin+=zDir;
+    }else if((rX==rY)&&(rX==rZ)){ /*x and y and z change*/
+      coord[0]=nextX;
+      coord[1]+=rX*vectY;
+      coord[2]+=rX*vectZ;
+      xBin+=xDir;
+      yBin+=yDir;
+      zBin+=zDir;
     }else{
-      fprintf(stderr,"Hit a corner\n");
+      fprintf(stderr,"Intersection test issue: %f %f %f\n",rX,rY,rZ);
       exit(1);
     }
 
@@ -752,14 +777,6 @@ fprintf(stdout,"pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f 
       pixList=markInt(*nPix,pixList,xBin+vX*yBin+vX*vY*zBin);
       rangeList[0]=markDo(*nPix,rangeList[0],sqrt((coord[0]-xCent)*(coord[0]-xCent)+\
                  (coord[1]-yCent)*(coord[1]-yCent)+(coord[2]-zCent)*(coord[2]-zCent)));
-
-/*if(*nPix>0){
-  if((rangeList[0][*nPix]-rangeList[0][(*nPix)-1])>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2])){
-//fprintf(stdout,"error %f %f %f %d bins %d %d %d of %d %d %d dirs %d %d %d ranges %f %f %f vect %f %f %f next %f %f %f\n",rangeList[0][*nPix]-rangeList[0][(*nPix)-1],rangeList[0][*nPix],rangeList[0][(*nPix)-1],*nPix,xBin,yBin,zBin,vX,vY,vZ,xDir,yDir,zDir,rX,rY,rZ,vectX,vectY,vectZ,nextX,nextY,nextZ);
-  }else{
-//fprintf(stdout,"fine %f %f %f %d bins %d %d %d of %d %d %d dirs %d %d %d mode %d ranges %f %f %f\n",rangeList[0][*nPix]-rangeList[0][(*nPix)-1],rangeList[0][*nPix],rangeList[0][(*nPix)-1],*nPix,xBin,yBin,zBin,vX,vY,vZ,xDir,yDir,zDir,mode,rX,rY,rZ);
-  }
-}*/
       (*nPix)++;
     }
   }/*intersection loop*/
