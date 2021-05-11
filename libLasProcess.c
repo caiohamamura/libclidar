@@ -643,7 +643,7 @@ void meanNoiseStats(float *sampled,uint32_t waveLen,float *meanN,float *thresh,f
 
   (*thresh)=(*meanN)+threshScale*stdev;
   if(tailThresh<=0.0)(*thisTail)=(*thresh);
-  else               (*thisTail)=(*thresh)+tailThresh;
+  else               (*thisTail)=(*meanN)+tailThresh*stdev;
 
   return;
 }/*meanNoiseStats*/
