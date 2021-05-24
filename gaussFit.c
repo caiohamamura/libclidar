@@ -237,9 +237,9 @@ float *fitSingleGauss(float *x,float *decon,int nBins,float gSmooth,int *totGaus
 
   /*the fitting*/
   fitCheck=mpfit(gaussErr,nBins,nParams,params,parStruct,config,(void *)(&data),result);
-  if(fitCheck<0){
+  /*if(fitCheck<0){
     fprintf(stderr,"fitCheck %d\n",fitCheck);
-  } 
+  }*/
 
   /*tidy up*/
   if(result){
