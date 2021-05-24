@@ -220,6 +220,7 @@ uint64_t *read1dUint64HDF5(hid_t,char *,int *);
 int *read1dIntHDF5(hid_t,char *,int *); 
 float *read15dFloatHDF5(hid_t,char *,int *,int *);
 char *read15dCharHDF5(hid_t,char *,int *,int *);
+uint16_t **read2dUint16HDF5(hid_t,char *,int *,int *);
 
 /*the end*/
 /*####################################################*/

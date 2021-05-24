@@ -341,7 +341,6 @@ lvisHDF *readLVIShdf(char *inNamen)
   int nWaves=0;
   lvisHDF *lvis=NULL;
   void checkNumber(int,int,char *);
-  uint16_t **read2dUint16HDF5(hid_t,char *,int *,int *);
   hid_t file;         /* Handles */
 
 
