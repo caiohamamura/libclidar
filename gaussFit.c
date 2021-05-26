@@ -373,7 +373,7 @@ float *fitGauss(float *x,float *y,int numb,float minErr,turnStruct *turnings,flo
     exit(1);
   }
   config->nofinitecheck=1;
-  config->maxiter=2000;
+  config->maxiter=1000;
   if(!(result=(mp_result *)calloc(1,sizeof(mp_result)))){
     fprintf(stderr,"error in mpfit structure.\n");
     exit(1);
@@ -558,7 +558,6 @@ int gaussErr(int numb, int npar, double *p, double *deviates,double **derivs, vo
   float A=0,mu=0,sig=0;
   dataStruct *data=NULL;
 
-
   data=(dataStruct *)private;
 
   for(j=0;j<data->nGauss;j++){
@@ -587,6 +586,7 @@ int gaussErr(int numb, int npar, double *p, double *deviates,double **derivs, vo
     }/*Gaussian loop*/
     deviates[i]=(double)(y-data->y[i]);
   }/*time loop*/
+
 
   return(0);
 }/*gaussErr*/
