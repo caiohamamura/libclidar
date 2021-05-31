@@ -342,6 +342,7 @@ lvisHDF *readLVIShdf(char *inNamen)
   lvisHDF *lvis=NULL;
   void checkNumber(int,int,char *);
   hid_t file;         /* Handles */
+  char varName[10];  /*name for variable bin HDF5 files*/
 
 
   /*allocate structure*/
@@ -374,10 +375,6 @@ lvisHDF *readLVIShdf(char *inNamen)
   lvis->nWaves=nWaves;
   lvis->lat0=read1dDoubleHDF5(file,"LAT0",&nWaves);
   checkNumber(nWaves,lvis->nWaves,"LAT0");
-  lvis->lon1023=read1dDoubleHDF5(file,"LON1023",&nWaves);
-  checkNumber(nWaves,lvis->nWaves,"LON1023");
-  lvis->lat1023=read1dDoubleHDF5(file,"LAT1023",&nWaves);
-  checkNumber(nWaves,lvis->nWaves,"LAT1023");
   lvis->time=read1dDoubleHDF5(file,"TIME",&nWaves);
   checkNumber(nWaves,lvis->nWaves,"TIME");
 
@@ -386,8 +383,6 @@ lvisHDF *readLVIShdf(char *inNamen)
   checkNumber(nWaves,lvis->nWaves,"INCIDENTANGLE");
   lvis->z0=read1dFloatHDF5(file,"Z0",&nWaves);
   checkNumber(nWaves,lvis->nWaves,"Z0");
-  lvis->z1023=read1dFloatHDF5(file,"Z1023",&nWaves);
-  checkNumber(nWaves,lvis->nWaves,"Z1023");
   lvis->sigmean=read1dFloatHDF5(file,"SIGMEAN",&nWaves);
   checkNumber(nWaves,lvis->nWaves,"SIGMEAN");
 
@@ -403,7 +398,17 @@ lvisHDF *readLVIShdf(char *inNamen)
   /*if there is a pulse*/
   /*lvis->pulse=read2dUint16HDF5(file,"TXWAVE",&lvis->pBins,&nWaves);
   checkNumber(nWaves,lvis->nWaves,"TXWAVE");*/
-  fprintf(stdout,"Note that txwaves are not currently read. Check required\n");
+
+  /*use the number of bins to determine the last bin variable names*/
+  sprintf(varName,"LAT%d",lvis->nBins-1);
+  lvis->lat1023=read1dDoubleHDF5(file,varName,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,varName);
+  sprintf(varName,"LON%d",lvis->nBins-1);
+  lvis->lon1023=read1dDoubleHDF5(file,varName,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,varName);
+  sprintf(varName,"Z%d",lvis->nBins-1);
+  lvis->z1023=read1dFloatHDF5(file,varName,&nWaves);
+  checkNumber(nWaves,lvis->nWaves,varName);
 
   /*close file*/
   if(H5Fclose(file)){
