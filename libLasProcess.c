@@ -705,7 +705,7 @@ float *matchedFilter(float *wave,int nBins,denPar *denoise,float res)
     smoothed[i]=0.0;
     energy=0.0;
     for(j=0;j<denoise->pBins;j++){
-      bin=(int)((denoise->pulse[0][j]-denoise->pulse[0][denoise->maxPbin])/res)+i;
+      bin=(int)floor((denoise->pulse[0][j]-denoise->pulse[0][denoise->maxPbin])/res)+i;
       if((bin>=0)&&(bin<nBins)){
         smoothed[i]+=denoise->matchPulse[j]*wave[bin];
         energy+=denoise->matchPulse[j];
