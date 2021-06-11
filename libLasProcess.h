@@ -140,6 +140,7 @@ float *waveLmoments(float *,int,float,int);
 float niMetric(float *,double *,int,float,double,float);
 float determineGaussSep(float,float);
 float *matchedFilter(float *,int,denPar *,float);
+float *canProfile(float *,float *,int);
 float *subtractGroundFromCan(float *,float *,int);
 float *subtractGaussFromCan(float *,int,float,float,float,double *);
 

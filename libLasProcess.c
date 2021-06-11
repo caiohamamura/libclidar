@@ -1749,6 +1749,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
   float *rh=NULL;
   float lastRet=0;
   char *done=NULL;
+  char hasEnergy=0;
 
   /*total energy*/
   totE=0.0;
@@ -1774,7 +1775,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
           if(r>totE)r=totE;
           if((done[j]==0)&&(cumul>=r)){
             rh[j]=(float)(z[i]-gHeight);
-            done[j]=1;
+            done[j]=hasEnergy=1;
           }
         }
         lastRet=(float)(z[i]-gHeight);
@@ -1789,18 +1790,23 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
           if(r>totE)r=totE;
           if((done[j]==0)&&(cumul>=r)){
             rh[j]=(float)(z[i]-gHeight);
-            done[j]=1;
+            done[j]=hasEnergy=1;
           }
         }
         lastRet=(float)(z[i]-gHeight);
       }
     }
   }
+  TIDY(done);
 
   /*in case there was a rounding error for RH100*/
   if(rh[(*nRH)-1]<-9000.0)rh[(*nRH)-1]=lastRet;
 
-  TIDY(done);
+  /*was this waveform empty*/
+  if(!hasEnergy){
+    for(i=0;i<*nRH;i++)rh[i]=0.0;
+  }
+
   return(rh);
 }/*findRH*/
 
@@ -1932,12 +1938,40 @@ float *subtractGaussFromCan(float *wave,int nBins,float mu,float A,float sig,dou
 
 
 /*####################################################*/
-/*subtract ground from canopy and correct for attenuation*/
+/*subtract ground from canopy and correct fors attenuation*/
+
+float *canProfile(float *wave,float *ground,int nBins)
+{
+  int i=0;
+  float tot=0,gap=0;
+  float *canProf=NULL;
+
+  /*allocate*/
+  canProf=falloc((uint64_t)nBins,"canope wave",0);
+
+  /*wave integram for attenuation correction*/
+  tot=0.0;
+  for(i=0;i<nBins;i++)tot+=wave[i];
+
+  /*calculate*/
+  gap=1.0;
+  for(i=0;i<nBins;i++){
+    if(gap>0.0)canProf[i]=(wave[i]-ground[i])/gap;
+    if(canProf[i]<0.0)canProf[i]=0.0;
+    gap-=wave[i]/tot;
+  }
+
+  return(canProf);
+}/*canProfile*/
+
+
+/*####################################################*/
+/*make a canopy only waveform*/
 
 float *subtractGroundFromCan(float *wave,float *ground,int nBins)
 {
   int i=0;
-  float tot=0,gap=0;
+  float tot=0;
   float *canWave=NULL;
 
   /*allocate*/
@@ -1948,15 +1982,13 @@ float *subtractGroundFromCan(float *wave,float *ground,int nBins)
   for(i=0;i<nBins;i++)tot+=wave[i];
 
   /*calculate*/
-  gap=1.0;
   for(i=0;i<nBins;i++){
-    if(gap>0.0)canWave[i]=(wave[i]-ground[i])/gap;
+    canWave[i]=wave[i]-ground[i];
     if(canWave[i]<0.0)canWave[i]=0.0;
-    gap-=wave[i]/tot;
   }
 
   return(canWave);
-}/*subtractGroundFromCan*/
+}/*canProfile*/
 
 
 /*####################################################*/
