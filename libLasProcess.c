@@ -978,7 +978,7 @@ double *goldMeth(double *data,double *pulse,int numb,int maxIter,double minChang
   int real=0,imag=0;
   double *o=NULL,*work=NULL;
   double *smooth=NULL,*denom=NULL;
-  double tot=0,changeSq=0,minChangeSq=0;
+  double changeSq=0,minChangeSq=0;
   double new=0;
   int gsl_fft_complex_radix2_forward(gsl_complex_packed_array,size_t,size_t);
   int gsl_fft_complex_radix2_backward(gsl_complex_packed_array, size_t,size_t);
@@ -1017,7 +1017,6 @@ double *goldMeth(double *data,double *pulse,int numb,int maxIter,double minChang
     gsl_fft_complex_radix2_backward((gsl_complex_packed_array)smooth,1,numb);
 
     /*reblur deoniminator*/
-    tot=0.0;
     changeSq=0.0;
     for(i=0;i<numb;i++){
       real=i*2;
@@ -1025,7 +1024,6 @@ double *goldMeth(double *data,double *pulse,int numb,int maxIter,double minChang
       denom[i]=sqrt(smooth[real]*smooth[real]+smooth[imag]*smooth[imag]);
       if(denom[i]>0.0){
         new=o[i]*data[i]/denom[i];
-        tot+=new;
       }else new=0.0;
       changeSq+=(o[i]-new)*(o[i]-new);
       o[i]=new;
@@ -1971,15 +1969,14 @@ float *canProfile(float *wave,float *ground,int nBins)
 float *subtractGroundFromCan(float *wave,float *ground,int nBins)
 {
   int i=0;
-  float tot=0;
   float *canWave=NULL;
 
   /*allocate*/
   canWave=falloc((uint64_t)nBins,"canope wave",0);
 
-  /*wave integram for attenuation correction*/
-  tot=0.0;
-  for(i=0;i<nBins;i++)tot+=wave[i];
+  ///*wave integra; for attenuation correction*/
+  //tot=0.0;
+  //for(i=0;i<nBins;i++)tot+=wave[i];
 
   /*calculate*/
   for(i=0;i<nBins;i++){
