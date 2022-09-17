@@ -1820,6 +1820,7 @@ float *findRH(float *wave,double *z,int nBins,double gHeight,float rhRes,int *nR
 /*####################################################*/
 /*foliage height diversity from waveform*/
 
+
 float foliageHeightDiversity(float *wave,int nBins)
 {
   int i=0;
@@ -1827,7 +1828,7 @@ float foliageHeightDiversity(float *wave,int nBins)
   float p=0,total=0;
 
   /*only if there is a valid wave*/
-  if(wave==NULL)return(-100000.0);
+  if(wave==NULL)return(-FLT_MAX);
 
   /*determine a threshold*/
   thresh=TOL;
@@ -1861,7 +1862,7 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
   float *hist=NULL;
 
   /*exit if there is not a valid wave*/
-  if(wave==NULL)return(0.0);
+  if(wave==NULL)return(-FLT_MAX);
 
   /*determine a threshold*/
   thresh=TOL;
@@ -1885,7 +1886,7 @@ float foliageHeightDiversityHist(float *wave,int nBins,float res)
   }
 
   /*exit if the waveform is blank*/
-  if((total<TOL)||(histBins<1))return(0.0);
+  if((total<TOL)||(histBins<1))return(-FLT_MAX);
 
   /*make histogram*/
   ASSIGN_CHECKNULL_RETFLT(hist,falloc((uint64_t)histBins,"FHD histogram",0));
