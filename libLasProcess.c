@@ -853,7 +853,6 @@ float *deconvolve(float *data,int nBins,float **pulse,int pBins,float res,int ma
   double *richLucy(double *,double *,int,int,double);
   double energy=0,newEn=0;   /*to balance energies*/
 
-
   /*arrays have to be of base 2 length*/
   numb=pow(2.0,(float)((int)(log((double)nBins)/log(2.0)+0.5)+1));
   ASSIGN_CHECKNULL_RETNULL(dataDo,dalloc(numb,"dataDo",0));
