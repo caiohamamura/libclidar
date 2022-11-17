@@ -1118,6 +1118,8 @@ double *resamplePulse(int numb,float **pulse,float res,int pBins)
 
   /*find nearest pulse point to bin, start from centre*/
   step=(int)(res/(pulse[0][1]-pulse[0][0]));
+  if(step<1)step=1;
+
   total=0.0;
   for(i=maxBin;i<pBins;i+=step){
     bin=(int)((pulse[0][i]-maxRange)/res);
