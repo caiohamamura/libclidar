@@ -645,7 +645,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   int *tempList=NULL;
   int tempInt=0;
   double *tempRanges=NULL;
-  void sortVoxRange(int **,float **,int **,int);
+  void sortVoxRange(int **,double **,int **,int);
 
   /*loop over files*/
   for(i=0;i<nFiles;i++){
@@ -662,14 +662,14 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
         fprintf(stderr,"Error in file index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
         exit(1);
       }
-      if(!(*rangeList=(int *)realloc(*rangeList,(*nIn+tempInt)*sizeof(float)))){
+      if(!(*rangeList=(double *)realloc(*rangeList,(*nIn+tempInt)*sizeof(double)))){
         fprintf(stderr,"Error in range reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(float));
         exit(1);
       }
     }else{
       voxList=ialloc(tempInt,"voxel index",0);
       *fileList=ialloc(tempInt,"voxel file index",0);
-      *rangeList=falloc(tempInt,"voxel range",0);
+      *rangeList=dalloc(tempInt,"voxel range",0);
     }
 
     /*copy arrays*/
@@ -679,7 +679,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
     TIDY(tempRanges);
 
     /*save file index*/
-    for(j=0;j<tempInt;j++)fileList[*nIn+j]=i;
+    for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
 
     *nIn+=tempInt;
   }/*file loop*/
@@ -694,7 +694,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
 /*###########################################################################*/
 /*sort voxels by range*/
 
-void sortVoxRange(int **voxList,float **rangeList,int **fileList,int nIn)
+void sortVoxRange(int **voxList,double **rangeList,int **fileList,int nIn)
 {
   int i=0;
   int *newVox=NULL,*newFile=NULL;
