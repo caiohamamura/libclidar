@@ -186,6 +186,7 @@ rImageStruct *allocateRangeImage(float,float,float,float *,double *,double *);
 voxStruct *voxAllocate(int,float *,double *,char);
 voxStruct *tidyVox(voxStruct *);
 int *findVoxels(double *,double,double,double,double *,double *,int *,int,int,int,double **);
+int *findAllVoxels(double *,double,double,double,voxStruct **,int,int **,double **,int *);
 int *beamVoxels(float *,double,double,double,double *,double *,int,int,int,int *,double,double **,float);
 float tlsPointSize(double,uint16_t,float,float,float,float,float,float);
 double *findVoxelBounds(int *,int,voxStruct *,tlsVoxMap *,float *,double,double,double);
