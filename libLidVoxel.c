@@ -716,10 +716,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
     if(vectZ!=0.0)rZ=(nextZ-coord[2])/vectZ;
     else          rZ=0.0;
 
-/*if((rX>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rY>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))&&(rZ>sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]))){
-msgf("pix %d last %f %f %f bins %d %d %d nextBin %d %d %d coord %f %f %f ranges %f %f %f of %f dir %d %d %d\n",*nPix,coord[0],coord[1],coord[2],xBin,yBin,zBin,nextXbin,nextYbin,nextZbin,nextX,nextY,nextZ,rX,rY,rZ,sqrt(vRes[0]*vRes[0]+vRes[1]*vRes[1]+vRes[2]*vRes[2]),xDir,yDir,zDir);
-}*/
-
     /*if nothing has changed*/
     if(rX==0.0)rX=(bounds[3]-bounds[0])*1000.0;
     if(rY==0.0)rY=(bounds[4]-bounds[1])*1000.0;
