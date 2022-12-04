@@ -9,6 +9,7 @@
 #include "libDEMhandle.h"
 #include "libLasProcess.h"
 #include "libLidVoxel.h"
+#include "gsl/gsl_sort.h"
 
 
 /*#########################*/
@@ -635,6 +636,100 @@ void tidyVoxelMap(tlsVoxMap *map,int nVox)
 
 
 /*###########################################################################*/
+/*Find all voxels in a list of voxels and sort*/
+
+int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct **vox,int nFiles,int **fileList,double **rangeList,int *nIn)
+{
+  int i=0,j=0;
+  int *voxList=NULL;
+  int *tempList=NULL;
+  int tempInt=0;
+  double *tempRanges=NULL;
+  void sortVoxRange(int **,float **,int **,int);
+
+  /*loop over files*/
+  for(i=0;i<nFiles;i++){
+    /*find voxels for this file*/
+    tempList=findVoxels(vect,xCent,yCent,zCent,&vox[i]->bounds[0],&vox[i]->res[0],&tempInt,vox[i]->nX,vox[i]->nY,vox[i]->nZ,&tempRanges);
+
+    /*add space to main array*/
+    if(*nIn>0){
+      if(!(voxList=(int *)realloc(voxList,(*nIn+tempInt)*sizeof(int)))){
+        fprintf(stderr,"Error in voxel index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
+        exit(1);
+      }
+      if(!(*fileList=(int *)realloc(fileList,(*nIn+tempInt)*sizeof(int)))){
+        fprintf(stderr,"Error in file index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
+        exit(1);
+      }
+      if(!(*rangeList=(int *)realloc(*rangeList,(*nIn+tempInt)*sizeof(float)))){
+        fprintf(stderr,"Error in range reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(float));
+        exit(1);
+      }
+    }else{
+      voxList=ialloc(tempInt,"voxel index",0);
+      *fileList=ialloc(tempInt,"voxel file index",0);
+      *rangeList=falloc(tempInt,"voxel range",0);
+    }
+
+    /*copy arrays*/
+    memcpy(&(voxList[*nIn]),voxList,tempInt*sizeof(int));
+    memcpy(&(rangeList[*nIn]),tempRanges,tempInt*sizeof(double));
+    TIDY(tempList);
+    TIDY(tempRanges);
+
+    /*save file index*/
+    for(j=0;j<tempInt;j++)fileList[*nIn+j]=i;
+
+    *nIn+=tempInt;
+  }/*file loop*/
+
+  /*now sort by range*/
+  sortVoxRange(&voxList,rangeList,fileList,*nIn);
+
+  return(voxList);
+}/*findAllVoxels*/
+
+
+/*###########################################################################*/
+/*sort voxels by range*/
+
+void sortVoxRange(int **voxList,float **rangeList,int **fileList,int nIn)
+{
+  int i=0;
+  int *newVox=NULL,*newFile=NULL;
+  size_t *sortInd=NULL;
+
+  /*allocate space to sort*/
+  if(!(sortInd=(size_t *)calloc(nIn,sizeof(size_t)))){
+    fprintf(stderr,"error in sorted index allocation.\n");
+    exit(1);
+  }
+
+  /*sort all by range*/
+  gsl_sort_index(sortInd,*rangeList,1,nIn);
+
+  /*load up other arrays*/
+  newVox=ialloc(nIn,"new voxel index",0);
+  newFile=ialloc(nIn,"new file index",0);
+
+  for(i=0;i<nIn;i++){
+    newVox[i]=voxList[0][sortInd[i]];
+    newFile[i]=fileList[0][sortInd[i]];
+  }
+
+  TIDY(voxList[0]);
+  TIDY(fileList[0]);
+
+  *voxList=&(newVox[0]);
+  *fileList=&(newFile[0]);
+  newVox=newFile=NULL;
+
+  return;
+}/*sortVoxRange*/
+
+
+/*###########################################################################*/
 /*find intersecting voxels*/
 
 int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *bounds,double *vRes,int *nPix,int vX,int vY,int vZ,double **rangeList)
@@ -1069,7 +1164,6 @@ void readCanBounds(canBstruct *canB,char *canNamen,double *bounds)
   }
 
   totN=canB->cNx*canB->cNy;
-  canB->canMin=falloc((uint64_t)totN,"canMin",0);
   canB->canMax=falloc((uint64_t)totN,"canMax",0);
 
   if(fseek(ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
