@@ -671,14 +671,18 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
       *rangeList=dalloc(tempInt,"voxel range",0);
     }
 
-    /*copy arrays*/
-    memcpy(&(voxList[*nIn]),voxList,tempInt*sizeof(int));
-    memcpy(&(rangeList[*nIn]),tempRanges,tempInt*sizeof(double));
+    /*copy arrays if needed*/
+    if(tempInt>0){
+      memcpy(&(voxList[*nIn]),voxList,tempInt*sizeof(int));
+      memcpy(&(rangeList[*nIn]),tempRanges,tempInt*sizeof(double));
+
+      /*save file index*/
+      for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
+    }
     TIDY(tempList);
     TIDY(tempRanges);
 
-    /*save file index*/
-    for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
+fprintf(stdout,"Int %d %d\n",*nIn,tempInt);
 
     *nIn+=tempInt;
   }/*file loop*/
