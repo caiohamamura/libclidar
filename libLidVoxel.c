@@ -718,8 +718,10 @@ void sortVoxRange(int **voxList,double **rangeList,int **fileList,int nIn)
     newFile[i]=fileList[0][sortInd[i]];
   }
 
+  /*tidy up*/
   TIDY(voxList[0]);
   TIDY(fileList[0]);
+  TIDY(sortInd);
 
   *voxList=&(newVox[0]);
   *fileList=&(newFile[0]);
