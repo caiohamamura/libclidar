@@ -84,7 +84,7 @@ demStruct *readAscDEM(char *namen,double minX,double minY,double maxX,double max
       token=strtok(line," ");
       i=0;
       while(token!=NULL) {
-        place=j*dem->nY+i;
+        place=j*dem->nX+i;
         dem->z[place]=atof(token);
         i++;
       }
