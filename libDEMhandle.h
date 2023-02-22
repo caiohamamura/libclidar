@@ -54,6 +54,7 @@ typedef struct{
 
 demStruct *readTifDEM(char *,double,double,double,double);
 demStruct *tidyDEMstruct(demStruct *);
+double findDEMelev(double,double,demStruct *);
 
 /*the end*/
 /*#######################################*/

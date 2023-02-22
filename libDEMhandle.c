@@ -188,6 +188,27 @@ demStruct *readTifDEM(char *namen,double minX,double minY,double maxX,double max
 }/*readTifDEM*/
 
 
+/*##################################################*/
+/*find an elevationnon the DEM*/
+
+double findDEMelev(double x,double y,demStruct *dem)
+{
+  int dI=0,dJ=0,dPlace=0;
+
+  dI=(int)((x-dem->minX)/(double)dem->res);
+  dJ=(int)((y-dem->minY)/(double)dem->res);
+
+  /*make sure we don't go outside the DEM*/
+  if(dI<0)dI=0;
+  if(dJ<0)dJ=0;
+  if(dI>=dem->nX)dI=dem->nX-1;
+  if(dJ>=dem->nY)dJ=dem->nY-1;
+  dPlace=dI+(dem->nY-(dJ+1))*dem->nX;
+
+  return(dem->z[dPlace]);
+}/*findDEMelev*/
+
+
 /*#################################################*/
 /*tidy up a DEM structuire*/
 
