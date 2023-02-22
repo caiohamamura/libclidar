@@ -646,7 +646,6 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   int *tempVL=NULL,*tempFL=NULL;
   double *tempRanges=NULL;
   double *tempR=NULL;
-  void sortVoxRange(int **,double **,int **,int);
 
   /*loop over files*/
   for(i=0;i<nFiles;i++){
@@ -718,46 +717,6 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
 
   return(voxList);
 }/*findAllVoxels*/
-
-
-/*###########################################################################*/
-/*sort voxels by range*/
-
-void sortVoxRange(int **voxList,double **rangeList,int **fileList,int nIn)
-{
-  int i=0;
-  int *newVox=NULL,*newFile=NULL;
-  size_t *sortInd=NULL;
-
-  /*allocate space to sort*/
-  if(!(sortInd=(size_t *)calloc(nIn,sizeof(size_t)))){
-    fprintf(stderr,"error in sorted index allocation.\n");
-    exit(1);
-  }
-
-  /*sort all by range*/
-  gsl_sort_index(sortInd,*rangeList,1,nIn);
-
-  /*load up other arrays*/
-  newVox=ialloc(nIn,"new voxel index",0);
-  newFile=ialloc(nIn,"new file index",0);
-
-  for(i=0;i<nIn;i++){
-    newVox[i]=voxList[0][sortInd[i]];
-    newFile[i]=fileList[0][sortInd[i]];
-  }
-
-  /*tidy up*/
-  TIDY(voxList[0]);
-  TIDY(fileList[0]);
-  TIDY(sortInd);
-
-  *voxList=&(newVox[0]);
-  *fileList=&(newFile[0]);
-  newVox=newFile=NULL;
-
-  return;
-}/*sortVoxRange*/
 
 
 /*###########################################################################*/
