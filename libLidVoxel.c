@@ -666,27 +666,28 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
       continue;
     }
 
+
     /*add space to main array*/
     if(*nIn>0){
       if(tempRanges[0]<*rangeList[0]){ /*insert before*/
 
         tempVL=ialloc(*nIn+tempInt,"",0);
         memcpy(&(tempVL[0]),tempList,tempInt*sizeof(int));
-        memcpy(&(tempVL[*nIn]),voxList,tempInt*sizeof(int));
+        memcpy(&(tempVL[tempInt]),voxList,*nIn*sizeof(int));
         TIDY(voxList);
         voxList=tempVL;
         tempVL=NULL;
 
         tempFL=ialloc(*nIn+tempInt,"",0);
         for(j=0;j<tempInt;j++)tempFL[j]=i;
-        memcpy(&(tempFL[*nIn]),*fileList,tempInt*sizeof(int));
+        memcpy(&(tempFL[tempInt]),*fileList,*nIn*sizeof(int));
         TIDY(*fileList);
         *fileList=tempFL;
         tempFL=NULL;
 
         tempR=dalloc(*nIn+tempInt,"",0);
         memcpy(&(tempR[0]),tempRanges,tempInt*sizeof(double));
-        memcpy(&(tempR[*nIn]),*rangeList,tempInt*sizeof(double));
+        memcpy(&(tempR[tempInt]),*rangeList,*nIn*sizeof(double));
         TIDY(*rangeList);
         *rangeList=tempR;
         tempR=NULL;
@@ -711,10 +712,11 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
       TIDY(tempList);
       TIDY(tempRanges);
     }else{
+
       voxList=tempList;
       *rangeList=tempRanges;
       *fileList=ialloc(tempInt,"voxel file index",0);
-      for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
+      for(j=0;j<tempInt;j++)fileList[0][j]=i;
       tempList=NULL;
       tempRanges=NULL;
     }
