@@ -360,45 +360,27 @@ int *beamVoxels(float *gradIn,double x0,double y0,double z0,double *bounds,doubl
 /*#######################################*/
 /*if outside bounds find closest facet*/
 
-void findClosestFacet(double *coords,double *vCorn,double zen,double az)
+void findClosestFacet(double *coords,double *bounds,double *vect,int xDir,int yDir,int zDir)
 {
-  int i=0,j=0;
-  double range[6];  /*range from centre to each facet*/
-  double vect[3],thisC[3];
-  double transCoord[3];
+  int i=0;
+  char found=0;
+  double xR=0,yR=0,zR=0;
   double minR=0;
-  char outside=0,found=0;
+  double transCoord[3];
+  void checkOuterFacet(double,double *,double *,double *,double *,double *,char *);
 
-  /*lidar vector*/
-  vect[0]=sin(zen)*sin(az);
-  vect[1]=sin(zen)*cos(az);
-  vect[2]=cos(zen);
+  if(xDir<0)xR=(bounds[3]-coords[0])/vect[0];  /*check right side*/
+  else      xR=(bounds[0]-coords[0])/vect[0];  /*check left side*/
+  if(yDir<0)yR=(bounds[4]-coords[1])/vect[1];  /*check front side*/
+  else      yR=(bounds[1]-coords[1])/vect[1];  /*check back side*/
+  if(zDir<0)zR=(bounds[5]-coords[2])/vect[2];  /*check top side*/
+  else      zR=(bounds[2]-coords[2])/vect[2];  /*check bottom side*/
+  minR=1000000000000.0;
 
-  /*vCorn  minX minY minZ maxX maxY maxZ*/
-  minR=100000.0;
-  found=0;
-  for(i=0;i<6;i++){/*facet loop*/
-    range[i]=(vCorn[i]-coords[i%3])/vect[i%3];
-
-    /*see if this is on the voxel*/
-    outside=0;
-    for(j=0;j<3;j++){
-      thisC[j]=range[i]*vect[j]+coords[j];
-      if((thisC[j]<vCorn[j])||(thisC[j]>vCorn[j+3])){
-        outside=1;
-        break;
-      }
-    }
-
-    /*if not outside keep track of closest*/
-    if(!outside){
-      if((range[i]>=0.0)&&(range[i]<minR)){
-        minR=range[i];
-        for(j=0;j<3;j++)transCoord[j]=thisC[j];
-        found=1;
-      }
-    }/*is on voxel facet check*/
-  }/*facet loop*/
+  /*check all the possible sides*/
+  checkOuterFacet(zR,vect,coords,bounds,&minR,transCoord,&found);   /*top/bottom*/
+  checkOuterFacet(xR,vect,coords,bounds,&minR,transCoord,&found);   /*left/right*/
+  checkOuterFacet(yR,vect,coords,bounds,&minR,transCoord,&found);   /*front/back*/
 
   /*copy if found*/
   if(found){
@@ -407,6 +389,30 @@ void findClosestFacet(double *coords,double *vCorn,double zen,double az)
 
   return;
 }/*findClosestFacet*/
+
+
+/*#######################################*/
+/*check outer facet*/
+
+void checkOuterFacet(double range,double *vect,double *coords,double *bounds,double *minR,double *transCoord,char *found)
+{
+  double x=0,y=0,z=0;
+
+  x=range*vect[0]+coords[0];
+  y=range*vect[1]+coords[1];
+  z=range*vect[2]+coords[2];
+  if((x<=bounds[3]+TOLERANCE)&&(x>=bounds[0]-TOLERANCE)&&(y<=bounds[4]+TOLERANCE)&&\
+     (y>=bounds[1]+TOLERANCE)&&(z<=bounds[5]+TOLERANCE)&&(z>=bounds[2]+TOLERANCE)){
+    if(range<*minR){
+      *minR=range;
+      transCoord[0]=x;
+      transCoord[1]=y;
+      transCoord[2]=z;
+      *found=1;
+    }
+  }
+  return;
+}/*checkOuterFacet*/
 
 
 /*###############################################*/
@@ -652,6 +658,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   for(i=0;i<nFiles;i++){
     /*find voxels for this file*/
     tempList=findVoxels(vect,xCent,yCent,zCent,&vox[i]->bounds[0],&vox[i]->res[0],&tempInt,vox[i]->nX,vox[i]->nY,vox[i]->nZ,&tempRanges);
+    fprintf(stdout,"File %d had %d v %f %f %f\n",i,tempInt,vect[0],vect[1],vect[2]);
 
     /*have we found any?*/
     if(tempInt==0){
@@ -705,11 +712,11 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
       TIDY(tempList);
       TIDY(tempRanges);
     }else{
-      voxList=tempInt;
+      voxList=tempList;
       *rangeList=tempRanges;
       *fileList=ialloc(tempInt,"voxel file index",0);
       for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
-      tempInt=NULL;
+      tempList=NULL;
       tempRanges=NULL;
     }
 
@@ -735,8 +742,8 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   double nextX=0,nextY=0,nextZ=0;
   double rX=0,rY=0,rZ=0;
   double zen=0,az=0;
-  double coord[3];
-  void findClosestFacet(double *,double *,double,double);
+  double coord[3],vect[3];
+  void findClosestFacet(double *,double *,double *,int,int,int);
 
   /*set vector*/
   if(grad[2]<-10.0){   /*grad is a polar vector*/
@@ -758,13 +765,6 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   coord[1]=yCent;
   coord[2]=zCent;
 
-  /*if we are outside test for intersection and move point to start of voxels*/
-  if((coord[0]>bounds[3])||(coord[1]>bounds[4])||(coord[0]<bounds[0])||\
-     (coord[1]<bounds[1])||(coord[2]>bounds[5])||(coord[2]<bounds[2])){
-    /*for each voxel bound facet determine the range to. Reset coord as bound intersection*/
-    findClosestFacet(&(coord[0]),&(bounds[0]),zen,az);
-  }/*outside but heading towards voxel space check*/
-
   /*determine vector directions*/
   if(vectX!=0.0)xDir=(vectX>0.0)?1:-1;
   else          xDir=0;
@@ -772,6 +772,14 @@ int *findVoxels(double *grad,double xCent,double yCent,double zCent,double *boun
   else          yDir=0;
   if(vectZ!=0.0)zDir=(vectZ>0.0)?1:-1;
   else          zDir=0;
+
+  /*if we are outside test for intersection and move point to start of voxels*/
+  if((coord[0]>bounds[3])||(coord[1]>bounds[4])||(coord[0]<bounds[0])||\
+     (coord[1]<bounds[1])||(coord[2]>bounds[5])||(coord[2]<bounds[2])){
+    /*for each voxel bound facet determine the range to. Reset coord as bound intersection*/
+    vect[0]=vectX;vect[1]=vectY;vect[2]=vectZ;
+    findClosestFacet(&(coord[0]),&(bounds[0]),&(vect[0]),xDir,yDir,zDir);
+  }/*outside but heading towards voxel space check*/
 
   /*mark first voxel*/
   xBin=(int)((coord[0]-bounds[0])/vRes[0]);
