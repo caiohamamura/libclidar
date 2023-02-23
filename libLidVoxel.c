@@ -672,22 +672,27 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
       if(tempRanges[0]<*rangeList[0]){ /*insert before*/
 
         tempVL=ialloc(*nIn+tempInt,"",0);
-        memcpy(&(tempVL[0]),tempList,tempInt*sizeof(int));
-        memcpy(&(tempVL[tempInt]),voxList,*nIn*sizeof(int));
+        for(j=0;j<tempInt;j++)tempVL[j]=tempList[j];
+        for(j=0;j<*nIn;j++)tempVL[j+tempInt]=voxList[j];
+        //memcpy(&(tempVL[0]),tempList,tempInt*sizeof(int));
+        //memcpy(&(tempVL[tempInt]),voxList,*nIn*sizeof(int));
         TIDY(voxList);
         voxList=tempVL;
         tempVL=NULL;
 
         tempFL=ialloc(*nIn+tempInt,"",0);
         for(j=0;j<tempInt;j++)tempFL[j]=i;
-        memcpy(&(tempFL[tempInt]),*fileList,*nIn*sizeof(int));
+        for(j=0;j<*nIn;j++)tempFL[j+tempInt]=i;
+        //memcpy(&(tempFL[tempInt]),*fileList,*nIn*sizeof(int));
         TIDY(*fileList);
         *fileList=tempFL;
         tempFL=NULL;
 
         tempR=dalloc(*nIn+tempInt,"",0);
-        memcpy(&(tempR[0]),tempRanges,tempInt*sizeof(double));
-        memcpy(&(tempR[tempInt]),*rangeList,*nIn*sizeof(double));
+        for(j=0;j<tempInt;j++)tempR[j]=tempRanges[j];
+        for(j=0;j<*nIn;j++)tempR[j+tempInt]=rangeList[0][j];
+        //memcpy(&(tempR[0]),tempRanges,tempInt*sizeof(double));
+        //memcpy(&(tempR[tempInt]),*rangeList,*nIn*sizeof(double));
         TIDY(*rangeList);
         *rangeList=tempR;
         tempR=NULL;
@@ -705,8 +710,10 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
           fprintf(stderr,"Error in range reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(double));
           exit(1);
         }
-        memcpy(&(voxList[*nIn]),tempList,tempInt*sizeof(int));
-        memcpy(&(rangeList[*nIn]),tempRanges,tempInt*sizeof(double));
+        for(j=0;j<tempInt;j++)voxList[j+*nIn]=tempList[j];
+        for(j=0;j<tempInt;j++)rangeList[0][j+*nIn]=tempRanges[j];
+        //memcpy(&(voxList[*nIn]),tempList,tempInt*sizeof(int));
+        //memcpy(&(*rangeList[*nIn]),tempRanges,tempInt*sizeof(double));
         for(j=0;j<tempInt;j++)fileList[0][*nIn+j]=i;
       }
       TIDY(tempList);
