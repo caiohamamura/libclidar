@@ -657,7 +657,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   for(i=0;i<nFiles;i++){
     /*find voxels for this file*/
     tempList=findVoxels(vect,xCent,yCent,zCent,&vox[i]->bounds[0],&vox[i]->res[0],&tempInt,vox[i]->nX,vox[i]->nY,vox[i]->nZ,&tempRanges);
-    fprintf(stdout,"File %d had %d v %f %f %f\n",i,tempInt,vect[0],vect[1],vect[2]);
+    fprintf(stdout,"File %d had %d v %f %f %f total %d\n",i,tempInt,vect[0],vect[1],vect[2],*nIn);
 
     /*have we found any?*/
     if(tempInt==0){
@@ -696,7 +696,7 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
           fprintf(stderr,"Error in voxel index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
           exit(1);
         }
-        if(!(*fileList=(int *)realloc(fileList,(*nIn+tempInt)*sizeof(int)))){
+        if(!(*fileList=(int *)realloc(*fileList,(*nIn+tempInt)*sizeof(int)))){
           fprintf(stderr,"Error in file index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
           exit(1);
         }
