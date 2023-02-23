@@ -657,7 +657,6 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   for(i=0;i<nFiles;i++){
     /*find voxels for this file*/
     tempList=findVoxels(vect,xCent,yCent,zCent,&vox[i]->bounds[0],&vox[i]->res[0],&tempInt,vox[i]->nX,vox[i]->nY,vox[i]->nZ,&tempRanges);
-    fprintf(stdout,"File %d had %d v %f %f %f total %d\n",i,tempInt,vect[0],vect[1],vect[2],*nIn);
 
     /*have we found any?*/
     if(tempInt==0){
