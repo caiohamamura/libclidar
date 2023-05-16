@@ -654,6 +654,11 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
   double *tempRanges=NULL;
   double *tempR=NULL;
 
+  /*reset counter*/
+  *nIn=0;
+  TIDY(*fileList);
+  TIDY(*rangeList);
+
   /*loop over files*/
   for(i=0;i<nFiles;i++){
     /*find voxels for this file*/
