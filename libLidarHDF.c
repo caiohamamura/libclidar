@@ -367,6 +367,7 @@ lvisHDF *readLVIShdf(char *inNamen)
   lvis->time=NULL;     /*TIME*/
 
   /*open HDF file*/
+  fprintf(stdout,"Reading %s\n",inNamen);
   file=H5Fopen(inNamen,H5F_ACC_RDONLY,H5P_DEFAULT);
 
   /*read 1D double arrays*/
