@@ -660,7 +660,7 @@ int noteVoxelGaps(int *voxList,int nIntersect,double *rangeList,voxStruct *vox,t
   /*determine the range to the ground, if applicable*/
   if(nIntersect>0){
     if(vox->dem){
-      float ASSIGN_CHECKFLT_RETINT(groundRange,findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol));
+      ASSIGN_CHECKFLT_RETINT(groundRange,findGroundRange(&(tempTLS->beam[j]),vox->dem,maxR,tempTLS,vox->demTol));
     }
     else        groundRange=10.0*maxR;
   }
