@@ -702,15 +702,15 @@ int *findAllVoxels(double *vect,double xCent,double yCent,double zCent,voxStruct
 
       }else{   /*insert at end*/
         if(!(voxList=(int *)realloc(voxList,(*nIn+tempInt)*sizeof(int)))){
-          fprintf(stderr,"Error in voxel index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
+          errorf("Error in voxel index reallocation within multi-voxel tracing, allocating %" PRIu64 "\n",(*nIn+tempInt)*sizeof(int));
           exit(1);
         }
         if(!(*fileList=(int *)realloc(*fileList,(*nIn+tempInt)*sizeof(int)))){
-          fprintf(stderr,"Error in file index reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(int));
+          errorf("Error in file index reallocation within multi-voxel tracing, allocating %" PRIu64 "\n",(*nIn+tempInt)*sizeof(int));
           exit(1);
         }
         if(!(*rangeList=(double *)realloc(*rangeList,(*nIn+tempInt)*sizeof(double)))){
-          fprintf(stderr,"Error in range reallocation within multi-voxel tracing, allocating %lu\n",(*nIn+tempInt)*sizeof(double));
+          errorf("Error in range reallocation within multi-voxel tracing, allocating %" PRIu64 "\n",(*nIn+tempInt)*sizeof(double));
           exit(1);
         }
         for(j=0;j<tempInt;j++)voxList[j+*nIn]=tempList[j];
