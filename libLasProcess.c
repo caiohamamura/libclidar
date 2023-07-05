@@ -53,6 +53,7 @@ smoothPulse smooPulse;   /*global structure to save reallocation*/
 
 float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
 {
+  float status = 0;
   int i=0;
   float *temp=NULL,*processed=NULL;
   float *processFloWave(float *,int,denPar *,float);
@@ -62,7 +63,7 @@ float *processWave(unsigned char *wave,int waveLen,denPar *decon,float gbic)
   for(i=0;i<waveLen;i++)temp[i]=(float)wave[i];
   decon->maxDN=255.0;
   decon->bitRate=8;
-  ASSIGN_CHECKNULL_RETNULL(processed,processFloWave(temp,waveLen,decon,gbic));
+  processed=processFloWave(temp,waveLen,decon,gbic);
   TIDY(temp);
 
   return(processed);
@@ -737,8 +738,6 @@ float *smooth(float sWidth,int nBins,float *data,float res)
   float *smoothed=NULL;
   float energy=0,newRes=0;
   float *setPulse(float,int *,float);
-  float *markFloat(int,float *,float);
-  int *markInt(int,int *,int);
   char newPulse=0;
 
 
@@ -763,12 +762,17 @@ float *smooth(float sWidth,int nBins,float *data,float res)
       tP=smooPulse.nPulses;
       if(!(smooPulse.pulse=(float **)realloc(smooPulse.pulse,(smooPulse.nPulses+1)*sizeof(float *)))){
         errorf("Error reallocating %" PRIu64 "\n",(uint64_t)(smooPulse.nPulses+1)*sizeof(float *));
+        TIDY(smoothed);
         return(NULL);
       }
-      ASSIGN_CHECKNULL_RETNULL(smooPulse.res,markFloat(smooPulse.nPulses,smooPulse.res,newRes));
-      ASSIGN_CHECKNULL_RETNULL(smooPulse.pulse[tP],setPulse(sWidth,&nPulse,smooPulse.res[smooPulse.nPulses]));
-      ASSIGN_CHECKNULL_RETNULL(smooPulse.sWidth,markFloat(smooPulse.nPulses,smooPulse.sWidth,sWidth));
-      ASSIGN_CHECKNULL_RETNULL(smooPulse.nBins,markInt(smooPulse.nPulses,smooPulse.nBins,nPulse));
+      smooPulse.res = markFloat(smooPulse.nPulses,smooPulse.res,newRes);
+      if (smooPulse.res == NULL) goto smooth_error;
+      smooPulse.pulse[tP] = setPulse(sWidth,&nPulse,smooPulse.res[smooPulse.nPulses]);
+      if (smooPulse.pulse[tP] == NULL) goto smooth_error;
+      smooPulse.sWidth = markFloat(smooPulse.nPulses,smooPulse.sWidth,sWidth);
+      if (smooPulse.sWidth== NULL) goto smooth_error;
+      smooPulse.nBins = markInt(smooPulse.nPulses,smooPulse.nBins,nPulse);
+      if (smooPulse.nBins== NULL) goto smooth_error;
       smooPulse.nPulses++;
     }
 
@@ -792,6 +796,10 @@ float *smooth(float sWidth,int nBins,float *data,float res)
   }/*smooth check*/
 
   return(smoothed);
+
+smooth_error:
+  TIDY(smoothed);
+  return NULL;
 }/*smooth*/
 
 

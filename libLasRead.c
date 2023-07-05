@@ -76,6 +76,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   ASSIGN_CHECKNULL_RETNULL(pubHead,challoc((uint64_t)tempLen,"pubHead",0));
   if(fread(&(pubHead[0]),sizeof(char),tempLen,las->ipoo)!=tempLen){
     errorf("error reading data from %s\n",namen);
+    TIDY(pubHead);
     return(NULL);
   }
   if(strncasecmp(pubHead,"LASF",4)){  /*check is a las file*/
@@ -95,12 +96,14 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
   if((las->vMajor!=1)||(las->vMinor>4)){
     errorf("Version too new for this program\n");
     errorf("Version %d.%d\n",las->vMajor,las->vMinor);
+    TIDY(pubHead);
     return(NULL);
   }
 
   /*rewind*/
   if(fseek(las->ipoo,(long)0,SEEK_SET)){ /*rewind to start of file*/
     errorf("fseek error\n");
+    TIDY(pubHead);
     return(NULL);
   }
 
@@ -109,6 +112,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
 
   if(fread(&(pubHead[0]),sizeof(char),las->headSize,las->ipoo)!=las->headSize){
     errorf("error reading data from %s\n",namen);
+    TIDY(pubHead);
     return(NULL);
   }
 
@@ -161,6 +165,7 @@ lasFile *readLasHead(char *namen,uint64_t pBuffSize)
     if((las->nPoints==0)&&(temp64>0)){
       if(temp64>=4294967296){
         errorf("Currently the library cannot handle more than 4294967296 points per file\n");
+        TIDY(pubHead);
         return(NULL);
       }
       las->nPoints=(uint32_t)temp64;
